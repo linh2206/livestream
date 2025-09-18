@@ -79,6 +79,34 @@ detect_os() {
     log_info "Detected OS: $OS"
 }
 
+# Check network connectivity
+check_network() {
+    log_info "Checking network connectivity..."
+    
+    if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        log_error "No internet connection. Please check your network."
+        exit 1
+    fi
+    
+    if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
+        log_warning "DNS resolution failed. Trying to fix DNS..."
+        
+        # Try to fix DNS
+        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
+        echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null
+        
+        # Wait a moment
+        sleep 2
+        
+        if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
+            log_error "DNS still not working. Please check your network configuration."
+            exit 1
+        fi
+    fi
+    
+    log_success "Network connectivity OK"
+}
+
 # Install Docker
 install_docker() {
     log_info "Installing Docker..."
@@ -95,23 +123,41 @@ install_docker() {
             exit 1
         fi
     elif [[ "$OS" == "ubuntu" ]]; then
+        # Check network first
+        check_network
+        
         log_info "Updating package lists..."
-        sudo apt update --fix-missing
+        sudo apt update --fix-missing || {
+            log_error "Failed to update package lists. Please check your internet connection."
+            exit 1
+        }
         
         log_info "Installing prerequisites..."
-        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release --fix-missing
+        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release --fix-missing || {
+            log_error "Failed to install prerequisites. Please check your internet connection."
+            exit 1
+        }
         
         log_info "Adding Docker GPG key..."
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg || {
+            log_error "Failed to add Docker GPG key. Please check your internet connection."
+            exit 1
+        }
         
         log_info "Adding Docker repository..."
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         
         log_info "Updating package lists again..."
-        sudo apt update --fix-missing
+        sudo apt update --fix-missing || {
+            log_error "Failed to update package lists after adding Docker repo. Please check your internet connection."
+            exit 1
+        }
         
         log_info "Installing Docker..."
-        sudo apt install -y docker-ce docker-ce-cli containerd.io --fix-missing
+        sudo apt install -y docker-ce docker-ce-cli containerd.io --fix-missing || {
+            log_error "Failed to install Docker. Please check your internet connection."
+            exit 1
+        }
         
         sudo usermod -aG docker $USER
         log_warning "Please log out and log back in for Docker group changes to take effect."
@@ -143,8 +189,14 @@ install_ffmpeg() {
     if [[ "$OS" == "macos" ]]; then
         brew install ffmpeg
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update --fix-missing
-        sudo apt install -y ffmpeg --fix-missing
+        sudo apt update --fix-missing || {
+            log_error "Failed to update package lists for FFmpeg. Please check your internet connection."
+            exit 1
+        }
+        sudo apt install -y ffmpeg --fix-missing || {
+            log_error "Failed to install FFmpeg. Please check your internet connection."
+            exit 1
+        }
     fi
     
     log_success "FFmpeg installed successfully"
@@ -197,12 +249,56 @@ setup_project() {
     log_success "Project setup completed"
 }
 
+# Fix network issues
+fix_network() {
+    log_info "Attempting to fix network issues..."
+    
+    # Try different DNS servers
+    log_info "Setting up alternative DNS servers..."
+    echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
+    echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null
+    echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf >/dev/null
+    
+    # Restart networking
+    sudo systemctl restart systemd-resolved 2>/dev/null || true
+    
+    # Wait for DNS to work
+    sleep 3
+    
+    # Test again
+    if nslookup archive.ubuntu.com >/dev/null 2>&1; then
+        log_success "Network fixed!"
+        return 0
+    else
+        log_error "Network still not working. Please check your server configuration."
+        return 1
+    fi
+}
+
 # Install function
 install_app() {
     echo "🎬 LiveStream App - Universal Installer"
     echo "======================================"
     
     detect_os
+    
+    # Check network first
+    if [[ "$OS" == "ubuntu" ]]; then
+        if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
+            log_warning "Network issues detected. Attempting to fix..."
+            if ! fix_network; then
+                log_error "Cannot fix network issues. Please check your server configuration:"
+                echo ""
+                echo "1. Check internet connection"
+                echo "2. Check DNS settings"
+                echo "3. Check firewall settings"
+                echo "4. Try: sudo systemctl restart networking"
+                echo ""
+                exit 1
+            fi
+        fi
+    fi
+    
     install_docker
     install_docker_compose
     install_ffmpeg
