@@ -188,42 +188,40 @@ install_ffmpeg() {
     
     if [[ "$OS" == "macos" ]]; then
         if command -v brew >/dev/null 2>&1; then
-            brew install ffmpeg
+            brew install ffmpeg || {
+                log_error "Failed to install FFmpeg via Homebrew"
+                exit 1
+            }
         else
-            log_error "Homebrew not found. Please install Homebrew first or install FFmpeg manually."
+            log_error "Homebrew not found. Please install Homebrew first."
             exit 1
         fi
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Update package lists first
+        # Update package lists
         sudo apt update --fix-missing || {
             log_error "Failed to update package lists. Please check your internet connection."
             exit 1
         }
         
-        # Try to install FFmpeg with multiple methods
-        if ! sudo apt install -y ffmpeg --fix-missing; then
-            log_warning "Standard FFmpeg installation failed. Trying alternative methods..."
-            
-            # Try installing from snap
-            if command -v snap >/dev/null 2>&1; then
-                log_info "Trying to install FFmpeg via snap..."
-                sudo snap install ffmpeg || {
-                    log_error "Snap installation also failed."
-                    exit 1
-                }
-            else
-                # Try adding universe repository
-                log_info "Adding universe repository and trying again..."
-                sudo apt install -y software-properties-common
-                sudo add-apt-repository universe -y
-                sudo apt update
-                sudo apt install -y ffmpeg --fix-missing || {
-                    log_error "All FFmpeg installation methods failed. Please install manually:"
-                    echo "  sudo apt update"
-                    echo "  sudo apt install -y ffmpeg"
-                    exit 1
-                }
-            fi
+        # Enable universe repository
+        sudo apt install -y software-properties-common
+        sudo add-apt-repository universe -y
+        sudo apt update
+        
+        # Try multiple installation methods
+        if sudo apt install -y ffmpeg --fix-missing; then
+            log_success "FFmpeg installed via apt"
+        elif sudo snap install ffmpeg; then
+            log_success "FFmpeg installed via snap"
+        elif sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y && sudo apt update && sudo apt install -y ffmpeg; then
+            log_success "FFmpeg installed via PPA"
+        else
+            log_error "All FFmpeg installation methods failed!"
+            log_error "Please install FFmpeg manually:"
+            echo "  sudo apt update && sudo apt install -y ffmpeg"
+            echo "  sudo snap install ffmpeg"
+            echo "  Download from https://ffmpeg.org/download.html"
+            exit 1
         fi
     else
         log_error "Unsupported OS: $OS. Please install FFmpeg manually."
