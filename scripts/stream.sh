@@ -1,149 +1,171 @@
 #!/bin/bash
-set -euo pipefail
 
-# FFmpeg Test Stream - Universal Script
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 🎬 LiveStream App - Streaming Script
 
-# Colors
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+set -e
 
-log_info() { echo -e "${BLUE}==> $1${NC}"; }
-log_success() { echo -e "${GREEN}✅ $1${NC}"; }
-log_error() { echo -e "${RED}❌ $1${NC}"; }
-log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Check if app is running
-if ! curl -s http://localhost:8080/health >/dev/null 2>&1; then
-    log_error "LiveStream app not running. Start it first with ./start.sh"
-    exit 1
-fi
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# Show streaming options
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Streaming options
 show_options() {
+    echo "🎬 LiveStream App - Streaming Options"
+    echo "===================================="
     echo ""
-    echo "🎬 LiveStream - Streaming Options"
-    echo "================================="
+    echo "Choose your streaming method:"
     echo ""
-    echo "📺 RTMP Server: rtmp://localhost:1935/live"
-    echo "🔑 Stream Key:  stream"
-    echo ""
-    echo "Choose streaming method:"
-    echo "1) Test stream (color bars + audio)"
-    echo "2) Webcam stream (macOS)"
-    echo "3) Webcam stream (Linux)"
-    echo "4) Screen capture (macOS)"
-    echo "5) Screen capture (Linux)"
-    echo "6) Custom FFmpeg command"
-    echo "7) Show OBS Studio setup"
+    echo "1. 🎨 Test Stream (Color Bars)"
+    echo "2. 📹 Webcam Stream (macOS)"
+    echo "3. 📹 Webcam Stream (Linux)"
+    echo "4. 🖥️  Screen Capture (macOS)"
+    echo "5. 🖥️  Screen Capture (Linux)"
+    echo "6. ⚙️  Custom FFmpeg Command"
+    echo "7. 📖 OBS Studio Setup Guide"
     echo ""
 }
 
 # Test stream with color bars
 test_stream() {
     log_info "Starting test stream with color bars..."
-    log_info "Press Ctrl+C to stop"
-    echo ""
     
-    ffmpeg -hide_banner -loglevel info \
-        -f lavfi -re -i testsrc=size=1280x720:rate=30 \
-        -f lavfi -re -i sine=frequency=1000:sample_rate=48000 \
-        -c:v libx264 -preset veryfast -tune zerolatency \
-        -b:v 2500k -maxrate 2500k -bufsize 5000k \
-        -c:a aac -b:a 128k -ac 2 -ar 48000 \
-        -f flv rtmp://localhost:1935/live/stream
+    ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=30 \
+           -f lavfi -i sine=frequency=1000:sample_rate=48000 \
+           -c:v libx264 -preset veryfast -tune zerolatency \
+           -c:a aac -ar 48000 -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream
 }
 
-# Webcam stream (macOS)
+# Webcam stream for macOS
 webcam_macos() {
     log_info "Starting webcam stream (macOS)..."
-    log_info "Press Ctrl+C to stop"
-    echo ""
+    log_info "Available video devices:"
+    ffmpeg -f avfoundation -list_devices true -i ""
     
-    ffmpeg -hide_banner -loglevel info \
-        -f avfoundation -i "0:0" \
-        -c:v libx264 -preset veryfast -tune zerolatency \
-        -b:v 2500k -maxrate 2500k -bufsize 5000k \
-        -c:a aac -b:a 128k -ac 2 -ar 48000 \
-        -f flv rtmp://localhost:1935/live/stream
+    echo ""
+    read -p "Enter video device number (default: 0): " video_device
+    video_device=${video_device:-0}
+    
+    read -p "Enter audio device number (default: 0): " audio_device
+    audio_device=${audio_device:-0}
+    
+    log_info "Starting stream with video device $video_device and audio device $audio_device..."
+    
+    ffmpeg -f avfoundation -i "$video_device:$audio_device" \
+           -c:v libx264 -preset veryfast -tune zerolatency \
+           -c:a aac -ar 48000 -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream
 }
 
-# Webcam stream (Linux)
+# Webcam stream for Linux
 webcam_linux() {
     log_info "Starting webcam stream (Linux)..."
-    log_info "Press Ctrl+C to stop"
-    echo ""
+    log_info "Available video devices:"
+    ls /dev/video*
     
-    ffmpeg -hide_banner -loglevel info \
-        -f v4l2 -i /dev/video0 \
-        -f alsa -i default \
-        -c:v libx264 -preset veryfast -tune zerolatency \
-        -b:v 2500k -maxrate 2500k -bufsize 5000k \
-        -c:a aac -b:a 128k -ac 2 -ar 48000 \
-        -f flv rtmp://localhost:1935/live/stream
+    echo ""
+    read -p "Enter video device (default: /dev/video0): " video_device
+    video_device=${video_device:-/dev/video0}
+    
+    log_info "Starting stream with device $video_device..."
+    
+    ffmpeg -f v4l2 -i "$video_device" \
+           -f alsa -i default \
+           -c:v libx264 -preset veryfast -tune zerolatency \
+           -c:a aac -ar 48000 -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream
 }
 
-# Screen capture (macOS)
+# Screen capture for macOS
 screen_macos() {
     log_info "Starting screen capture (macOS)..."
-    log_info "Press Ctrl+C to stop"
-    echo ""
     
-    ffmpeg -hide_banner -loglevel info \
-        -f avfoundation -i "1:0" \
-        -c:v libx264 -preset veryfast -tune zerolatency \
-        -b:v 2500k -maxrate 2500k -bufsize 5000k \
-        -c:a aac -b:a 128k -ac 2 -ar 48000 \
-        -f flv rtmp://localhost:1935/live/stream
+    ffmpeg -f avfoundation -i "1:0" \
+           -c:v libx264 -preset veryfast -tune zerolatency \
+           -c:a aac -ar 48000 -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream
 }
 
-# Screen capture (Linux)
+# Screen capture for Linux
 screen_linux() {
     log_info "Starting screen capture (Linux)..."
-    log_info "Press Ctrl+C to stop"
-    echo ""
     
-    ffmpeg -hide_banner -loglevel info \
-        -f x11grab -i :0.0 \
-        -f alsa -i default \
-        -c:v libx264 -preset veryfast -tune zerolatency \
-        -b:v 2500k -maxrate 2500k -bufsize 5000k \
-        -c:a aac -b:a 128k -ac 2 -ar 48000 \
-        -f flv rtmp://localhost:1935/live/stream
+    ffmpeg -f x11grab -i :0.0 \
+           -f alsa -i default \
+           -c:v libx264 -preset veryfast -tune zerolatency \
+           -c:a aac -ar 48000 -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream
 }
 
 # Custom FFmpeg command
 custom_command() {
     echo ""
-    log_info "Custom FFmpeg command examples:"
+    log_info "Custom FFmpeg Command"
+    echo "======================="
     echo ""
-    echo "📹 Webcam + Audio:"
-    echo "ffmpeg -f avfoundation -i \"0:0\" -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost:1935/live/stream"
+    echo "RTMP URL: rtmp://localhost:1935/live/stream"
     echo ""
-    echo "🖥️  Screen + Audio:"
-    echo "ffmpeg -f avfoundation -i \"1:0\" -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost:1935/live/stream"
+    echo "Example commands:"
+    echo "  ffmpeg -i input.mp4 -c copy -f flv rtmp://localhost:1935/live/stream"
+    echo "  ffmpeg -f avfoundation -i 0:0 -c:v libx264 -preset veryfast -f flv rtmp://localhost:1935/live/stream"
     echo ""
-    echo "📁 File + Audio:"
-    echo "ffmpeg -i input.mp4 -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost:1935/live/stream"
-    echo ""
-    echo "🎵 Audio only:"
-    echo "ffmpeg -f avfoundation -i \":0\" -c:a aac -b:a 128k -f flv rtmp://localhost:1935/live/stream"
-    echo ""
+    echo "Enter your custom FFmpeg command:"
+    read -p "ffmpeg " custom_cmd
+    
+    if [ -n "$custom_cmd" ]; then
+        log_info "Executing: ffmpeg $custom_cmd"
+        ffmpeg $custom_cmd
+    else
+        log_warning "No command entered"
+    fi
 }
 
-# OBS Studio setup
+# OBS Studio setup guide
 obs_setup() {
     echo ""
-    log_info "OBS Studio Setup:"
+    log_info "OBS Studio Setup Guide"
+    echo "========================"
     echo ""
-    echo "1. Open OBS Studio"
-    echo "2. Go to Settings → Stream"
-    echo "3. Set Service to 'Custom...'"
-    echo "4. Server: rtmp://localhost:1935/live"
-    echo "5. Stream Key: stream"
-    echo "6. Click 'Start Streaming'"
+    echo "1. Download and install OBS Studio:"
+    echo "   https://obsproject.com/"
     echo ""
-    echo "📺 Your stream will be available at:"
-    echo "   http://localhost:8080"
+    echo "2. Open OBS Studio and go to Settings → Stream"
+    echo ""
+    echo "3. Configure streaming settings:"
+    echo "   Service: Custom..."
+    echo "   Server: rtmp://localhost:1935/live"
+    echo "   Stream Key: stream"
+    echo ""
+    echo "4. Click 'OK' to save settings"
+    echo ""
+    echo "5. Click 'Start Streaming' to begin"
+    echo ""
+    echo "6. Access your stream at: http://localhost:8080"
+    echo ""
+    echo "📝 Tips:"
+    echo "  - Make sure LiveStream App is running (./scripts/start.sh)"
+    echo "  - Check your internet connection"
+    echo "  - Adjust bitrate based on your upload speed"
     echo ""
 }
 
@@ -165,12 +187,18 @@ main() {
     esac
 }
 
-# Check if FFmpeg is available
+# Check if FFmpeg is installed
 if ! command -v ffmpeg >/dev/null 2>&1; then
-    log_error "FFmpeg is not installed. Please install it first:"
-    echo "  macOS: brew install ffmpeg"
-    echo "  Ubuntu: sudo apt install ffmpeg"
+    log_error "FFmpeg is not installed. Please run ./scripts/install.sh first."
     exit 1
 fi
 
-main
+# Check if services are running
+if ! curl -f http://localhost:8080/health >/dev/null 2>&1; then
+    log_warning "LiveStream App services are not running."
+    log_info "Please start the services first: ./scripts/start.sh"
+    exit 1
+fi
+
+# Run main function
+main "$@"
