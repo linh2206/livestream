@@ -31,10 +31,6 @@ install:
 
 start:
 	@echo "Starting all services..."
-	@echo "Cleaning up existing containers and images..."
-	@docker stop $$(docker ps -q) 2>/dev/null || true
-	@docker container prune -f 2>/dev/null || true
-	@docker image prune -f 2>/dev/null || true
 	@./scripts/livestream.sh start || (echo "Failed to start services. Check logs above." && exit 1)
 
 stop:
@@ -69,8 +65,6 @@ deploy-multi:
 # Maintenance commands
 clean:
 	@echo "Cleaning up..."
-	@echo "Stopping any running Docker builds..."
-	@docker stop $$(docker ps -q) 2>/dev/null || true
 	@./scripts/livestream.sh clean
 
 logs:

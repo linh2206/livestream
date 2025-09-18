@@ -354,24 +354,34 @@ start_app() {
     
     check_docker
     
-    log_info "Cleaning up existing containers and images..."
+    log_info "Stopping ALL Docker processes and cleaning system..."
     COMPOSE_CMD=$(get_compose_cmd)
     
-    # Stop and remove all containers, networks, and volumes
-    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down -v --remove-orphans >/dev/null 2>&1 || true
+    # Stop all containers first
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down >/dev/null 2>&1 || true
     
-    # Remove any dangling containers and images
-    docker container prune -f >/dev/null 2>&1 || true
-    docker image prune -f >/dev/null 2>&1 || true
+    # Kill all running containers
+    docker kill $(docker ps -q) >/dev/null 2>&1 || true
+    docker rm -f $(docker ps -aq) >/dev/null 2>&1 || true
     
-    # Remove specific livestream images if they exist
-    docker rmi $(docker images "livestream*" -q) 2>/dev/null || true
-    docker rmi $(docker images "*livestream*" -q) 2>/dev/null || true
+    # Clean all unused resources
+    docker system prune -af >/dev/null 2>&1 || true
+    docker builder prune -af >/dev/null 2>&1 || true
+    
+    log_success "Docker system cleaned completely"
     
     log_info "Starting LiveStream App services..."
     
-    # Start services with build
-    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d --build
+    # Start services
+    if $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d; then
+        log_success "Services started successfully"
+    else
+        log_error "Failed to start services"
+        log_info "This might be due to network issues. Try:"
+        echo "  docker system prune -af"
+        echo "  ./scripts/livestream.sh start"
+        exit 1
+    fi
     
     log_info "Waiting for services to be ready..."
     for i in {1..30}; do
@@ -403,6 +413,7 @@ start_app() {
     echo "  ./scripts/livestream.sh stop"
     echo ""
 }
+
 
 # Stop function
 stop_app() {
@@ -836,15 +847,7 @@ clean_app() {
     echo "  • SSH connection (port 22)"
     echo "  • Project code and files"
     echo ""
-    log_error "⚠️  WARNING: This will clean everything except SSH and code!"
-    echo ""
-    
-    read -p "Are you sure you want to continue? (yes/no): " confirm
-    
-    if [[ "$confirm" != "yes" ]]; then
-        log_info "Clean cancelled."
-        return
-    fi
+    log_info "Starting clean operation..."
     
     kill_all_processes
     remove_docker_completely
@@ -892,15 +895,7 @@ uninstall_app() {
     echo "✅ ONLY PROTECTED:"
     echo "  • SSH connection (port 22)"
     echo ""
-    log_error "⚠️  WARNING: This will ULTRA CLEAN everything except SSH!"
-    echo ""
-    
-    read -p "Are you sure you want to continue? (yes/no): " confirm
-    
-    if [[ "$confirm" != "yes" ]]; then
-        log_info "Uninstall cancelled."
-        return
-    fi
+    log_info "Starting ultra clean uninstall..."
     
     kill_all_processes
     remove_docker_completely
@@ -951,16 +946,13 @@ show_main_menu() {
     echo "Choose an action:"
     echo ""
     echo "1. 🔧 Install/Setup"
-    echo "2. 🚀 Start Services (Local)"
-    echo "3. 🚀 Start Services (Production)"
-    echo "4. 🛑 Stop Services"
-    echo "5. 📊 Show Status"
-    echo "6. 🎮 Start Streaming"
-    echo "7. 🧪 Test Local Environment"
-    echo "8. 🧪 Test Production Environment"
-    echo "9. 🧹 Clean (Keep Code)"
-    echo "10. 🗑️  Ultra Clean Uninstall"
-    echo "11. ❓ Help"
+    echo "2. 🚀 Start Services"
+    echo "3. 🛑 Stop Services"
+    echo "4. 📊 Show Status"
+    echo "5. 🎮 Start Streaming"
+    echo "6. 🧹 Clean (Keep Code)"
+    echo "7. 🗑️  Ultra Clean Uninstall"
+    echo "8. ❓ Help"
     echo ""
 }
 
@@ -975,8 +967,6 @@ help_info() {
     echo "  ./scripts/livestream.sh stop      - Stop all services"
     echo "  ./scripts/livestream.sh status    - Show service status"
     echo "  ./scripts/livestream.sh stream    - Start streaming"
-    echo "  ./scripts/livestream.sh test      - Test local environment"
-    echo "  ./scripts/livestream.sh test-production - Test production environment"
     echo "  ./scripts/livestream.sh clean     - Clean (keep code)"
     echo "  ./scripts/livestream.sh uninstall - Ultra clean uninstall"
     echo "  ./scripts/livestream.sh help      - Show this help"
@@ -1012,12 +1002,6 @@ main() {
             ;;
         "stream")
             stream_app
-            ;;
-        "test"|"test-local")
-            test_environment "local"
-            ;;
-        "test-production")
-            test_environment "production"
             ;;
         "clean")
             clean_app
