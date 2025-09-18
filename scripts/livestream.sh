@@ -182,7 +182,7 @@ install_docker_compose() {
     log_success "Docker Compose installed successfully"
 }
 
-# Install FFmpeg
+# Install FFmpeg - Simple and effective
 install_ffmpeg() {
     log_info "Installing FFmpeg..."
     
@@ -197,30 +197,18 @@ install_ffmpeg() {
             exit 1
         fi
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Update package lists
-        sudo apt update --fix-missing || {
-            log_error "Failed to update package lists. Please check your internet connection."
-            exit 1
-        }
+        # Ubuntu FFmpeg installation - simple approach
+        log_info "Installing FFmpeg on Ubuntu..."
         
-        # Enable universe repository
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository universe -y
-        sudo apt update
-        
-        # Try multiple installation methods
-        if sudo apt install -y ffmpeg --fix-missing; then
-            log_success "FFmpeg installed via apt"
-        elif sudo snap install ffmpeg; then
+        # Try snap first (most reliable)
+        if sudo snap install ffmpeg; then
             log_success "FFmpeg installed via snap"
-        elif sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y && sudo apt update && sudo apt install -y ffmpeg; then
-            log_success "FFmpeg installed via PPA"
+        elif sudo apt update && sudo apt install -y ffmpeg; then
+            log_success "FFmpeg installed via apt"
         else
-            log_error "All FFmpeg installation methods failed!"
-            log_error "Please install FFmpeg manually:"
-            echo "  sudo apt update && sudo apt install -y ffmpeg"
+            log_error "Failed to install FFmpeg. Please install manually:"
             echo "  sudo snap install ffmpeg"
-            echo "  Download from https://ffmpeg.org/download.html"
+            echo "  sudo apt install ffmpeg"
             exit 1
         fi
     else
