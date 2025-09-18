@@ -102,8 +102,8 @@ cd livestream
 
 4. **Access the application:**
 - **Web Interface**: http://localhost:8080
-- **API**: http://localhost:3000
-- **Frontend**: http://localhost:3001
+- **API**: http://localhost:9000
+- **Frontend**: http://localhost:3000
 
 ### Streaming
 
@@ -272,7 +272,7 @@ The project includes GitHub Actions for:
    brew install ffmpeg
    ```
 
-2. **Port conflicts**: Check if ports 8080, 1935, 3000, 3001 are available
+2. **Port conflicts**: Check if ports 8080, 3000, 9000 are available
 
 3. **Database connection**: Ensure MongoDB is running
    ```bash

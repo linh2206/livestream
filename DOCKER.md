@@ -30,13 +30,13 @@ docker stack deploy -c deployments/docker/docker-compose.multi.yml livestream
 
 ### API Service
 - **Image**: Built from `services/api/Dockerfile`
-- **Port**: 3000
+- **Port**: 9000
 - **Environment**: Production Node.js with NestJS
 - **Health Check**: HTTP endpoint `/health`
 
 ### Frontend Service
 - **Image**: Built from `services/frontend/Dockerfile`
-- **Port**: 3001 (external), 3000 (internal)
+- **Port**: 3000 (external), 3000 (internal)
 - **Environment**: Production Next.js
 - **Health Check**: HTTP endpoint `/`
 
@@ -56,7 +56,7 @@ docker stack deploy -c deployments/docker/docker-compose.multi.yml livestream
 - **Ports**: 
   - 8080 (HTTP web interface)
   - 1935 (RTMP input)
-  - 8081 (HLS output)
+  - 8080 (Web interface)
 - **Features**: RTMP server, HLS streaming, reverse proxy
 
 ## Volumes

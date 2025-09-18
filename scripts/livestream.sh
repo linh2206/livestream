@@ -368,18 +368,72 @@ start_app() {
     docker system prune -af >/dev/null 2>&1 || true
     docker builder prune -af >/dev/null 2>&1 || true
     
-    log_success "Docker system cleaned completely"
+    # Clean disk space for Ubuntu
+    log_info "Cleaning disk space..."
+    if [[ "$OS" == "ubuntu" ]]; then
+        # Clean apt cache
+        sudo apt clean >/dev/null 2>&1 || true
+        sudo apt autoremove -y >/dev/null 2>&1 || true
+        
+        # Clean temp files
+        sudo rm -rf /tmp/* >/dev/null 2>&1 || true
+        sudo rm -rf /var/tmp/* >/dev/null 2>&1 || true
+        
+        # Clean logs
+        sudo journalctl --vacuum-time=1d >/dev/null 2>&1 || true
+        
+        # Clean snap cache
+        sudo snap list --all | awk '/disabled/{print $1, $3}' | while read snapname revision; do
+            sudo snap remove "$snapname" --revision="$revision" >/dev/null 2>&1 || true
+        done
+    fi
+    
+    log_success "System cleaned completely"
+    
+    # Quick pre-check
+    log_info "Running pre-start checks..."
+    
+    # Check disk space
+    if [[ "$OS" == "ubuntu" ]]; then
+        available_space=$(df / | awk 'NR==2 {print $4}')
+        if [ "$available_space" -lt 1000000 ]; then  # Less than 1GB
+            log_error "Insufficient disk space! Available: ${available_space}KB"
+            log_info "Run: ./scripts/livestream.sh clean"
+            exit 1
+        fi
+    fi
+    
+    # Check if ports are available
+    if lsof -i :8080 >/dev/null 2>&1; then
+        log_warning "Port 8080 is in use, killing process..."
+        lsof -ti :8080 | xargs kill -9 >/dev/null 2>&1 || true
+    fi
     
     log_info "Starting LiveStream App services..."
     
-    # Start services
+    # Start services with timeout and error handling
+    log_info "Starting services (with 5-minute timeout)..."
+    
+    # Kill any hanging processes after 5 minutes
+    (sleep 300 && log_error "Build timeout! Killing processes..." && docker kill $(docker ps -q) >/dev/null 2>&1) &
+    timeout_pid=$!
+    
     if $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d; then
+        kill $timeout_pid >/dev/null 2>&1 || true
         log_success "Services started successfully"
     else
-        log_error "Failed to start services"
-        log_info "This might be due to network issues. Try:"
-        echo "  docker system prune -af"
-        echo "  ./scripts/livestream.sh start"
+        kill $timeout_pid >/dev/null 2>&1 || true
+        log_error "Failed to start services - stopping all processes"
+        
+        # Emergency cleanup
+        docker kill $(docker ps -q) >/dev/null 2>&1 || true
+        docker system prune -af >/dev/null 2>&1 || true
+        
+        log_info "Common fixes:"
+        echo "  1. Check disk space: df -h"
+        echo "  2. Clean system: ./scripts/livestream.sh clean"
+        echo "  3. Check network: ping google.com"
+        echo "  4. Restart Docker: sudo systemctl restart docker"
         exit 1
     fi
     
@@ -400,11 +454,10 @@ start_app() {
     echo ""
     log_success "🎬 LiveStream App is running!"
     echo ""
-    echo "📱 Access URLs:"
-    echo "  Web Interface: http://localhost:8080"
-    echo "  RTMP Input:    rtmp://localhost:1935/live"
-    echo "  Stream Key:    stream"
-    echo "  HLS Output:    http://localhost:8080/hls/stream.m3u8"
+                echo "📱 Access URLs:"
+                echo "  Web Interface: http://localhost:8080"
+                echo "  API:           http://localhost:9000"
+                echo "  Frontend:      http://localhost:3000"
     echo ""
     echo "🎮 Start streaming:"
     echo "  ./scripts/livestream.sh stream"
@@ -456,11 +509,10 @@ show_status() {
     if curl -f http://localhost:8080/health >/dev/null 2>&1; then
         log_success "LiveStream App is running!"
         echo ""
-        echo "📱 Access URLs:"
-        echo "  Web Interface: http://localhost:8080"
-        echo "  RTMP Input:    rtmp://localhost:1935/live"
-        echo "  Stream Key:    stream"
-        echo "  HLS Output:    http://localhost:8080/hls/stream.m3u8"
+                echo "📱 Access URLs:"
+                echo "  Web Interface: http://localhost:8080"
+                echo "  API:           http://localhost:9000"
+                echo "  Frontend:      http://localhost:3000"
         echo ""
         
         COMPOSE_CMD=$(get_compose_cmd)
