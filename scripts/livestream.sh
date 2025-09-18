@@ -53,13 +53,6 @@ check_docker() {
     log_success "Docker is running"
 }
 
-check_services() {
-    if ! curl -f http://localhost:8080/health >/dev/null 2>&1; then
-        log_warning "LiveStream App services are not running."
-        return 1
-    fi
-    return 0
-}
 
 # Detect OS
 detect_os() {
@@ -79,33 +72,6 @@ detect_os() {
     log_info "Detected OS: $OS"
 }
 
-# Check network connectivity
-check_network() {
-    log_info "Checking network connectivity..."
-    
-    if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-        log_error "No internet connection. Please check your network."
-        exit 1
-    fi
-    
-    if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
-        log_warning "DNS resolution failed. Trying to fix DNS..."
-        
-        # Try to fix DNS
-        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
-        echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null
-        
-        # Wait a moment
-        sleep 2
-        
-        if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
-            log_error "DNS still not working. Please check your network configuration."
-            exit 1
-        fi
-    fi
-    
-    log_success "Network connectivity OK"
-}
 
 # Install Docker
 install_docker() {
@@ -124,7 +90,10 @@ install_docker() {
         fi
     elif [[ "$OS" == "ubuntu" ]]; then
         # Check network first
-        check_network
+        if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+            log_error "No internet connection. Please check your network."
+            exit 1
+        fi
         
         log_info "Updating package lists..."
         sudo apt update --fix-missing || {
@@ -219,6 +188,67 @@ install_ffmpeg() {
     log_success "FFmpeg installed successfully"
 }
 
+# Test environment (unified function)
+test_environment() {
+    local env_type=${1:-"local"}
+    log_info "Testing $env_type environment..."
+    
+    # Check if services are running
+    if ! curl -f http://localhost:8080/health >/dev/null 2>&1; then
+        log_error "$env_type services are not running. Please start them first:"
+        echo "  ./scripts/livestream.sh start"
+        exit 1
+    fi
+    
+    log_info "Running $env_type tests..."
+    
+    # Test web interface
+    if curl -f http://localhost:8080 >/dev/null 2>&1; then
+        log_success "✅ Web interface is accessible"
+    else
+        log_error "❌ Web interface is not accessible"
+    fi
+    
+    # Test API
+    if curl -f http://localhost:3000/health >/dev/null 2>&1; then
+        log_success "✅ API is accessible"
+    else
+        log_error "❌ API is not accessible"
+    fi
+    
+    # Test MongoDB
+    if docker exec livestream-mongodb-1 mongosh --eval "db.runCommand('ping')" >/dev/null 2>&1; then
+        log_success "✅ MongoDB is accessible"
+    else
+        log_error "❌ MongoDB is not accessible"
+    fi
+    
+    # Test Redis
+    if docker exec livestream-redis-1 redis-cli ping >/dev/null 2>&1; then
+        log_success "✅ Redis is accessible"
+    else
+        log_error "❌ Redis is not accessible"
+    fi
+    
+    # Test RTMP
+    if nc -z localhost 1935; then
+        log_success "✅ RTMP port is open"
+    else
+        log_error "❌ RTMP port is not open"
+    fi
+    
+    # Test HLS (production only)
+    if [[ "$env_type" == "production" ]]; then
+        if curl -f http://localhost:8080/hls/stream.m3u8 >/dev/null 2>&1; then
+            log_success "✅ HLS endpoint is accessible"
+        else
+            log_warning "⚠️  HLS endpoint is not accessible (normal if no stream is active)"
+        fi
+    fi
+    
+    log_success "$env_type environment test completed!"
+}
+
 # Verify installations
 verify_installations() {
     log_info "Verifying installations..."
@@ -266,31 +296,6 @@ setup_project() {
     log_success "Project setup completed"
 }
 
-# Fix network issues
-fix_network() {
-    log_info "Attempting to fix network issues..."
-    
-    # Try different DNS servers
-    log_info "Setting up alternative DNS servers..."
-    echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
-    echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null
-    echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf >/dev/null
-    
-    # Restart networking
-    sudo systemctl restart systemd-resolved 2>/dev/null || true
-    
-    # Wait for DNS to work
-    sleep 3
-    
-    # Test again
-    if nslookup archive.ubuntu.com >/dev/null 2>&1; then
-        log_success "Network fixed!"
-        return 0
-    else
-        log_error "Network still not working. Please check your server configuration."
-        return 1
-    fi
-}
 
 # Install function
 install_app() {
@@ -303,16 +308,14 @@ install_app() {
     if [[ "$OS" == "ubuntu" ]]; then
         if ! nslookup archive.ubuntu.com >/dev/null 2>&1; then
             log_warning "Network issues detected. Attempting to fix..."
-            if ! fix_network; then
-                log_error "Cannot fix network issues. Please check your server configuration:"
-                echo ""
-                echo "1. Check internet connection"
-                echo "2. Check DNS settings"
-                echo "3. Check firewall settings"
-                echo "4. Try: sudo systemctl restart networking"
-                echo ""
-                exit 1
-            fi
+            log_error "Cannot fix network issues. Please check your server configuration:"
+            echo ""
+            echo "1. Check internet connection"
+            echo "2. Check DNS settings"
+            echo "3. Check firewall settings"
+            echo "4. Try: sudo systemctl restart networking"
+            echo ""
+            exit 1
         fi
     fi
     
@@ -344,10 +347,10 @@ start_app() {
     
     log_info "Stopping existing containers..."
     COMPOSE_CMD=$(get_compose_cmd)
-    $COMPOSE_CMD -f docker/docker-compose.yml down >/dev/null 2>&1 || true
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down >/dev/null 2>&1 || true
     
     log_info "Starting LiveStream App services..."
-    $COMPOSE_CMD -f docker/docker-compose.yml up -d
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d
     
     log_info "Waiting for services to be ready..."
     for i in {1..30}; do
@@ -361,7 +364,7 @@ start_app() {
     echo ""
     
     log_info "Service Status:"
-    $COMPOSE_CMD -f docker/docker-compose.yml ps
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml ps
     
     echo ""
     log_success "🎬 LiveStream App is running!"
@@ -391,7 +394,7 @@ stop_app() {
     COMPOSE_CMD=$(get_compose_cmd)
     
     # Stop and remove containers with volumes
-    $COMPOSE_CMD -f docker/docker-compose.yml down -v --remove-orphans
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down -v --remove-orphans
     
     # Force remove any remaining containers with livestream in name
     docker ps -a --filter "name=livestream" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
@@ -418,7 +421,7 @@ show_status() {
     echo "========================="
     echo ""
     
-    if check_services; then
+    if curl -f http://localhost:8080/health >/dev/null 2>&1; then
         log_success "LiveStream App is running!"
         echo ""
         echo "📱 Access URLs:"
@@ -430,7 +433,7 @@ show_status() {
         
         COMPOSE_CMD=$(get_compose_cmd)
         log_info "Service Status:"
-        $COMPOSE_CMD -f docker/docker-compose.yml ps
+        $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml ps
     else
         log_warning "LiveStream App is not running."
         echo ""
@@ -580,7 +583,7 @@ stream_app() {
         exit 1
     fi
     
-    if ! check_services; then
+    if ! curl -f http://localhost:8080/health >/dev/null 2>&1; then
         log_warning "LiveStream App services are not running."
         log_info "Please start the services first: ./scripts/livestream.sh start"
         exit 1
@@ -927,13 +930,16 @@ show_main_menu() {
     echo "Choose an action:"
     echo ""
     echo "1. 🔧 Install/Setup"
-    echo "2. 🚀 Start Services"
-    echo "3. 🛑 Stop Services"
-    echo "4. 📊 Show Status"
-    echo "5. 🎮 Start Streaming"
-    echo "6. 🧹 Clean (Keep Code)"
-    echo "7. 🗑️  Ultra Clean Uninstall"
-    echo "8. ❓ Help"
+    echo "2. 🚀 Start Services (Local)"
+    echo "3. 🚀 Start Services (Production)"
+    echo "4. 🛑 Stop Services"
+    echo "5. 📊 Show Status"
+    echo "6. 🎮 Start Streaming"
+    echo "7. 🧪 Test Local Environment"
+    echo "8. 🧪 Test Production Environment"
+    echo "9. 🧹 Clean (Keep Code)"
+    echo "10. 🗑️  Ultra Clean Uninstall"
+    echo "11. ❓ Help"
     echo ""
 }
 
@@ -948,6 +954,8 @@ help_info() {
     echo "  ./scripts/livestream.sh stop      - Stop all services"
     echo "  ./scripts/livestream.sh status    - Show service status"
     echo "  ./scripts/livestream.sh stream    - Start streaming"
+    echo "  ./scripts/livestream.sh test      - Test local environment"
+    echo "  ./scripts/livestream.sh test-production - Test production environment"
     echo "  ./scripts/livestream.sh clean     - Clean (keep code)"
     echo "  ./scripts/livestream.sh uninstall - Ultra clean uninstall"
     echo "  ./scripts/livestream.sh help      - Show this help"
@@ -983,6 +991,12 @@ main() {
             ;;
         "stream")
             stream_app
+            ;;
+        "test"|"test-local")
+            test_environment "local"
+            ;;
+        "test-production")
+            test_environment "production"
             ;;
         "clean")
             clean_app

@@ -69,7 +69,7 @@ clean:
 
 logs:
 	@echo "Showing service logs..."
-	docker-compose -f deployments/docker/docker-compose.single.yml logs -f
+	./scripts/livestream.sh status
 
 # Quick setup for new developers
 setup: install start
