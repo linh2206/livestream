@@ -350,7 +350,16 @@ start_app() {
     $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down >/dev/null 2>&1 || true
     
     log_info "Starting LiveStream App services..."
-    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d
+    
+    # Try to start services
+    if ! $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d; then
+        log_error "Failed to start services. This might be due to network issues."
+        log_info "Please check your internet connection and try again."
+        log_info "If the issue persists, try:"
+        echo "  docker system prune -f"
+        echo "  ./scripts/livestream.sh start"
+        exit 1
+    fi
     
     log_info "Waiting for services to be ready..."
     for i in {1..30}; do
