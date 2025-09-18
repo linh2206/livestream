@@ -89,6 +89,11 @@ cd livestream
 ```bash
 ./scripts/livestream.sh install
 ```
+   This will automatically:
+   - Install Docker and Docker Compose
+   - Install FFmpeg (via snap on Ubuntu, brew on macOS)
+   - Create `.env` file from `env.example`
+   - Set up project directories
 
 3. **Start the application:**
 ```bash
@@ -206,7 +211,7 @@ npm run dev
 
 ### Environment Variables
 
-Create `.env` file:
+The `.env` file is automatically created during installation from `env.example`. You can customize it if needed:
 
 ```env
 # JWT Secret (change this in production!)
@@ -228,6 +233,8 @@ REDIS_URL=redis://redis:6379
 # Production settings
 NODE_ENV=production
 ```
+
+**Note**: The `.env` file is automatically created when you run `./scripts/livestream.sh install`. No manual setup required!
 
 ## 🚀 Deployment
 

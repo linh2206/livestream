@@ -293,6 +293,15 @@ setup_project() {
     # Set permissions
     chmod 755 hls
     
+    # Create .env file if it doesn't exist
+    if [[ ! -f .env ]]; then
+        log_info "Creating .env file from env.example..."
+        cp env.example .env
+        log_success "✅ .env file created successfully"
+    else
+        log_info "✅ .env file already exists"
+    fi
+    
     log_success "Project setup completed"
 }
 
@@ -345,14 +354,24 @@ start_app() {
     
     check_docker
     
-    log_info "Stopping existing containers..."
+    log_info "Cleaning up existing containers and images..."
     COMPOSE_CMD=$(get_compose_cmd)
-    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down >/dev/null 2>&1 || true
+    
+    # Stop and remove all containers, networks, and volumes
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml down -v --remove-orphans >/dev/null 2>&1 || true
+    
+    # Remove any dangling containers and images
+    docker container prune -f >/dev/null 2>&1 || true
+    docker image prune -f >/dev/null 2>&1 || true
+    
+    # Remove specific livestream images if they exist
+    docker rmi $(docker images "livestream*" -q) 2>/dev/null || true
+    docker rmi $(docker images "*livestream*" -q) 2>/dev/null || true
     
     log_info "Starting LiveStream App services..."
     
-    # Start services
-    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d
+    # Start services with build
+    $COMPOSE_CMD -f deployments/docker/docker-compose.single.yml up -d --build
     
     log_info "Waiting for services to be ready..."
     for i in {1..30}; do
