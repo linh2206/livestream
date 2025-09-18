@@ -1,210 +1,266 @@
-# 🎬 LiveStream App
+# LiveStream App
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Ubuntu-lightgrey.svg)](https://github.com/your-username/livestream-app)
+A complete live streaming application with real-time chat, built with modern technologies and clean architecture.
 
-A complete live streaming application with real-time chat, likes, and social features - fully containerized with Docker.
+## 🚀 Features
 
-## ✨ Features
-
-- 🎥 **Live Streaming**: RTMP input → HLS output
-- 💬 **Real-time Chat**: WebSocket-based messaging
-- ❤️ **Social Features**: Like, share, follow functionality
-- 📱 **Responsive UI**: Mobile-friendly design
-- 🐳 **Docker Support**: Fully containerized
-- 🔒 **Security**: JWT auth, CORS, rate limiting
-- 🌐 **Cross-platform**: macOS and Ubuntu support
-- 🎮 **Multiple Streaming**: OBS Studio, FFmpeg, custom commands
-
-## 🚀 Quick Start
-
-### Install & Run (1 command)
-```bash
-chmod +x scripts/*.sh
-./scripts/install.sh
-./scripts/start.sh
-```
-
-### Access the Application
-- **Web Interface**: http://localhost:8080
-- **RTMP Input**: rtmp://localhost:1935/live
-- **Stream Key**: stream
-- **HLS Output**: http://localhost:8080/hls/stream.m3u8
-
-## 🎮 Streaming Options
-
-### Option 1: OBS Studio
-1. Open OBS Studio
-2. Go to Settings → Stream
-3. Set Service to "Custom..."
-4. Server: `rtmp://localhost:1935/live`
-5. Stream Key: `stream`
-6. Click "Start Streaming"
-
-### Option 2: FFmpeg
-```bash
-# Test stream with color bars
-./scripts/stream.sh
-
-# Custom FFmpeg command
-ffmpeg -f avfoundation -i "0:0" -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost:1935/live/stream
-```
-
-## 🛠️ Management Scripts
-
-| Script | Description |
-|--------|-------------|
-| `./scripts/install.sh` | Install dependencies (Docker, FFmpeg) |
-| `./scripts/start.sh` | Start all services |
-| `./scripts/stop.sh` | Stop all services |
-| `./scripts/stream.sh` | FFmpeg streaming options |
-| `./uninstall.sh` | Complete system cleanup |
+- **Live Streaming**: RTMP input with HLS output
+- **Real-time Chat**: WebSocket-based chat system
+- **User Management**: Registration, authentication, and profiles
+- **Stream Management**: Create, manage, and monitor streams
+- **Social Features**: Like, follow, and interact with streams
+- **Responsive Design**: Works on desktop and mobile devices
 
 ## 🏗️ Architecture
 
-### Docker Services
-- **nginx**: RTMP ingest + HLS serving
-- **backend**: Node.js API server
-- **postgres**: Database
-- **redis**: Caching
-- **websocket**: Real-time chat
+### Backend (NestJS)
+- **Framework**: NestJS with TypeScript
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT with Passport strategies
+- **Real-time**: Socket.io for WebSocket connections
+- **API**: RESTful API with Swagger documentation
 
-### Tech Stack
-- **Frontend**: HTML5, CSS3, JavaScript, HLS.js
-- **Backend**: Node.js, Express, PostgreSQL, Redis
-- **Streaming**: Nginx RTMP module, HLS
-- **Real-time**: WebSocket
-- **Container**: Docker, Docker Compose
+### Frontend (Next.js)
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: React hooks
+- **Real-time**: Socket.io client
+- **Video Player**: HLS.js for video streaming
 
-## 📱 Features
+### Infrastructure
+- **Containerization**: Docker and Docker Compose
+- **Database**: MongoDB 7.0
+- **Cache**: Redis 7.0
+- **Streaming**: Nginx RTMP module
+- **Reverse Proxy**: Nginx
 
-### Live Streaming
-- RTMP input from OBS/FFmpeg
-- HLS output for web players
-- Real-time video processing
-- Multiple quality options
+## 📁 Project Structure
 
-### Real-time Chat
-- WebSocket-based messaging
-- User authentication
-- Message history
-- Emoji support
+```
+livestream/
+├── services/
+│   ├── api/                    # NestJS Backend
+│   │   ├── src/
+│   │   │   ├── auth/          # Authentication
+│   │   │   ├── users/         # User management
+│   │   │   ├── streams/       # Stream management
+│   │   │   ├── chat/          # Chat & WebSocket
+│   │   │   └── main.ts        # Application entry
+│   │   ├── package.json
+│   │   └── Dockerfile
+│   └── frontend/              # Next.js Frontend
+│       ├── app/               # App router
+│       ├── components/        # React components
+│       ├── hooks/             # Custom hooks
+│       ├── package.json
+│       └── Dockerfile
+├── infrastructure/
+│   ├── database/              # Database setup
+│   │   └── init-mongo.js     # MongoDB initialization
+│   └── nginx/                 # Nginx configuration
+├── deployments/
+│   └── docker/               # Docker configurations
+│       ├── docker-compose.single.yml
+│       └── docker-compose.multi.yml
+├── .github/
+│   └── workflows/
+│       └── deploy.yml        # GitHub Actions CI/CD
+├── deploy.sh                 # Deployment script
+└── README.md
+```
 
-### Social Features
-- Like/unlike streams
-- Share functionality
-- Follow/unfollow users
-- Real-time engagement stats
+## 🚀 Quick Start
 
-### Modern UI
-- Glass morphism design
-- Responsive layout
-- Dark/light themes
-- Mobile-friendly
+### Prerequisites
+
+- Docker and Docker Compose
+- FFmpeg (for streaming)
+- Node.js 18+ (for development)
+
+### Installation
+
+1. **Clone the repository:**
+```bash
+git clone <repository-url>
+cd livestream
+```
+
+2. **Deploy to single server:**
+```bash
+./scripts/livestream.sh start
+```
+
+3. **Access the application:**
+- **Web Interface**: http://localhost:8080
+- **API**: http://localhost:3000
+- **Frontend**: http://localhost:3001
+
+### Streaming
+
+1. **Configure your streaming software:**
+- **RTMP URL**: `rtmp://localhost:1935/live`
+- **Stream Key**: `stream`
+
+2. **View your stream**: http://localhost:8080
+
+## 🛠️ Available Commands
+
+```bash
+./scripts/livestream.sh [command]
+```
+
+### Commands:
+- `install` - Install dependencies and setup
+- `start` or `single` - Deploy to single server
+- `multi` - Deploy to multiple servers (Docker Swarm)
+- `stop` - Stop all services
+- `status` - Show service status
+- `stream` - Start streaming
+- `clean` - Clean up (keep code)
+- `uninstall` - Complete removal
+- `help` - Show help
 
 ## 🔧 Development
 
-### Local Development
+### Backend Development
+
 ```bash
-# Clone repository
-git clone <repository-url>
-cd livestream-app
-
-# Start development environment
-./scripts/install.sh
-./scripts/start.sh
-
-# View logs
-docker-compose -f docker/docker-compose.yml logs -f
+cd services/api
+npm install
+npm run start:dev
 ```
 
-### Environment Variables
+### Frontend Development
+
 ```bash
+cd services/frontend
+npm install
+npm run dev
+```
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /auth/register` - Register new user
+- `POST /auth/login` - Login user
+- `POST /auth/profile` - Get user profile
+
+### Users
+- `GET /users` - Get all users
+- `GET /users/:id` - Get user by ID
+- `PATCH /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Streams
+- `GET /streams` - Get all streams
+- `GET /streams/active` - Get active streams
+- `POST /streams` - Create stream
+- `GET /streams/:id` - Get stream by ID
+- `PATCH /streams/:id` - Update stream
+- `DELETE /streams/:id` - Delete stream
+
+## 🔌 WebSocket Events
+
+### Client to Server
+- `join` - Join a stream room
+- `chat_message` - Send chat message
+- `like` - Like/unlike stream
+- `leave` - Leave stream room
+
+### Server to Client
+- `chat_message` - Receive chat message
+- `online_count` - Update viewer count
+- `like` - Like notification
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create `.env` file:
+
+```env
+# JWT Secret (change this in production!)
+JWT_SECRET=your-super-secret-jwt-key
+
+# Frontend URL
+FRONTEND_URL=http://localhost:8080
+
+# API URLs
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_WS_URL=ws://localhost:3000
+
 # Database
-POSTGRES_DB=livestream
-POSTGRES_USER=livestream
-POSTGRES_PASSWORD=livestream
+MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
 
 # Redis
 REDIS_URL=redis://redis:6379
 
-# JWT
-JWT_SECRET=your-secret-key
+# Production settings
+NODE_ENV=production
 ```
 
 ## 🚀 Deployment
 
-### Production Deployment
+### Single Server
 ```bash
-# Build production images
-docker-compose -f docker/docker-compose.yml build
-
-# Start production services
-docker-compose -f docker/docker-compose.yml up -d
-
-# Check status
-docker-compose -f docker/docker-compose.yml ps
+./scripts/livestream.sh start
 ```
 
-### Environment Configuration
-- Set production environment variables
-- Configure SSL certificates
-- Set up reverse proxy (optional)
-- Configure monitoring
-
-## 🗑️ Uninstall
-
-Complete removal of all components:
+### Multiple Servers (Docker Swarm)
 ```bash
-./uninstall.sh
+./scripts/livestream.sh multi
 ```
 
-This will remove:
-- Docker containers and images
-- Project directories
-- System files and logs
+### GitHub Actions CI/CD
 
-**⚠️ Warning**: This action cannot be undone!
+The project includes GitHub Actions for:
+- **Testing**: Run tests on all services
+- **Building**: Build and push Docker images
+- **Deploying**: Deploy to staging/production
+- **Security**: Vulnerability scanning
 
-## 🤝 Contributing
+## 🐛 Troubleshooting
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+### Common Issues
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. **FFmpeg not found**: 
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install ffmpeg
+   
+   # macOS
+   brew install ffmpeg
+   ```
+
+2. **Port conflicts**: Check if ports 8080, 1935, 3000, 3001 are available
+
+3. **Database connection**: Ensure MongoDB is running
+   ```bash
+   docker-compose logs mongodb
+   ```
+
+### Logs
+
+View service logs:
+```bash
+docker-compose logs [service-name]
+```
+
+### Reset Everything
+
+Complete reset:
+```bash
+./deploy.sh clean
+./deploy.sh single
+```
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- [Nginx RTMP Module](https://github.com/arut/nginx-rtmp-module) for streaming capabilities
-- [HLS.js](https://github.com/video-dev/hls.js/) for video playback
-- [Docker](https://www.docker.com/) for containerization
-- All open source contributors
-
-## 📞 Support
-
-- 📧 Email: support@livestream-app.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/livestream-app/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/livestream-app/discussions)
-
-## 🗺️ Roadmap
-
-- [ ] Advanced analytics dashboard
-- [ ] Mobile app (React Native/Flutter)
-- [ ] Multi-stream support
-- [ ] Advanced chat moderation
-- [ ] Plugin system
-- [ ] Enterprise features
-
----
-
-**🎬 Enjoy your LiveStream App!**
-
-⭐ Star this repository if you found it helpful!
+For support and questions:
+- Create an issue on GitHub
+- Check the troubleshooting section
+- Review the API documentation

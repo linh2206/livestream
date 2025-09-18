@@ -187,16 +187,47 @@ install_ffmpeg() {
     log_info "Installing FFmpeg..."
     
     if [[ "$OS" == "macos" ]]; then
-        brew install ffmpeg
+        if command -v brew >/dev/null 2>&1; then
+            brew install ffmpeg
+        else
+            log_error "Homebrew not found. Please install Homebrew first or install FFmpeg manually."
+            exit 1
+        fi
     elif [[ "$OS" == "ubuntu" ]]; then
+        # Update package lists first
         sudo apt update --fix-missing || {
-            log_error "Failed to update package lists for FFmpeg. Please check your internet connection."
+            log_error "Failed to update package lists. Please check your internet connection."
             exit 1
         }
-        sudo apt install -y ffmpeg --fix-missing || {
-            log_error "Failed to install FFmpeg. Please check your internet connection."
-            exit 1
-        }
+        
+        # Try to install FFmpeg with multiple methods
+        if ! sudo apt install -y ffmpeg --fix-missing; then
+            log_warning "Standard FFmpeg installation failed. Trying alternative methods..."
+            
+            # Try installing from snap
+            if command -v snap >/dev/null 2>&1; then
+                log_info "Trying to install FFmpeg via snap..."
+                sudo snap install ffmpeg || {
+                    log_error "Snap installation also failed."
+                    exit 1
+                }
+            else
+                # Try adding universe repository
+                log_info "Adding universe repository and trying again..."
+                sudo apt install -y software-properties-common
+                sudo add-apt-repository universe -y
+                sudo apt update
+                sudo apt install -y ffmpeg --fix-missing || {
+                    log_error "All FFmpeg installation methods failed. Please install manually:"
+                    echo "  sudo apt update"
+                    echo "  sudo apt install -y ffmpeg"
+                    exit 1
+                }
+            fi
+        fi
+    else
+        log_error "Unsupported OS: $OS. Please install FFmpeg manually."
+        exit 1
     fi
     
     log_success "FFmpeg installed successfully"
@@ -955,7 +986,7 @@ main() {
         "install")
             install_app
             ;;
-        "start")
+        "start"|"single")
             start_app
             ;;
         "stop")
@@ -972,6 +1003,9 @@ main() {
             ;;
         "uninstall")
             uninstall_app
+            ;;
+        "multi")
+            deploy_multi
             ;;
         "help")
             help_info
