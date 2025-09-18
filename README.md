@@ -85,12 +85,17 @@ git clone <repository-url>
 cd livestream
 ```
 
-2. **Deploy to single server:**
+2. **Install dependencies and setup:**
+```bash
+./scripts/livestream.sh install
+```
+
+3. **Start the application:**
 ```bash
 ./scripts/livestream.sh start
 ```
 
-3. **Access the application:**
+4. **Access the application:**
 - **Web Interface**: http://localhost:8080
 - **API**: http://localhost:3000
 - **Frontend**: http://localhost:3001
@@ -105,20 +110,45 @@ cd livestream
 
 ## 🛠️ Available Commands
 
+### Main Script Commands
+
 ```bash
 ./scripts/livestream.sh [command]
 ```
 
-### Commands:
+**Commands:**
 - `install` - Install dependencies and setup
-- `start` or `single` - Deploy to single server
-- `multi` - Deploy to multiple servers (Docker Swarm)
+- `start` - Start all services
 - `stop` - Stop all services
 - `status` - Show service status
 - `stream` - Start streaming
+- `test` - Test local environment
+- `test-production` - Test production environment
 - `clean` - Clean up (keep code)
 - `uninstall` - Complete removal
 - `help` - Show help
+
+### Make Commands
+
+```bash
+make [command]
+```
+
+**Development:**
+- `make install` - Install dependencies and setup
+- `make start` - Start all services
+- `make stop` - Stop all services
+- `make status` - Show service status
+- `make build` - Build all services
+- `make test` - Run tests
+
+**Deployment:**
+- `make deploy` - Deploy to single server
+- `make deploy-multi` - Deploy to multiple servers
+
+**Maintenance:**
+- `make clean` - Clean up containers and images
+- `make logs` - Show service logs
 
 ## 🔧 Development
 
@@ -225,7 +255,10 @@ The project includes GitHub Actions for:
 
 1. **FFmpeg not found**: 
    ```bash
-   # Ubuntu/Debian
+   # Ubuntu/Debian (recommended: use snap)
+   sudo snap install ffmpeg
+   
+   # Alternative: apt
    sudo apt update && sudo apt install ffmpeg
    
    # macOS
@@ -236,22 +269,48 @@ The project includes GitHub Actions for:
 
 3. **Database connection**: Ensure MongoDB is running
    ```bash
-   docker-compose logs mongodb
+   ./scripts/livestream.sh status
    ```
+
+4. **Docker startup issues**: 
+   ```bash
+   # Check internet connection
+   ping google.com
+   
+   # Clean Docker system
+   docker system prune -f
+   
+   # Try again
+   ./scripts/livestream.sh start
+   ```
+
+### Testing
+
+Test your environment:
+```bash
+# Test local environment
+./scripts/livestream.sh test
+
+# Test production environment  
+./scripts/livestream.sh test-production
+```
 
 ### Logs
 
 View service logs:
 ```bash
-docker-compose logs [service-name]
+make logs
+# or
+docker-compose -f deployments/docker/docker-compose.single.yml logs -f
 ```
 
 ### Reset Everything
 
 Complete reset:
 ```bash
-./deploy.sh clean
-./deploy.sh single
+./scripts/livestream.sh uninstall
+./scripts/livestream.sh install
+./scripts/livestream.sh start
 ```
 
 ## 📄 License

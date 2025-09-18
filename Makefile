@@ -31,7 +31,7 @@ install:
 
 start:
 	@echo "Starting all services..."
-	./scripts/livestream.sh start
+	./scripts/livestream.sh start || (echo "Failed to start services. Check logs above." && exit 1)
 
 stop:
 	@echo "Stopping all services..."
