@@ -95,15 +95,23 @@ install_docker() {
             exit 1
         fi
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update
-        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+        log_info "Updating package lists..."
+        sudo apt update --fix-missing
         
+        log_info "Installing prerequisites..."
+        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release --fix-missing
+        
+        log_info "Adding Docker GPG key..."
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
         
+        log_info "Adding Docker repository..."
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
         
-        sudo apt update
-        sudo apt install -y docker-ce docker-ce-cli containerd.io
+        log_info "Updating package lists again..."
+        sudo apt update --fix-missing
+        
+        log_info "Installing Docker..."
+        sudo apt install -y docker-ce docker-ce-cli containerd.io --fix-missing
         
         sudo usermod -aG docker $USER
         log_warning "Please log out and log back in for Docker group changes to take effect."
@@ -121,7 +129,7 @@ install_docker_compose() {
         if [[ "$OS" == "macos" ]]; then
             brew install docker-compose
         elif [[ "$OS" == "ubuntu" ]]; then
-            sudo apt install -y docker-compose-plugin
+            sudo apt install -y docker-compose-plugin --fix-missing
         fi
     fi
     
@@ -135,8 +143,8 @@ install_ffmpeg() {
     if [[ "$OS" == "macos" ]]; then
         brew install ffmpeg
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update
-        sudo apt install -y ffmpeg
+        sudo apt update --fix-missing
+        sudo apt install -y ffmpeg --fix-missing
     fi
     
     log_success "FFmpeg installed successfully"
@@ -481,6 +489,323 @@ stream_app() {
     esac
 }
 
+# Check for active streaming processes
+check_streaming_processes() {
+    log_info "Checking for active streaming processes..."
+    
+    # Check for FFmpeg processes
+    ffmpeg_processes=$(pgrep -f "ffmpeg" 2>/dev/null || true)
+    if [[ -n "$ffmpeg_processes" ]]; then
+        log_warning "Found active FFmpeg processes:"
+        ps -p $ffmpeg_processes -o pid,cmd 2>/dev/null || true
+        echo ""
+    fi
+    
+    # Check for OBS processes
+    obs_processes=$(pgrep -f "obs" 2>/dev/null || true)
+    if [[ -n "$obs_processes" ]]; then
+        log_warning "Found active OBS processes:"
+        ps -p $obs_processes -o pid,cmd 2>/dev/null || true
+        echo ""
+    fi
+    
+    # Check for processes using streaming ports
+    for port in 8080 1935 3000 5432 6379; do
+        port_processes=$(lsof -ti:$port 2>/dev/null || true)
+        if [[ -n "$port_processes" ]]; then
+            log_warning "Found processes using port $port:"
+            ps -p $port_processes -o pid,cmd 2>/dev/null || true
+            echo ""
+        fi
+    done
+}
+
+# Kill all processes (ultra clean - only protect SSH)
+kill_all_processes() {
+    log_info "Killing all processes (ultra clean - only protecting SSH)..."
+    
+    # Kill ALL livestream related processes
+    pkill -f "livestream" 2>/dev/null || true
+    pkill -f "stream" 2>/dev/null || true
+    pkill -f "nginx.*livestream" 2>/dev/null || true
+    pkill -f "node.*livestream" 2>/dev/null || true
+    pkill -f "ffmpeg.*livestream" 2>/dev/null || true
+    pkill -f "ffmpeg.*stream" 2>/dev/null || true
+    
+    # Kill processes by port (all livestream ports, only protect SSH port 22)
+    for port in 8080 1935 3000 5432 6379; do
+        if command -v lsof >/dev/null 2>&1; then
+            processes=$(lsof -ti:$port 2>/dev/null || true)
+            if [[ -n "$processes" ]]; then
+                for pid in $processes; do
+                    # Only protect SSH processes
+                    cmd=$(ps -p $pid -o cmd= 2>/dev/null || true)
+                    if ! echo "$cmd" | grep -q -i "ssh\|sshd"; then
+                        kill -9 $pid 2>/dev/null || true
+                    fi
+                done
+            fi
+        fi
+    done
+    
+    # PROTECT ONLY SSH port 22
+    log_info "Protecting ONLY SSH port 22..."
+    
+    # Wait for processes to terminate
+    sleep 2
+    
+    log_success "All processes killed (only SSH protected)"
+}
+
+# Remove Docker completely (ultra clean)
+remove_docker_completely() {
+    log_info "Removing Docker completely (ultra clean)..."
+    
+    cd "$PROJECT_ROOT"
+    
+    # Try docker-compose first, then docker compose
+    if command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD="docker compose"
+    else
+        log_warning "Docker Compose not found, skipping container removal"
+        return
+    fi
+    
+    # Stop ALL containers (not just livestream)
+    docker stop $(docker ps -aq) 2>/dev/null || true
+    
+    # Remove ALL containers
+    docker rm -f $(docker ps -aq) 2>/dev/null || true
+    
+    # Remove ALL images
+    docker rmi -f $(docker images -q) 2>/dev/null || true
+    
+    # Remove ALL volumes
+    docker volume rm -f $(docker volume ls -q) 2>/dev/null || true
+    
+    # Remove ALL networks (except default)
+    docker network ls --format "{{.Name}}" | grep -v -E "^(bridge|host|none)$" | xargs -r docker network rm 2>/dev/null || true
+    
+    # Clean up Docker system completely
+    docker system prune -a -f --volumes 2>/dev/null || true
+    
+    log_success "Docker completely removed (ultra clean)"
+}
+
+# Remove system configurations (Linux only - ultra clean)
+remove_system_configs() {
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        log_info "Removing system configurations (ultra clean)..."
+        
+        # Stop and disable ALL livestream related services
+        for service in livestream-app livestream livestream-backend livestream-nginx livestream-postgres livestream-redis livestream-websocket; do
+            sudo systemctl stop "$service" 2>/dev/null || true
+            sudo systemctl disable "$service" 2>/dev/null || true
+            sudo rm -f "/etc/systemd/system/${service}.service" 2>/dev/null || true
+            sudo rm -f "/lib/systemd/system/${service}.service" 2>/dev/null || true
+            sudo rm -f "/usr/lib/systemd/system/${service}.service" 2>/dev/null || true
+        done
+        
+        # Remove ALL firewall rules (protect SSH port 22)
+        sudo ufw delete allow 8080 2>/dev/null || true
+        sudo ufw delete allow 1935 2>/dev/null || true
+        sudo ufw delete allow 3000 2>/dev/null || true
+        sudo ufw delete allow 5432 2>/dev/null || true
+        sudo ufw delete allow 6379 2>/dev/null || true
+        
+        # iptables rules - remove ALL livestream related ports (protect SSH port 22)
+        sudo iptables -D INPUT -p tcp --dport 8080 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 1935 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 3000 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 5432 -j ACCEPT 2>/dev/null || true
+        sudo iptables -D INPUT -p tcp --dport 6379 -j ACCEPT 2>/dev/null || true
+        
+        # Reload systemd
+        sudo systemctl daemon-reload 2>/dev/null || true
+        sudo systemctl reset-failed 2>/dev/null || true
+        
+        log_success "System configurations removed (ultra clean)"
+    else
+        log_info "Skipping system configurations (not Linux)"
+    fi
+}
+
+# Clean up logs and temporary files (ultra clean)
+cleanup_logs_and_temp() {
+    log_info "Cleaning up logs and temporary files (ultra clean)..."
+    
+    # Remove ALL livestream related log files
+    sudo rm -rf /var/log/livestream* 2>/dev/null || true
+    sudo rm -rf /var/log/stream* 2>/dev/null || true
+    
+    # Remove ALL livestream related temporary files
+    sudo rm -rf /tmp/livestream* 2>/dev/null || true
+    sudo rm -rf /tmp/stream* 2>/dev/null || true
+    sudo rm -rf /tmp/hls* 2>/dev/null || true
+    
+    # Remove ALL livestream related cache files
+    sudo rm -rf /var/cache/livestream* 2>/dev/null || true
+    sudo rm -rf /var/cache/stream* 2>/dev/null || true
+    
+    # Clean up journal logs completely
+    sudo journalctl --vacuum-time=1d 2>/dev/null || true
+    
+    # Remove any remaining livestream directories
+    sudo rm -rf /opt/livestream* 2>/dev/null || true
+    sudo rm -rf /usr/local/bin/livestream* 2>/dev/null || true
+    
+    log_success "All logs and temporary files cleaned (ultra clean)"
+}
+
+# Clean up system packages (optional - ultra clean)
+cleanup_packages() {
+    log_info "Cleaning up system packages (ultra clean)..."
+    
+    # Remove Docker packages
+    sudo apt-get remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin 2>/dev/null || true
+    sudo apt-get remove -y docker-compose 2>/dev/null || true
+    
+    # Remove FFmpeg
+    sudo apt-get remove -y ffmpeg 2>/dev/null || true
+    
+    # Clean up package cache
+    sudo apt-get autoremove -y 2>/dev/null || true
+    sudo apt-get autoclean 2>/dev/null || true
+    
+    log_success "System packages cleaned (ultra clean)"
+}
+
+# Clean function (keep code)
+clean_app() {
+    echo "🧹 LiveStream App - Clean (Keep Code)"
+    echo "===================================="
+    echo ""
+    
+    # Check for active streaming processes first
+    check_streaming_processes
+    
+    log_warning "This will clean LiveStream App but KEEP the code:"
+    echo ""
+    echo "  • Kill ALL livestream/stream processes"
+    echo "  • Remove ALL Docker containers, images, volumes, networks"
+    echo "  • Remove ALL systemd services"
+    echo "  • Remove ALL firewall rules"
+    echo "  • Remove ALL logs and temporary files"
+    echo "  • KEEP project files and code"
+    echo ""
+    echo "✅ ONLY PROTECTED:"
+    echo "  • SSH connection (port 22)"
+    echo "  • Project code and files"
+    echo ""
+    log_error "⚠️  WARNING: This will clean everything except SSH and code!"
+    echo ""
+    
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+    
+    if [[ "$confirm" != "yes" ]]; then
+        log_info "Clean cancelled."
+        return
+    fi
+    
+    kill_all_processes
+    remove_docker_completely
+    remove_system_configs
+    cleanup_logs_and_temp
+    
+    echo ""
+    log_success "🧹 LiveStream App cleaned (code preserved)!"
+    echo ""
+    echo "📋 What was cleaned:"
+    echo "  • ALL livestream/stream processes"
+    echo "  • ALL Docker containers, images, volumes, networks"
+    echo "  • ALL systemd services"
+    echo "  • ALL firewall rules"
+    echo "  • ALL logs and temporary files"
+    echo ""
+    echo "✅ PRESERVED:"
+    echo "  • SSH connection (port 22)"
+    echo "  • Project code and files"
+    echo ""
+    echo "🔄 To start fresh:"
+    echo "  ./scripts/livestream.sh start"
+    echo ""
+}
+
+# Uninstall function (remove everything)
+uninstall_app() {
+    echo "🗑️  LiveStream App - Ultra Clean Uninstall"
+    echo "=========================================="
+    echo ""
+    
+    # Check for active streaming processes first
+    check_streaming_processes
+    
+    log_warning "This will ULTRA CLEAN remove LiveStream App and ALL related components:"
+    echo ""
+    echo "  • Kill ALL livestream/stream processes"
+    echo "  • Remove ALL Docker containers, images, volumes, networks"
+    echo "  • Remove ALL systemd services"
+    echo "  • Remove ALL firewall rules"
+    echo "  • Remove ALL logs and temporary files"
+    echo "  • Remove project files and directories (optional)"
+    echo "  • Remove system packages (optional)"
+    echo ""
+    echo "✅ ONLY PROTECTED:"
+    echo "  • SSH connection (port 22)"
+    echo ""
+    log_error "⚠️  WARNING: This will ULTRA CLEAN everything except SSH!"
+    echo ""
+    
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+    
+    if [[ "$confirm" != "yes" ]]; then
+        log_info "Uninstall cancelled."
+        return
+    fi
+    
+    kill_all_processes
+    remove_docker_completely
+    remove_system_configs
+    cleanup_logs_and_temp
+    
+    echo ""
+    read -p "Remove project files and code? (y/n): " remove_code
+    if [[ "$remove_code" == "y" || "$remove_code" == "Y" ]]; then
+        log_info "Removing project files..."
+        cd "$(dirname "$PROJECT_ROOT")"
+        rm -rf "$(basename "$PROJECT_ROOT")"
+        log_success "Project files removed"
+    else
+        log_info "Keeping project files and code"
+    fi
+    
+    echo ""
+    read -p "Remove system packages (Docker, FFmpeg)? (y/n): " remove_packages
+    if [[ "$remove_packages" == "y" || "$remove_packages" == "Y" ]]; then
+        cleanup_packages
+    fi
+    
+    echo ""
+    log_success "🎬 LiveStream App ULTRA CLEAN removed!"
+    echo ""
+    echo "📋 What was removed:"
+    echo "  • ALL livestream/stream processes"
+    echo "  • ALL Docker containers, images, volumes, networks"
+    echo "  • ALL systemd services"
+    echo "  • ALL firewall rules"
+    echo "  • ALL logs and temporary files"
+    echo "  • Project files (if selected)"
+    echo "  • System packages (if selected)"
+    echo ""
+    echo "✅ ONLY PROTECTED:"
+    echo "  • SSH connection (port 22)"
+    echo ""
+    echo "🔄 Server is now ULTRA CLEAN - ready for fresh installation!"
+    echo ""
+}
+
 # Main menu
 show_main_menu() {
     echo "🎬 LiveStream App - Main Control"
@@ -493,8 +818,9 @@ show_main_menu() {
     echo "3. 🛑 Stop Services"
     echo "4. 📊 Show Status"
     echo "5. 🎮 Start Streaming"
-    echo "6. 🧹 Ultra Clean Uninstall"
-    echo "7. ❓ Help"
+    echo "6. 🧹 Clean (Keep Code)"
+    echo "7. 🗑️  Ultra Clean Uninstall"
+    echo "8. ❓ Help"
     echo ""
 }
 
@@ -509,6 +835,7 @@ help_info() {
     echo "  ./scripts/livestream.sh stop      - Stop all services"
     echo "  ./scripts/livestream.sh status    - Show service status"
     echo "  ./scripts/livestream.sh stream    - Start streaming"
+    echo "  ./scripts/livestream.sh clean     - Clean (keep code)"
     echo "  ./scripts/livestream.sh uninstall - Ultra clean uninstall"
     echo "  ./scripts/livestream.sh help      - Show this help"
     echo ""
@@ -544,16 +871,18 @@ main() {
         "stream")
             stream_app
             ;;
+        "clean")
+            clean_app
+            ;;
         "uninstall")
-            log_info "Running ultra clean uninstall..."
-            ./uninstall.sh
+            uninstall_app
             ;;
         "help")
             help_info
             ;;
         "menu"|"")
             show_main_menu
-            read -p "Enter your choice (1-7): " choice
+            read -p "Enter your choice (1-8): " choice
             
             case $choice in
                 1) install_app ;;
@@ -561,11 +890,9 @@ main() {
                 3) stop_app ;;
                 4) show_status ;;
                 5) stream_app ;;
-                6) 
-                    log_info "Running ultra clean uninstall..."
-                    ./uninstall.sh
-                    ;;
-                7) help_info ;;
+                6) clean_app ;;
+                7) uninstall_app ;;
+                8) help_info ;;
                 *) log_error "Invalid choice. Please run the script again." ;;
             esac
             ;;
