@@ -46,7 +46,11 @@ stop_services() {
         exit 1
     fi
     
-    $COMPOSE_CMD -f docker/docker-compose.yml down
+    # Stop and remove containers with volumes
+    $COMPOSE_CMD -f docker/docker-compose.yml down -v --remove-orphans
+    
+    # Force remove any remaining containers with livestream in name
+    docker ps -a --filter "name=livestream" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
     
     log_success "Services stopped successfully"
 }
