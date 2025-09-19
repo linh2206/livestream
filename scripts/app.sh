@@ -278,6 +278,31 @@ EOF
         echo "[INFO] .env file already exists"
     fi
 
+    # Wait for Docker to be ready
+    echo "[INFO] Waiting for Docker to be ready..."
+    for i in {1..30}; do
+        if docker info >/dev/null 2>&1; then
+            echo "[SUCCESS] Docker is ready"
+            break
+        fi
+        echo "[INFO] Waiting for Docker... ($i/30)"
+        sleep 2
+    done
+    
+    # Check Docker again
+    if ! docker info >/dev/null 2>&1; then
+        echo "[ERROR] Docker is not ready after 60 seconds"
+        echo "[INFO] Trying to restart Docker..."
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            if [ "$(id -u)" = "0" ]; then
+                systemctl restart docker
+            else
+                sudo systemctl restart docker
+            fi
+            sleep 10
+        fi
+    fi
+    
     echo "[INFO] Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
     
