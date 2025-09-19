@@ -28,7 +28,9 @@ services:
     restart: unless-stopped
 
   api:
-    build: ./services/api
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
     container_name: livestream-api
     environment:
       NODE_ENV: production
@@ -45,7 +47,9 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./services/frontend
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
     container_name: livestream-frontend
     environment:
       NODE_ENV: production
@@ -59,7 +63,9 @@ services:
     restart: unless-stopped
 
   nginx:
-    build: ./config/nginx
+    build:
+      context: ./infrastructure/nginx
+      dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:
       - "8080:8080"
