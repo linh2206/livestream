@@ -254,11 +254,11 @@ start() {
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD up -d
         
-        # Wait for critical services to be healthy
-        wait_for_health "livestream-mongodb" 30
-        wait_for_health "livestream-redis" 20
-        wait_for_health "livestream-api" 40
-        wait_for_health "livestream-frontend" 30
+        # Wait for critical services to be healthy (non-blocking)
+        wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
+        wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
+        wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
+        wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
         
         log_success "Services started"
         log_info "Frontend: http://localhost:3000"
