@@ -26,9 +26,9 @@ check_docker() {
 # Install dependencies
 install() {
     log_info "Installing dependencies..."
-    cd services/api && npm install
-    cd ../frontend && npm install
-    cd ../..
+    check_docker
+    log_info "Building services..."
+    docker-compose build
     log_success "Dependencies installed"
 }
 
@@ -72,9 +72,8 @@ clean() {
 # Build services
 build() {
     log_info "Building services..."
-    cd services/api && npm run build
-    cd ../frontend && npm run build
-    cd ../..
+    check_docker
+    docker-compose build
     log_success "Build complete"
 }
 

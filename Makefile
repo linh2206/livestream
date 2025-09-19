@@ -1,5 +1,5 @@
 # LiveStream App Makefile
-.PHONY: help install start stop status clean build test setup-ssh
+.PHONY: help install start stop status clean build test setup-ssh ssh-status
 
 help:
 	@echo "LiveStream App - Available Commands:"
@@ -17,6 +17,7 @@ help:
 	@echo ""
 	@echo "Server Setup:"
 	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
+	@echo "  make ssh-status - Show SSH service status"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
@@ -60,6 +61,11 @@ setup-ssh:
 	@echo "Configuring SSH server for Ubuntu..."
 	@chmod +x scripts/setup-ssh-server.sh
 	@bash scripts/setup-ssh-server.sh
+
+# SSH Management
+ssh-status:
+	@echo "SSH service status:"
+	@sudo systemctl status ssh --no-pager
 
 # Maintenance
 clean:
