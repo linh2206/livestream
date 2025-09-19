@@ -45,6 +45,118 @@ check_docker() {
     return 0
 }
 
+# Check frontend build issues
+check_frontend_build() {
+    log_info "Checking frontend build issues..."
+    
+    # Check if frontend directory exists
+    if [ ! -d "services/frontend" ]; then
+        log_error "Frontend directory not found"
+        return 1
+    fi
+    
+    # Check if package.json exists
+    if [ ! -f "services/frontend/package.json" ]; then
+        log_error "Frontend package.json not found"
+        return 1
+    fi
+    
+    # Check if tsconfig.json exists and has correct paths
+    if [ -f "services/frontend/tsconfig.json" ]; then
+        if ! grep -q '"@/*"' services/frontend/tsconfig.json; then
+            log_warning "tsconfig.json missing @/* path mapping"
+            log_info "Adding @/* path mapping to tsconfig.json..."
+            sed -i.bak 's/"compilerOptions": {/"compilerOptions": {\n    "baseUrl": ".",\n    "paths": {\n      "@\/*": [".\/*"]\n    },/' services/frontend/tsconfig.json
+            log_success "Added @/* path mapping"
+        fi
+    else
+        log_warning "tsconfig.json not found, creating basic one..."
+        cat > services/frontend/tsconfig.json << 'EOF'
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+EOF
+        log_success "Created tsconfig.json with @/* path mapping"
+    fi
+    
+    # Check if hooks directory exists
+    if [ ! -d "services/frontend/hooks" ]; then
+        log_warning "hooks directory not found, creating..."
+        mkdir -p services/frontend/hooks
+    fi
+    
+    # Check if useSocket.ts exists
+    if [ ! -f "services/frontend/hooks/useSocket.ts" ]; then
+        log_warning "useSocket.ts not found, creating basic one..."
+        cat > services/frontend/hooks/useSocket.ts << 'EOF'
+'use client';
+
+import { useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
+
+export function useSocket() {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000', {
+      transports: ['websocket'],
+      autoConnect: true,
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('Connected to server');
+      setIsConnected(true);
+    });
+
+    socketInstance.on('disconnect', () => {
+      console.log('Disconnected from server');
+      setIsConnected(false);
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setIsConnected(false);
+    });
+
+    setSocket(socketInstance);
+
+    return () => {
+      socketInstance.close();
+    };
+  }, []);
+
+  return { socket, isConnected };
+}
+EOF
+        log_success "Created useSocket.ts"
+    fi
+    
+    log_success "Frontend build check completed"
+    return 0
+}
+
 
 # Install Docker on Ubuntu
 install_docker() {
@@ -194,6 +306,9 @@ sync_code() {
 # Setup everything (install + start)
 setup() {
     log_info "Setting up LiveStream App..."
+    
+    # Check frontend build issues first
+    check_frontend_build
     
     # Check if Docker is installed
     if ! check_docker; then
@@ -559,20 +674,18 @@ sync_to_server() {
     
     log_info "Syncing to $SERVER_USER@$SERVER_HOST:$SERVER_PORT"
     
-    # Create directory structure
-    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mkdir -p /root/livestream/services/{api,frontend}"
+    # Create directory structure in user's home
+    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "mkdir -p ~/livestream/services/{api,frontend}"
     
     # Sync API code
     log_info "Syncing API source code..."
-    scp -P $SERVER_PORT -r services/api/src $SERVER_USER@$SERVER_HOST:/tmp/api-src/
-    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/api-src /root/livestream/services/api/src"
+    scp -P $SERVER_PORT -r services/api/src $SERVER_USER@$SERVER_HOST:~/livestream/services/api/
     
     # Sync frontend code
     log_info "Syncing frontend source code..."
     for dir in app components hooks; do
         [ -d "services/frontend/$dir" ] && {
-            scp -P $SERVER_PORT -r services/frontend/$dir $SERVER_USER@$SERVER_HOST:/tmp/frontend-$dir/
-            ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/frontend-$dir /root/livestream/services/frontend/$dir"
+            scp -P $SERVER_PORT -r services/frontend/$dir $SERVER_USER@$SERVER_HOST:~/livestream/services/frontend/
         }
     done
     
@@ -580,22 +693,23 @@ sync_to_server() {
     log_info "Syncing configuration files..."
     for file in docker-compose.yml Makefile env.example; do
         [ -f "$file" ] && {
-            scp -P $SERVER_PORT $file $SERVER_USER@$SERVER_HOST:/tmp/
-            ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/$file /root/livestream/"
+            scp -P $SERVER_PORT $file $SERVER_USER@$SERVER_HOST:~/livestream/
         }
     done
     
     # Sync scripts
-    scp -P $SERVER_PORT -r scripts $SERVER_USER@$SERVER_HOST:/tmp/
-    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/scripts /root/livestream/ && sudo chown -R root:root /root/livestream && sudo chmod +x /root/livestream/scripts/*.sh"
+    scp -P $SERVER_PORT -r scripts $SERVER_USER@$SERVER_HOST:~/livestream/
+    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "chmod +x ~/livestream/scripts/*.sh"
     
-    log_success "Code sync completed to /root/livestream!"
+    log_success "Code sync completed to ~/livestream!"
+    log_info "Run 'cd ~/livestream && make install' on the server to continue"
 }
 
 # Main function
 main() {
     case "$1" in
         install) install ;;
+        setup) setup ;;
         start) start ;;
         stop) stop ;;
         status) status ;;
@@ -605,7 +719,7 @@ main() {
         reset-all) reset_all ;;
         sync) sync_to_server ;;
         *) 
-            echo "Usage: $0 {install|start|stop|status|logs|clean|build|reset-all|sync}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|reset-all|sync}"
             exit 1
             ;;
     esac

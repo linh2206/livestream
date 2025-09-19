@@ -100,5 +100,7 @@ reset-all:
 	./scripts/app.sh reset-all
 
 # Quick setup
-setup: install start
+setup:
+	@echo "Setting up LiveStream App..."
+	./scripts/app.sh setup
 	@echo "Setup complete! Access at http://localhost:8080"
