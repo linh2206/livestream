@@ -12,12 +12,10 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
     volumes:
-      - mongodb_data:/data/db
+      - ./data/mongodb:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     ports:
       - "27017:27017"
-    networks:
-      - livestream-network
     restart: unless-stopped
 
   # Redis Cache
@@ -27,9 +25,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
-    networks:
-      - livestream-network
+      - ./data/redis:/data
     restart: unless-stopped
 
   # NestJS API Service - Backend on Port 9000
@@ -50,8 +46,6 @@ services:
     depends_on:
       - mongodb
       - redis
-    networks:
-      - livestream-network
     restart: unless-stopped
 
   # Next.js Frontend Service - Frontend on Port 3000
@@ -69,8 +63,6 @@ services:
       - "3000:3000"  # Frontend exposed on port 3000
     depends_on:
       - api
-    networks:
-      - livestream-network
     restart: unless-stopped
 
   # Nginx RTMP + HLS + Reverse Proxy
@@ -83,24 +75,9 @@ services:
       - "8080:8080"    # Web interface
       - "1935:1935"    # RTMP port
     volumes:
-      - hls_data:/var/www/html/hls
+      - ./data/hls:/var/www/html/hls
     depends_on:
       - frontend
       - api
-    networks:
-      - livestream-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
 
-volumes:
-  mongodb_data:
-  redis_data:
-  hls_data:
-
-networks:
-  livestream-network:
-    driver: bridge
