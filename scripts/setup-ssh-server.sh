@@ -39,8 +39,12 @@ print_header "SSH Server Configuration for Ubuntu"
 # Check sudo privileges
 print_status "Checking sudo privileges..."
 if ! sudo -n true 2>/dev/null; then
-    print_warning "This script requires sudo privileges. You will be prompted for your password."
+    print_warning "This script requires sudo privileges."
+    print_warning "You will be prompted for your password multiple times."
+    print_warning "Make sure you have sudo access before continuing."
+    echo ""
     read -p "Press Enter to continue or Ctrl+C to exit..."
+    echo ""
 fi
 
 # Install/update packages
@@ -143,8 +147,9 @@ echo "  - Client alive interval: 300 seconds"
 echo "  - Banner: Enabled"
 
 print_warning "Important:"
-echo "  1. Add your SSH public key to ~/.ssh/authorized_keys"
-echo "  2. Test SSH connection before closing this session"
+echo "  1. This script requires sudo privileges - you will be prompted for password"
+echo "  2. Add your SSH public key to ~/.ssh/authorized_keys"
+echo "  3. Test SSH connection before closing this session"
 
 print_status "Commands:"
 echo "  Test connection: ssh $USER@\$(hostname -I | awk '{print \$1}')"
