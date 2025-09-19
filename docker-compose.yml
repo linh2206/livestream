@@ -1,7 +1,7 @@
-# LiveStream App - Docker Compose v3.3
+# LiveStream App - Docker Compose v3.8
 # Frontend: Port 3000, Backend: Port 9000
 
-version: '3.3'
+version: '3.8'
 
 services:
   mongodb:

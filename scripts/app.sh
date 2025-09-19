@@ -92,6 +92,9 @@ install_docker() {
     $SUDO rm -rf /etc/apt/keyrings/docker.gpg || true
     $SUDO rm -rf /usr/local/bin/docker-compose || true
     $SUDO rm -rf /usr/bin/docker-compose || true
+    $SUDO rm -rf /usr/local/bin/docker-compose-* || true
+    $SUDO rm -rf /usr/bin/docker-compose-* || true
+    $SUDO rm -rf /snap/bin/docker-compose || true
     
     # Update package index
     log_info "Updating package index..."
@@ -344,12 +347,23 @@ reset_all() {
     
     log_info "Starting complete system reset..."
     
-    # Check if running as root
-    if [ "$(id -u)" = "0" ]; then
+    # Detect OS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macos"
         SUDO=""
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        OS="ubuntu"
+        if [ "$(id -u)" = "0" ]; then
+            SUDO=""
+        else
+            SUDO="sudo"
+        fi
     else
-        SUDO="sudo"
+        log_error "Unsupported OS: $OSTYPE"
+        exit 1
     fi
+    
+    log_info "Detected OS: $OS"
     
     # Stop all services
     log_info "Stopping all services..."
@@ -367,46 +381,116 @@ reset_all() {
         docker volume rm $(docker volume ls -q) 2>/dev/null || true
         docker network rm $(docker network ls -q) 2>/dev/null || true
         
-        # Remove Docker packages
-        $SUDO apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
-        $SUDO apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
-        
-        # Remove Docker directories
-        $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+        if [ "$OS" = "macos" ]; then
+            # macOS: Remove Docker Desktop
+            log_info "Removing Docker Desktop on macOS..."
+            # Stop Docker Desktop
+            osascript -e 'quit app "Docker Desktop"' 2>/dev/null || true
+            # Remove Docker Desktop app
+            rm -rf /Applications/Docker.app 2>/dev/null || true
+            # Remove Docker data
+            rm -rf ~/Library/Containers/com.docker.docker 2>/dev/null || true
+            rm -rf ~/Library/Application\ Support/Docker\ Desktop 2>/dev/null || true
+            rm -rf ~/Library/Group\ Containers/group.com.docker 2>/dev/null || true
+            rm -rf ~/Library/HTTPStorages/com.docker.docker 2>/dev/null || true
+            rm -rf ~/Library/Logs/Docker\ Desktop 2>/dev/null || true
+            rm -rf ~/Library/Preferences/com.docker.docker.plist 2>/dev/null || true
+            rm -rf ~/Library/Saved\ Application\ State/com.electron.docker-frontend.savedState 2>/dev/null || true
+            rm -rf ~/Library/Cookies/com.docker.docker.binarycookies 2>/dev/null || true
+            # Remove Docker CLI
+            rm -rf /usr/local/bin/docker /usr/local/bin/docker-compose 2>/dev/null || true
+            rm -rf /usr/local/share/docker 2>/dev/null || true
+        else
+            # Ubuntu: Remove Docker packages
+            $SUDO apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
+            $SUDO apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
+            
+            # Remove Docker directories
+            $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+        fi
         
         log_success "Docker completely removed"
     fi
     
     # Remove Node.js and npm
     log_info "Removing Node.js and npm..."
-    $SUDO apt-get remove -y nodejs npm 2>/dev/null || true
-    $SUDO apt-get purge -y nodejs npm 2>/dev/null || true
-    $SUDO rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
-    $SUDO rm -rf ~/.npm ~/.node-gyp 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove Node.js via Homebrew or manual
+        if command -v brew >/dev/null 2>&1; then
+            brew uninstall --ignore-dependencies node npm 2>/dev/null || true
+        fi
+        # Remove Node.js manually
+        rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/bin/npx 2>/dev/null || true
+        rm -rf /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
+        rm -rf ~/.npm ~/.node-gyp ~/.nvm 2>/dev/null || true
+        rm -rf /opt/homebrew/bin/node /opt/homebrew/bin/npm /opt/homebrew/bin/npx 2>/dev/null || true
+        rm -rf /opt/homebrew/lib/node_modules 2>/dev/null || true
+    else
+        # Ubuntu: Remove Node.js via apt
+        $SUDO apt-get remove -y nodejs npm 2>/dev/null || true
+        $SUDO apt-get purge -y nodejs npm 2>/dev/null || true
+        $SUDO rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
+        $SUDO rm -rf ~/.npm ~/.node-gyp 2>/dev/null || true
+    fi
     log_success "Node.js and npm removed"
     
     # Remove MongoDB
     log_info "Removing MongoDB..."
-    $SUDO systemctl stop mongod 2>/dev/null || true
-    $SUDO apt-get remove -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
-    $SUDO apt-get purge -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
-    $SUDO rm -rf /var/lib/mongodb /var/log/mongodb /etc/mongod.conf 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove MongoDB via Homebrew
+        if command -v brew >/dev/null 2>&1; then
+            brew services stop mongodb-community 2>/dev/null || true
+            brew uninstall mongodb-community 2>/dev/null || true
+        fi
+        # Remove MongoDB data
+        rm -rf /usr/local/var/mongodb /usr/local/var/log/mongodb 2>/dev/null || true
+        rm -rf ~/.mongodb 2>/dev/null || true
+    else
+        # Ubuntu: Remove MongoDB via apt
+        $SUDO systemctl stop mongod 2>/dev/null || true
+        $SUDO apt-get remove -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
+        $SUDO apt-get purge -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
+        $SUDO rm -rf /var/lib/mongodb /var/log/mongodb /etc/mongod.conf 2>/dev/null || true
+    fi
     log_success "MongoDB removed"
     
     # Remove Redis
     log_info "Removing Redis..."
-    $SUDO systemctl stop redis 2>/dev/null || true
-    $SUDO apt-get remove -y redis-server redis-tools 2>/dev/null || true
-    $SUDO apt-get purge -y redis-server redis-tools 2>/dev/null || true
-    $SUDO rm -rf /var/lib/redis /var/log/redis /etc/redis 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove Redis via Homebrew
+        if command -v brew >/dev/null 2>&1; then
+            brew services stop redis 2>/dev/null || true
+            brew uninstall redis 2>/dev/null || true
+        fi
+        # Remove Redis data
+        rm -rf /usr/local/var/db/redis /usr/local/var/log/redis 2>/dev/null || true
+        rm -rf ~/.redis 2>/dev/null || true
+    else
+        # Ubuntu: Remove Redis via apt
+        $SUDO systemctl stop redis 2>/dev/null || true
+        $SUDO apt-get remove -y redis-server redis-tools 2>/dev/null || true
+        $SUDO apt-get purge -y redis-server redis-tools 2>/dev/null || true
+        $SUDO rm -rf /var/lib/redis /var/log/redis /etc/redis 2>/dev/null || true
+    fi
     log_success "Redis removed"
     
     # Remove Nginx
     log_info "Removing Nginx..."
-    $SUDO systemctl stop nginx 2>/dev/null || true
-    $SUDO apt-get remove -y nginx nginx-common nginx-core 2>/dev/null || true
-    $SUDO apt-get purge -y nginx nginx-common nginx-core 2>/dev/null || true
-    $SUDO rm -rf /var/www/html /etc/nginx /var/log/nginx 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove Nginx via Homebrew
+        if command -v brew >/dev/null 2>&1; then
+            brew services stop nginx 2>/dev/null || true
+            brew uninstall nginx 2>/dev/null || true
+        fi
+        # Remove Nginx data
+        rm -rf /usr/local/var/www /usr/local/etc/nginx /usr/local/var/log/nginx 2>/dev/null || true
+    else
+        # Ubuntu: Remove Nginx via apt
+        $SUDO systemctl stop nginx 2>/dev/null || true
+        $SUDO apt-get remove -y nginx nginx-common nginx-core 2>/dev/null || true
+        $SUDO apt-get purge -y nginx nginx-common nginx-core 2>/dev/null || true
+        $SUDO rm -rf /var/www/html /etc/nginx /var/log/nginx 2>/dev/null || true
+    fi
     log_success "Nginx removed"
     
     # Remove all project data
@@ -421,12 +505,31 @@ reset_all() {
     
     # Remove all caches
     log_info "Removing all caches..."
-    $SUDO rm -rf /var/cache/apt/archives/* /var/cache/apt/lists/* /tmp/* /var/tmp/* ~/.cache 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove caches
+        rm -rf ~/Library/Caches/* 2>/dev/null || true
+        rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
+        rm -rf ~/.cache 2>/dev/null || true
+        # Remove Homebrew caches
+        if command -v brew >/dev/null 2>&1; then
+            brew cleanup --prune=all 2>/dev/null || true
+        fi
+    else
+        # Ubuntu: Remove caches
+        $SUDO rm -rf /var/cache/apt/archives/* /var/cache/apt/lists/* /tmp/* /var/tmp/* ~/.cache 2>/dev/null || true
+    fi
     log_success "Caches removed"
     
     # Remove all logs
     log_info "Removing all logs..."
-    $SUDO rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Remove logs
+        rm -rf ~/Library/Logs/* 2>/dev/null || true
+        rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
+    else
+        # Ubuntu: Remove logs
+        $SUDO rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
+    fi
     find . -name "*.log" -type f -delete 2>/dev/null || true
     log_success "Logs removed"
     
@@ -443,8 +546,17 @@ reset_all() {
     
     # Clean up package manager
     log_info "Cleaning up package manager..."
-    $SUDO apt-get autoremove -y 2>/dev/null || true
-    $SUDO apt-get autoclean 2>/dev/null || true
+    if [ "$OS" = "macos" ]; then
+        # macOS: Clean up Homebrew
+        if command -v brew >/dev/null 2>&1; then
+            brew cleanup --prune=all 2>/dev/null || true
+            brew autoremove 2>/dev/null || true
+        fi
+    else
+        # Ubuntu: Clean up apt
+        $SUDO apt-get autoremove -y 2>/dev/null || true
+        $SUDO apt-get autoclean 2>/dev/null || true
+    fi
     log_success "Package manager cleaned"
     
     # Show what was preserved
