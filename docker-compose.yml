@@ -64,7 +64,7 @@ services:
 
   nginx:
     build:
-      context: ./infrastructure/nginx
+      context: ./config/nginx
       dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:
