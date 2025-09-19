@@ -200,16 +200,29 @@ install() {
             log_success ".env file created from env.example"
         else
             # Create basic .env file
-            cat > .env << EOF
+            cat > .env << 'EOF'
 # LiveStream App Environment Variables
 JWT_SECRET=your-secret-key-change-this-in-production
+
+# Database credentials
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=password
+MONGO_DATABASE=livestream
+
+# Database URLs
+MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
+REDIS_URL=redis://redis:6379
+
+# Frontend URLs
 FRONTEND_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:9000
 NEXT_PUBLIC_WS_URL=ws://localhost:9000
-MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
-REDIS_URL=redis://redis:6379
+
+# Streaming URLs
 RTMP_URL=rtmp://localhost:1935/live
 HLS_URL=http://localhost:8080/hls
+
+# Development
 NODE_ENV=production
 EOF
             log_success ".env file created with default values"

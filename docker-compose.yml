@@ -8,9 +8,9 @@ services:
     image: mongo:7.0
     container_name: livestream-mongodb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: livestream
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
@@ -63,12 +63,12 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-api
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV}
       PORT: 3000
-      MONGODB_URI: ${MONGODB_URI:-mongodb://admin:password@mongodb:27017/livestream?authSource=admin}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MONGODB_URI: ${MONGODB_URI}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "9000:3000"  # Backend exposed on port 9000
     depends_on:
@@ -99,9 +99,9 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-frontend
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9000}
-      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:9000}
+      NODE_ENV: ${NODE_ENV}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       BACKEND_URL: http://api:3000
     ports:
       - "3000:3000"  # Frontend exposed on port 3000
