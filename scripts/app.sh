@@ -157,12 +157,20 @@ install_docker() {
         exit 1
     fi
     
-    # Create Docker directories
+    # Create Docker directories and initialize
     echo "[INFO] Creating Docker directories..."
     $SUDO mkdir -p /var/lib/docker/tmp
     $SUDO mkdir -p /var/lib/docker/containers
     $SUDO mkdir -p /var/lib/docker/volumes
     $SUDO mkdir -p /var/lib/docker/networks
+    $SUDO mkdir -p /var/lib/docker/image
+    $SUDO mkdir -p /var/lib/docker/overlay2
+    
+    # Initialize Docker daemon
+    echo "[INFO] Initializing Docker daemon..."
+    $SUDO dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376 &
+    sleep 5
+    $SUDO pkill dockerd
     
     # Start and enable Docker
     echo "[INFO] Starting Docker service..."
@@ -216,11 +224,11 @@ install() {
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             # Linux: Use systemctl
             if [ "$(id -u)" = "0" ]; then
-                mkdir -p /var/lib/docker/tmp
+                mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes
                 systemctl start docker
                 systemctl enable docker
             else
-                sudo mkdir -p /var/lib/docker/tmp
+                sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes
                 sudo systemctl start docker
                 sudo systemctl enable docker
             fi
