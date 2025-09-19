@@ -69,8 +69,8 @@ sudo tee /etc/ssh/sshd_config > /dev/null << 'EOF'
 Port 22
 Protocol 2
 AddressFamily any
-# ListenAddress 0.0.0.0  # Commented for security - only listen on specific interfaces if needed
-# ListenAddress ::        # Commented for security - only listen on specific interfaces if needed
+# ListenAddress 0.0.0.0
+# ListenAddress ::
 
 # Host keys
 HostKey /etc/ssh/ssh_host_rsa_key
