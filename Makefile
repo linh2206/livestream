@@ -1,5 +1,5 @@
 # LiveStream App Makefile
-.PHONY: help install start stop status clean build test setup-ssh ssh-status
+.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all
 
 help:
 	@echo "LiveStream App - Available Commands:"
@@ -22,6 +22,7 @@ help:
 	@echo "Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make logs       - Show service logs"
+	@echo "  make reset-all  - Reset everything (keep SSH and code)"
 	@echo ""
 
 # Development
@@ -75,6 +76,12 @@ clean:
 logs:
 	@echo "Showing service logs..."
 	./scripts/app.sh logs
+
+# Reset everything (keep SSH and code)
+reset-all:
+	@echo "Resetting everything (keeping SSH and code)..."
+	@chmod +x scripts/reset-all.sh
+	@bash scripts/reset-all.sh
 
 # Quick setup
 setup: install start

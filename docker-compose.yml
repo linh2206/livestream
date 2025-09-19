@@ -1,6 +1,6 @@
 # LiveStream App - Unified Deployment
 # Frontend: Port 3000, Backend: Port 9000
-version: '3.8'
+# Using latest Docker Compose format (no version key)
 
 services:
   # MongoDB Database

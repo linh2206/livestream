@@ -47,21 +47,25 @@ install_docker() {
     
     # Remove old docker-compose first
     if [ "$(id -u)" = "0" ]; then
-        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
+        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose /usr/local/bin/docker-compose-v2
         curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         # Create symlink for docker compose (new syntax)
         ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
         # Override old docker-compose
         ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+        # Also create docker compose (new syntax without hyphen)
+        ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-new
     else
-        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
+        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose /usr/local/bin/docker-compose-v2
         sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
         # Create symlink for docker compose (new syntax)
         sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
         # Override old docker-compose
         sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+        # Also create docker compose (new syntax without hyphen)
+        sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-new
     fi
     
     # Verify installation
@@ -142,7 +146,12 @@ install() {
     fi
     
     log_info "Building services..."
-    docker-compose build
+    # Try new syntax first, fallback to old syntax
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        docker compose build
+    else
+        docker-compose build
+    fi
     log_success "Dependencies installed"
 }
 
@@ -150,7 +159,12 @@ install() {
 start() {
     log_info "Starting LiveStream App..."
     if check_docker; then
-        docker-compose up -d
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose up -d
+        else
+            docker-compose up -d
+        fi
         log_success "Services started"
         log_info "Frontend: http://localhost:3000"
         log_info "Backend: http://localhost:9000"
@@ -165,7 +179,12 @@ start() {
 stop() {
     log_info "Stopping LiveStream App..."
     if check_docker; then
-        docker-compose down
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose down
+        else
+            docker-compose down
+        fi
         log_success "Services stopped"
     else
         log_warning "Docker not running, nothing to stop"
@@ -176,7 +195,12 @@ stop() {
 status() {
     log_info "Service Status:"
     if check_docker; then
-        docker-compose ps
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose ps
+        else
+            docker-compose ps
+        fi
     else
         log_warning "Docker not running, cannot show status"
     fi
@@ -186,7 +210,12 @@ status() {
 logs() {
     log_info "Showing service logs..."
     if check_docker; then
-        docker-compose logs -f
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose logs -f
+        else
+            docker-compose logs -f
+        fi
     else
         log_error "Cannot show logs without Docker. Please start Docker first."
         exit 1
@@ -197,7 +226,12 @@ logs() {
 clean() {
     log_info "Cleaning up..."
     if check_docker; then
-        docker-compose down -v
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose down -v
+        else
+            docker-compose down -v
+        fi
         docker system prune -f
         log_success "Cleanup complete"
     else
@@ -209,7 +243,12 @@ clean() {
 build() {
     log_info "Building services..."
     if check_docker; then
-        docker-compose build
+        # Try new syntax first, fallback to old syntax
+        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+            docker compose build
+        else
+            docker-compose build
+        fi
         log_success "Build complete"
     else
         log_error "Cannot build without Docker. Please start Docker first."
