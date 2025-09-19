@@ -32,10 +32,20 @@ check_docker() {
 
 # Function to get Docker Compose command
 get_compose_cmd() {
+    # Check for new docker compose (v2) first
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         echo "docker compose"
+    # Check for updated docker-compose binary
+    elif command -v docker-compose >/dev/null 2>&1; then
+        # Check if it's the new version
+        if docker-compose --version 2>/dev/null | grep -q "v2"; then
+            echo "docker-compose"
+        else
+            echo "docker-compose"
+        fi
     else
-        echo "docker-compose"
+        log_error "Docker Compose not found. Please run 'make install' first."
+        exit 1
     fi
 }
 
@@ -94,25 +104,17 @@ install_docker() {
     
     # Remove old docker-compose first
     if [ "$(id -u)" = "0" ]; then
-        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose /usr/local/bin/docker-compose-v2
+        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
         curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
-        # Create symlink for docker compose (new syntax)
-        ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
         # Override old docker-compose
         ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-        # Also create docker compose (new syntax without hyphen)
-        ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-new
     else
-        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose /usr/local/bin/docker-compose-v2
+        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
         sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
-        # Create symlink for docker compose (new syntax)
-        sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
         # Override old docker-compose
         sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-        # Also create docker compose (new syntax without hyphen)
-        sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-new
     fi
     
     # Verify installation
@@ -144,31 +146,6 @@ install_docker() {
     log_success "Docker installed successfully!"
 }
 
-# Check if Docker is running
-check_docker() {
-    if ! command -v docker >/dev/null 2>&1; then
-        log_error "Docker is not installed."
-        echo ""
-        echo "To install Docker on Ubuntu:"
-        echo "1. sudo apt update"
-        echo "2. sudo apt install -y docker.io docker-compose"
-        echo "3. sudo systemctl start docker"
-        echo "4. sudo systemctl enable docker"
-        echo "5. sudo usermod -aG docker \$USER"
-        echo "6. Logout and login again"
-        exit 1
-    fi
-    
-    if ! docker info >/dev/null 2>&1; then
-        log_error "Docker is not running."
-        echo ""
-        echo "To start Docker:"
-        echo "1. sudo systemctl start docker"
-        echo "2. sudo systemctl enable docker"
-        exit 1
-    fi
-    return 0
-}
 
 # Install dependencies
 install() {
@@ -264,12 +241,8 @@ start() {
 stop() {
     log_info "Stopping LiveStream App..."
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose down
-        else
-            docker-compose down
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD down
         log_success "Services stopped"
     else
         log_warning "Docker not running, nothing to stop"
@@ -280,12 +253,8 @@ stop() {
 status() {
     log_info "Service Status:"
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose ps
-        else
-            docker-compose ps
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD ps
     else
         log_warning "Docker not running, cannot show status"
     fi
@@ -295,12 +264,8 @@ status() {
 logs() {
     log_info "Showing service logs..."
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose logs -f
-        else
-            docker-compose logs -f
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD logs -f
     else
         log_error "Cannot show logs without Docker. Please start Docker first."
         exit 1
@@ -311,12 +276,8 @@ logs() {
 clean() {
     log_info "Cleaning up..."
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose down -v
-        else
-            docker-compose down -v
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD down -v
         docker system prune -f
         log_success "Cleanup complete"
     else
@@ -328,12 +289,8 @@ clean() {
 build() {
     log_info "Building services..."
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose build
-        else
-            docker-compose build
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD build
         log_success "Build complete"
     else
         log_error "Cannot build without Docker. Please start Docker first."
