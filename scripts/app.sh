@@ -278,7 +278,7 @@ EOF
     
     # Debug info
     log_info "Docker version: $(docker --version 2>/dev/null || echo 'Not found')"
-    log_info "Docker Compose version: $($COMPOSE_CMD version 2>/dev/null || echo 'Not found')"
+    log_info "Docker Compose version: $(docker compose version 2>/dev/null || echo 'Not found')"
     log_info "Docker info: $(docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'Not available')"
     
     # Test network connectivity
@@ -294,14 +294,14 @@ EOF
     # Build with timeout and retry
     log_info "Building with timeout 10 minutes..."
     if ! $COMPOSE_CMD build --no-cache; then
-        log_warning "Build with --no-cache failed, trying without --no-cache..."
+        echo "[WARNING] Build with --no-cache failed, trying without --no-cache..."
         if ! $COMPOSE_CMD build; then
-            log_warning "Build failed, trying to build individual services..."
+            echo "[WARNING] Build failed, trying to build individual services..."
             # Try building services one by one (skip mongodb and redis as they use pre-built images)
             for service in api frontend nginx; do
                 log_info "Building $service..."
                 if ! $COMPOSE_CMD build $service; then
-                    log_error "Failed to build $service"
+                    echo "[ERROR] Failed to build $service"
                     exit 1
                 fi
             done
