@@ -44,18 +44,34 @@ install_docker() {
     # Install latest docker-compose
     log_info "Installing latest docker-compose..."
     COMPOSE_VERSION="v2.23.0"
+    
+    # Remove old docker-compose first
     if [ "$(id -u)" = "0" ]; then
+        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
         curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         # Create symlink for docker compose (new syntax)
         ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
+        # Override old docker-compose
+        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
     else
+        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
         sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
         # Create symlink for docker compose (new syntax)
         sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
+        # Override old docker-compose
+        sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
     fi
-    log_success "Docker Compose ${COMPOSE_VERSION} installed"
+    
+    # Verify installation
+    if docker-compose --version >/dev/null 2>&1; then
+        log_success "Docker Compose ${COMPOSE_VERSION} installed successfully"
+        docker-compose --version
+    else
+        log_error "Failed to install Docker Compose"
+        exit 1
+    fi
     
     # Start Docker service
     log_info "Starting Docker service..."
