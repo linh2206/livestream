@@ -1,5 +1,5 @@
 # LiveStream App Makefile
-.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all setup
+.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all setup sync
 
 # Default target
 .DEFAULT_GOAL := help
@@ -18,6 +18,7 @@ help:
 	@echo ""
 	@echo "🚀 Deployment:"
 	@echo "  make deploy     - Deploy to single server"
+	@echo "  make sync       - Sync code to server"
 	@echo ""
 	@echo "🔧 Server Setup:"
 	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
@@ -66,6 +67,12 @@ test:
 deploy:
 	@echo "Deploying to server..."
 	./scripts/app.sh start
+
+sync:
+	@echo "Syncing code to server..."
+	@echo "Using default server: ubuntu@183.182.104.226:24122"
+	@echo "Override with: SERVER_HOST=ip SERVER_PORT=port SERVER_USER=user make sync"
+	./scripts/app.sh sync
 
 # Server Setup
 setup-ssh:

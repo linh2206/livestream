@@ -11,6 +11,19 @@ log_success() { echo -e "\033[0;32m[SUCCESS]\033[0m $1"; }
 log_warning() { echo -e "\033[0;33m[WARNING]\033[0m $1"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; }
 
+# Common functions
+get_sudo_cmd() { [ "$(id -u)" = "0" ] && echo "" || echo "sudo"; }
+get_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        echo "docker-compose"
+    else
+        log_error "Docker Compose not found" >&2
+        exit 1
+    fi
+}
+
 # Check if running on Ubuntu
 check_os() {
     if [[ "$OSTYPE" != "linux-gnu"* ]]; then
@@ -32,17 +45,6 @@ check_docker() {
     return 0
 }
 
-# Get Docker Compose command
-get_compose_cmd() {
-    if docker compose version >/dev/null 2>&1; then
-        echo "docker compose"
-    elif command -v docker-compose >/dev/null 2>&1; then
-        echo "docker-compose"
-    else
-        log_error "Docker Compose not found" >&2
-        exit 1
-    fi
-}
 
 # Install Docker on Ubuntu
 install_docker() {
@@ -163,9 +165,35 @@ install_docker() {
     log_success "Docker and Docker Compose installation completed!"
 }
 
-# Install dependencies
-install() {
-    log_info "Installing dependencies..."
+# Sync source code to server
+sync_code() {
+    # Check if we're on Ubuntu server
+    if [[ "$HOSTNAME" == *"ubuntu"* ]] || [[ "$USER" == "ubuntu" ]]; then
+        log_info "Ubuntu server detected - syncing code..."
+        
+        # Change to livestream directory
+        cd /root/livestream 2>/dev/null || {
+            log_error "Cannot access /root/livestream directory"
+            exit 1
+        }
+        
+        # Auto-fix missing src directory
+        if [ ! -d "services/api/src" ] && [ -d "/home/ubuntu/src" ]; then
+            log_info "Moving src/ to correct location..."
+            sudo mv /home/ubuntu/src services/api/ && log_success "src/ moved successfully"
+        elif [ ! -d "services/api/src" ]; then
+            log_error "src/ directory not found. Run 'make sync' first."
+            exit 1
+        fi
+        
+        # Check frontend
+        [ ! -d "services/frontend/app" ] && log_warning "Frontend app/ missing - may cause build issues"
+    fi
+}
+
+# Setup everything (install + start)
+setup() {
+    log_info "Setting up LiveStream App..."
     
     # Check if Docker is installed
     if ! check_docker; then
@@ -175,11 +203,8 @@ install() {
     
     # Start Docker service
     log_info "Starting Docker service..."
-    if [ "$(id -u)" = "0" ]; then
-        systemctl start docker
-    else
-        sudo systemctl start docker
-    fi
+    SUDO_CMD=$(get_sudo_cmd)
+    $SUDO_CMD systemctl start docker
     
     # Create .env file if it doesn't exist
     log_info "Creating .env file..."
@@ -206,31 +231,13 @@ EOF
         log_info ".env file already exists"
     fi
     
-    # Initialize Docker daemon if needed
+    # Initialize Docker daemon
     log_info "Initializing Docker daemon..."
-    if [ "$(id -u)" = "0" ]; then
-        # Stop Docker if running
-        systemctl stop docker 2>/dev/null || true
-        pkill dockerd 2>/dev/null || true
-        rm -f /var/run/docker.pid 2>/dev/null || true
-        
-        # Create Docker directories
-        mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-        
-        # Start Docker service
-        systemctl start docker
-    else
-        # Stop Docker if running
-        sudo systemctl stop docker 2>/dev/null || true
-        sudo pkill dockerd 2>/dev/null || true
-        sudo rm -f /var/run/docker.pid 2>/dev/null || true
-        
-        # Create Docker directories
-        sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-        
-        # Start Docker service
-        sudo systemctl start docker
-    fi
+    $SUDO_CMD systemctl stop docker 2>/dev/null || true
+    $SUDO_CMD pkill dockerd 2>/dev/null || true
+    $SUDO_CMD rm -f /var/run/docker.pid 2>/dev/null || true
+    $SUDO_CMD mkdir -p /var/lib/docker/{tmp,containers,volumes,image,overlay2}
+    $SUDO_CMD systemctl start docker
     
     # Wait for Docker to be ready
     log_info "Waiting for Docker to be ready..."
@@ -243,69 +250,112 @@ EOF
         sleep 2
     done
     
+    # Build services
     log_info "Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
-    
-    # Set build timeout and retry
     export DOCKER_BUILDKIT=1
     export COMPOSE_HTTP_TIMEOUT=300
     
-    # Debug info
-    log_info "Docker version: $(docker --version 2>/dev/null || echo 'Not found')"
-    log_info "Docker Compose version: $(docker compose version 2>/dev/null || echo 'Not found')"
-    log_info "Docker info: $(docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'Not available')"
-    
-    # Test network connectivity
-    log_info "Testing network connectivity..."
-    if command -v ping >/dev/null 2>&1; then
-        if ! ping -c 1 registry-1.docker.io >/dev/null 2>&1; then
-            log_warning "Cannot reach Docker registry. Check network connection."
-        fi
-    else
-        log_info "Ping command not available, skipping network test"
-    fi
-    
-    # Build with timeout and retry
-    log_info "Building with timeout 10 minutes..."
     if ! $COMPOSE_CMD build --no-cache; then
-        log_warning "Build with --no-cache failed, trying without --no-cache..."
-        if ! $COMPOSE_CMD build; then
-            log_warning "Build failed, trying to build individual services..."
-            # Try building services one by one (skip mongodb and redis as they use pre-built images)
-            for service in api frontend nginx; do
-                log_info "Building $service..."
-                if ! $COMPOSE_CMD build $service; then
-                    log_error "Failed to build $service"
-                    exit 1
-                fi
-            done
-        fi
+        log_warning "Build failed, trying individual services..."
+        for service in api frontend nginx; do
+            log_info "Building $service..."
+            $COMPOSE_CMD build $service || { log_error "Failed to build $service"; exit 1; }
+        done
     fi
     
-    log_success "Dependencies installed"
+    # Start services
+    log_info "Starting services..."
+    $COMPOSE_CMD up -d
+    
+    # Wait for services to be healthy
+    wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
+    wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
+    wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
+    wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
+    
+    log_success "Setup complete!"
+    log_info "Frontend: http://localhost:3000"
+    log_info "Backend: http://localhost:9000"
+    log_info "Web Interface: http://localhost:8080"
 }
 
-# Start services
-start() {
-    log_info "Starting LiveStream App..."
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD up -d
-        
-        # Wait for services to be healthy
-        wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
-        wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
-        wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
-        wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
-        
-        log_success "Services started"
-        log_info "Frontend: http://localhost:3000"
-        log_info "Backend: http://localhost:9000"
-        log_info "Web Interface: http://localhost:8080"
-    else
-        log_error "Cannot start without Docker. Please start Docker first."
-        exit 1
-    fi
+# Install dependencies (legacy - use setup instead)
+install() {
+    log_warning "install command is deprecated. Use 'setup' instead."
+    setup
+}
+
+# Docker service management
+docker_service() {
+    local action=$1
+    local compose_cmd=$(get_compose_cmd)
+    
+    case $action in
+        start)
+            log_info "Starting LiveStream App..."
+            if check_docker; then
+                $compose_cmd up -d
+                wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
+                wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
+                wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
+                wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
+                log_success "Services started"
+                log_info "Frontend: http://localhost:3000"
+                log_info "Backend: http://localhost:9000"
+                log_info "Web Interface: http://localhost:8080"
+            else
+                log_error "Cannot start without Docker. Please start Docker first."
+                exit 1
+            fi
+            ;;
+        stop)
+            log_info "Stopping LiveStream App..."
+            if check_docker; then
+                $compose_cmd down
+                log_success "Services stopped"
+            else
+                log_warning "Docker not running, nothing to stop"
+            fi
+            ;;
+        status)
+            log_info "Service Status:"
+            if check_docker; then
+                $compose_cmd ps
+            else
+                log_warning "Docker not running, cannot show status"
+            fi
+            ;;
+        logs)
+            log_info "Showing service logs..."
+            if check_docker; then
+                $compose_cmd logs -f
+            else
+                log_error "Cannot show logs without Docker. Please start Docker first."
+                exit 1
+            fi
+            ;;
+        clean)
+            log_info "Cleaning up..."
+            if check_docker; then
+                $compose_cmd down -v
+                docker system prune -f
+                log_success "Cleanup complete"
+            else
+                log_warning "Docker not running, nothing to clean"
+            fi
+            ;;
+        build)
+            log_info "Building services..."
+            if check_docker; then
+                $compose_cmd build
+                log_success "Build complete"
+            else
+                log_error "Cannot build without Docker. Please start Docker first."
+                exit 1
+            fi
+            ;;
+    esac
 }
 
 # Wait for service health
@@ -327,66 +377,13 @@ wait_for_health() {
     return 1
 }
 
-# Stop services
-stop() {
-    log_info "Stopping LiveStream App..."
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD down
-        log_success "Services stopped"
-    else
-        log_warning "Docker not running, nothing to stop"
-    fi
-}
-
-# Show status
-status() {
-    log_info "Service Status:"
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD ps
-    else
-        log_warning "Docker not running, cannot show status"
-    fi
-}
-
-# Show logs
-logs() {
-    log_info "Showing service logs..."
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD logs -f
-    else
-        log_error "Cannot show logs without Docker. Please start Docker first."
-        exit 1
-    fi
-}
-
-# Clean up
-clean() {
-    log_info "Cleaning up..."
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD down -v
-        docker system prune -f
-        log_success "Cleanup complete"
-    else
-        log_warning "Docker not running, nothing to clean"
-    fi
-}
-
-# Build services
-build() {
-    log_info "Building services..."
-    if check_docker; then
-        COMPOSE_CMD=$(get_compose_cmd)
-        $COMPOSE_CMD build
-        log_success "Build complete"
-    else
-        log_error "Cannot build without Docker. Please start Docker first."
-        exit 1
-    fi
-}
+# Wrapper functions
+start() { docker_service start; }
+stop() { docker_service stop; }
+status() { docker_service status; }
+logs() { docker_service logs; }
+clean() { docker_service clean; }
+build() { docker_service build; }
 
 # Reset everything (keep SSH and code) - Ubuntu only
 reset_all() {
@@ -553,6 +550,48 @@ reset_all() {
     log_warning "You will need to reconfigure everything from scratch."
 }
 
+# Sync code to server
+sync_to_server() {
+    # Default server config
+    SERVER_HOST=${SERVER_HOST:-183.182.104.226}
+    SERVER_PORT=${SERVER_PORT:-24122}
+    SERVER_USER=${SERVER_USER:-ubuntu}
+    
+    log_info "Syncing to $SERVER_USER@$SERVER_HOST:$SERVER_PORT"
+    
+    # Create directory structure
+    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mkdir -p /root/livestream/services/{api,frontend}"
+    
+    # Sync API code
+    log_info "Syncing API source code..."
+    scp -P $SERVER_PORT -r services/api/src $SERVER_USER@$SERVER_HOST:/tmp/api-src/
+    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/api-src /root/livestream/services/api/src"
+    
+    # Sync frontend code
+    log_info "Syncing frontend source code..."
+    for dir in app components hooks; do
+        [ -d "services/frontend/$dir" ] && {
+            scp -P $SERVER_PORT -r services/frontend/$dir $SERVER_USER@$SERVER_HOST:/tmp/frontend-$dir/
+            ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/frontend-$dir /root/livestream/services/frontend/$dir"
+        }
+    done
+    
+    # Sync config files
+    log_info "Syncing configuration files..."
+    for file in docker-compose.yml Makefile env.example; do
+        [ -f "$file" ] && {
+            scp -P $SERVER_PORT $file $SERVER_USER@$SERVER_HOST:/tmp/
+            ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/$file /root/livestream/"
+        }
+    done
+    
+    # Sync scripts
+    scp -P $SERVER_PORT -r scripts $SERVER_USER@$SERVER_HOST:/tmp/
+    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "sudo mv /tmp/scripts /root/livestream/ && sudo chown -R root:root /root/livestream && sudo chmod +x /root/livestream/scripts/*.sh"
+    
+    log_success "Code sync completed to /root/livestream!"
+}
+
 # Main function
 main() {
     case "$1" in
@@ -564,8 +603,9 @@ main() {
         clean) clean ;;
         build) build ;;
         reset-all) reset_all ;;
+        sync) sync_to_server ;;
         *) 
-            echo "Usage: $0 {install|start|stop|status|logs|clean|build|reset-all}"
+            echo "Usage: $0 {install|start|stop|status|logs|clean|build|reset-all|sync}"
             exit 1
             ;;
     esac
