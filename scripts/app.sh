@@ -15,11 +15,74 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Install Docker
+install_docker() {
+    log_info "Installing Docker on Ubuntu..."
+    
+    # Check if apt is available
+    if ! command -v apt >/dev/null 2>&1; then
+        log_error "This script requires Ubuntu with apt package manager"
+        exit 1
+    fi
+    
+    # Update package list
+    log_info "Updating package list..."
+    if [ "$(id -u)" = "0" ]; then
+        apt update
+    else
+        sudo apt update
+    fi
+    
+    # Install Docker
+    log_info "Installing Docker..."
+    if [ "$(id -u)" = "0" ]; then
+        apt install -y docker.io docker-compose
+    else
+        sudo apt install -y docker.io docker-compose
+    fi
+    
+    # Start Docker service
+    log_info "Starting Docker service..."
+    if [ "$(id -u)" = "0" ]; then
+        systemctl start docker
+        systemctl enable docker
+    else
+        sudo systemctl start docker
+        sudo systemctl enable docker
+    fi
+    
+    # Add user to docker group
+    if [ "$(id -u)" != "0" ]; then
+        log_info "Adding user to docker group..."
+        sudo usermod -aG docker $USER
+        log_warning "Please logout and login again, or run: newgrp docker"
+    fi
+    
+    log_success "Docker installed successfully!"
+}
+
 # Check if Docker is running
 check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "Docker is not installed."
+        echo ""
+        echo "To install Docker on Ubuntu:"
+        echo "1. sudo apt update"
+        echo "2. sudo apt install -y docker.io docker-compose"
+        echo "3. sudo systemctl start docker"
+        echo "4. sudo systemctl enable docker"
+        echo "5. sudo usermod -aG docker \$USER"
+        echo "6. Logout and login again"
+        exit 1
+    fi
+    
     if ! docker info >/dev/null 2>&1; then
-        log_warning "Docker is not running. Some commands may fail."
-        return 1
+        log_error "Docker is not running."
+        echo ""
+        echo "To start Docker:"
+        echo "1. sudo systemctl start docker"
+        echo "2. sudo systemctl enable docker"
+        exit 1
     fi
     return 0
 }
@@ -27,14 +90,28 @@ check_docker() {
 # Install dependencies
 install() {
     log_info "Installing dependencies..."
-    if check_docker; then
-        log_info "Building services..."
-        docker-compose build
-        log_success "Dependencies installed"
-    else
-        log_error "Cannot install without Docker. Please start Docker first."
-        exit 1
+    
+    # Check if Docker is installed
+    if ! command -v docker >/dev/null 2>&1; then
+        log_info "Docker not found. Installing Docker..."
+        install_docker
     fi
+    
+    # Check if Docker is running
+    if ! docker info >/dev/null 2>&1; then
+        log_info "Starting Docker service..."
+        if [ "$(id -u)" = "0" ]; then
+            systemctl start docker
+            systemctl enable docker
+        else
+            sudo systemctl start docker
+            sudo systemctl enable docker
+        fi
+    fi
+    
+    log_info "Building services..."
+    docker-compose build
+    log_success "Dependencies installed"
 }
 
 # Start services
