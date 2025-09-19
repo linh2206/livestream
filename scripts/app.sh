@@ -119,6 +119,13 @@ install_docker() {
     log_info "Installing Docker Engine..."
     $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
+    # Install latest docker-compose binary as backup
+    log_info "Installing latest docker-compose binary..."
+    COMPOSE_VERSION="v2.23.0"
+    $SUDO curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    $SUDO chmod +x /usr/local/bin/docker-compose
+    $SUDO ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    
     # Start and enable Docker
     log_info "Starting Docker service..."
     $SUDO systemctl start docker
