@@ -1,4 +1,5 @@
-# Single Server Deployment - All services on one server
+# Unified Deployment - All services on one server
+# Frontend: Port 3000, Backend: Port 9000
 version: '3.8'
 
 services:
@@ -41,7 +42,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # NestJS API Service
+  # NestJS API Service - Backend on Port 9000
   api:
     build:
       context: ../../services/api
@@ -53,9 +54,9 @@ services:
       MONGODB_URI: mongodb://admin:password@mongodb:27017/livestream?authSource=admin
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-secret-key}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
-      - "9000:3000"
+      - "9000:3000"  # Backend exposed on port 9000
     depends_on:
       mongodb:
         condition: service_healthy
@@ -70,7 +71,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Next.js Frontend Service
+  # Next.js Frontend Service - Frontend on Port 3000
   frontend:
     build:
       context: ../../services/frontend
@@ -82,7 +83,7 @@ services:
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:9000}
       BACKEND_URL: http://api:3000
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Frontend exposed on port 3000
     depends_on:
       api:
         condition: service_healthy
@@ -95,7 +96,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-
   # Nginx RTMP + HLS + Reverse Proxy
   nginx:
     build:
@@ -104,10 +104,12 @@ services:
     container_name: livestream-nginx
     ports:
       - "8080:8080"    # Web interface
+      - "1935:1935"    # RTMP port
     volumes:
       - hls_data:/var/www/html/hls
     depends_on:
       - frontend
+      - api
     networks:
       - livestream-network
     healthcheck:

@@ -1,7 +1,7 @@
 # LiveStream App Makefile
 # Simple commands for development and deployment
 
-.PHONY: help install start stop status clean build test
+.PHONY: help install start stop status clean build test setup-ssh
 
 # Default target
 help:
@@ -18,6 +18,9 @@ help:
 	@echo "Deployment:"
 	@echo "  make deploy     - Deploy to single server"
 	@echo "  make deploy-multi - Deploy to multiple servers"
+	@echo ""
+	@echo "Server Setup:"
+	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
@@ -61,6 +64,12 @@ deploy:
 deploy-multi:
 	@echo "Deploying to multiple servers..."
 	./scripts/livestream.sh multi
+
+# Server setup commands
+setup-ssh:
+	@echo "Configuring SSH server for Ubuntu..."
+	chmod +x scripts/setup-ssh-server.sh
+	./scripts/setup-ssh-server.sh
 
 # Maintenance commands
 clean:
