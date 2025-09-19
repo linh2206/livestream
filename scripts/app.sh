@@ -48,20 +48,20 @@ wait_for_health() {
     local max_attempts=${2:-30}
     local attempt=1
     
-    log_info Waiting for $service to be healthy..."
+    log_info "Waiting for $service to be healthy..."
     
     while [ $attempt -le $max_attempts ]; do
         if docker ps --filter "name=$service" --filter "health=healthy" | grep -q "$service"; then
-            log_success $service is healthy"
+            log_success "$service is healthy"
             return 0
         fi
         
-        log_info Attempt $attempt/$max_attempts - $service not ready yet..."
+        log_info "Attempt $attempt/$max_attempts - $service not ready yet..."
         sleep 2
         attempt=$((attempt + 1))
     done
     
-    log_error $service failed to become healthy after $max_attempts attempts"
+    log_error "$service failed to become healthy after $max_attempts attempts"
     return 1
 }
 
@@ -307,17 +307,17 @@ EOF
     fi
     
     # Wait for Docker to be ready
-    log_info Waiting for Docker to be ready..."
+    log_info "Waiting for Docker to be ready..."
     for i in {1..30}; do
         if docker info >/dev/null 2>&1; then
-            log_success Docker is ready"
+            log_success "Docker is ready"
             break
         fi
-        log_info Waiting for Docker... ($i/30)"
+        log_info "Waiting for Docker... ($i/30)"
         sleep 2
     done
     
-    log_info Building services..."
+    log_info "Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
     
     # Set build timeout and retry
