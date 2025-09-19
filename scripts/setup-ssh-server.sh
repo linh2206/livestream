@@ -32,14 +32,14 @@ print_header() {
 }
 
 # Check if running as root
-if [[ $EUID -eq 0 ]]; then
+if [[ $(id -u) -eq 0 ]]; then
    print_error "This script should not be run as root for security reasons"
    exit 1
 fi
 
-# Check if apt is available (Ubuntu/Debian only)
+# Check if apt is available (Ubuntu only)
 if ! command -v apt &> /dev/null; then
-   print_error "This script requires Ubuntu/Debian with apt package manager"
+   print_error "This script requires Ubuntu with apt package manager"
    exit 1
 fi
 

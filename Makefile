@@ -67,7 +67,7 @@ deploy-multi:
 
 # Server setup commands
 setup-ssh:
-	@echo "Configuring SSH server for Ubuntu..."
+	@echo "Configuring SSH server for Ubuntu (Ubuntu only)..."
 	chmod +x scripts/setup-ssh-server.sh
 	./scripts/setup-ssh-server.sh
 
