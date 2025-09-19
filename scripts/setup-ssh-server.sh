@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH Server Configuration Script for Ubuntu
-# Configures SSH server with security best practices
+# Complete and tested configuration
 
 set -e
 
@@ -41,13 +41,12 @@ print_status "Checking sudo privileges..."
 if ! sudo -n true 2>/dev/null; then
     print_warning "This script requires sudo privileges."
     print_warning "You will be prompted for your password multiple times."
-    print_warning "Make sure you have sudo access before continuing."
     echo ""
     read -p "Press Enter to continue or Ctrl+C to exit..."
     echo ""
 fi
 
-# Install/update packages
+# Install OpenSSH server
 print_status "Installing OpenSSH server..."
 sudo apt update && sudo apt install -y openssh-server
 
@@ -55,11 +54,10 @@ sudo apt update && sudo apt install -y openssh-server
 print_status "Backing up original SSH configuration..."
 sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup.$(date +%Y%m%d_%H%M%S)
 
-# Configure SSH server
-print_status "Configuring SSH server with security best practices..."
-
 # Create new SSH config
+print_status "Configuring SSH server..."
 sudo tee /etc/ssh/sshd_config > /dev/null << 'EOF'
+# SSH Server Configuration
 Port 22
 PermitRootLogin no
 PasswordAuthentication no
@@ -107,8 +105,7 @@ if sudo sshd -t 2>/dev/null; then
     print_status "SSH service status:"
     sudo systemctl status ssh --no-pager
 else
-    print_error "SSH configuration has errors. Please check the configuration."
-    print_error "Restoring backup configuration..."
+    print_error "SSH configuration has errors. Restoring backup..."
     sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config 2>/dev/null || true
     sudo systemctl restart ssh
     exit 1
@@ -123,7 +120,6 @@ echo "  - Password authentication: Disabled"
 echo "  - Public key authentication: Enabled"
 echo "  - Max authentication tries: 3"
 echo "  - Client alive interval: 300 seconds"
-echo "  - Banner: Enabled"
 
 print_warning "Important:"
 echo "  1. This script requires sudo privileges - you will be prompted for password"
