@@ -32,17 +32,12 @@ check_docker() {
 
 # Function to get Docker Compose command
 get_compose_cmd() {
-    # Check for new docker compose (v2) first
+    # Check for new docker compose (v2) first - this is the modern way
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         echo "docker compose"
-    # Check for updated docker-compose binary
+    # Fallback to docker-compose binary
     elif command -v docker-compose >/dev/null 2>&1; then
-        # Check if it's the new version
-        if docker-compose --version 2>/dev/null | grep -q "v2"; then
-            echo "docker-compose"
-        else
-            echo "docker-compose"
-        fi
+        echo "docker-compose"
     else
         log_error "Docker Compose not found. Please run 'make install' first."
         exit 1
@@ -90,41 +85,30 @@ install_docker() {
         sudo apt update
     fi
     
-    # Install Docker
-    log_info "Installing Docker..."
+    # Install Docker from official repository
+    log_info "Installing Docker from official repository..."
+    
+    # Add Docker's official GPG key
     if [ "$(id -u)" = "0" ]; then
-        apt install -y docker.io docker-compose
+        apt update
+        apt install -y ca-certificates curl gnupg lsb-release
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt update
+        apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     else
-        sudo apt install -y docker.io docker-compose
+        sudo apt update
+        sudo apt install -y ca-certificates curl gnupg lsb-release
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt update
+        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     fi
     
-    # Install latest docker-compose
-    log_info "Installing latest docker-compose..."
-    COMPOSE_VERSION="v2.23.0"
-    
-    # Remove old docker-compose first
-    if [ "$(id -u)" = "0" ]; then
-        rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
-        curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        # Override old docker-compose
-        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    else
-        sudo rm -f /usr/local/bin/docker-compose /usr/bin/docker-compose
-        sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        # Override old docker-compose
-        sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    fi
-    
-    # Verify installation
-    if docker-compose --version >/dev/null 2>&1; then
-        log_success "Docker Compose ${COMPOSE_VERSION} installed successfully"
-        docker-compose --version
-    else
-        log_error "Failed to install Docker Compose"
-        exit 1
-    fi
+    # Docker Compose is now included with docker-compose-plugin
+    log_info "Docker Compose is included with docker-compose-plugin"
     
     # Start Docker service
     log_info "Starting Docker service..."

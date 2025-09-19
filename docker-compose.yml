@@ -1,69 +1,111 @@
-# LiveStream App - Docker Compose v1 compatible
+# LiveStream App - Docker Compose v3.8
 # Frontend: Port 3000, Backend: Port 9000
 
-mongodb:
-  image: mongo:7.0
-  container_name: livestream-mongodb
-  environment:
-    MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-    MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-    MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-  volumes:
-    - ./data/mongodb:/data/db
-    - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
-  ports:
-    - "27017:27017"
-  restart: unless-stopped
+version: '3.8'
 
-redis:
-  image: redis:7-alpine
-  container_name: livestream-redis
-  ports:
-    - "6379:6379"
-  volumes:
-    - ./data/redis:/data
-  restart: unless-stopped
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: livestream-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongodb_data:/data/db
+      - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-api:
-  build: ./services/api
-  container_name: livestream-api
-  environment:
-    NODE_ENV: ${NODE_ENV}
-    PORT: 3000
-    MONGODB_URI: ${MONGODB_URI}
-    REDIS_URL: ${REDIS_URL}
-    JWT_SECRET: ${JWT_SECRET}
-    FRONTEND_URL: ${FRONTEND_URL}
-  ports:
-    - "9000:3000"
-  links:
-    - mongodb
-    - redis
-  restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    container_name: livestream-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-frontend:
-  build: ./services/frontend
-  container_name: livestream-frontend
-  environment:
-    NODE_ENV: ${NODE_ENV}
-    NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
-    BACKEND_URL: http://api:3000
-  ports:
-    - "3000:3000"
-  links:
-    - api
-  restart: unless-stopped
+  api:
+    build: ./services/api
+    container_name: livestream-api
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3000
+      MONGODB_URI: ${MONGODB_URI}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+    ports:
+      - "9000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-nginx:
-  build: ./config/nginx
-  container_name: livestream-nginx
-  ports:
-    - "8080:8080"
-    - "1935:1935"
-  volumes:
-    - ./data/hls:/var/www/html/hls
-  links:
-    - frontend
-    - api
-  restart: unless-stopped
+  frontend:
+    build: ./services/frontend
+    container_name: livestream-frontend
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+      BACKEND_URL: http://api:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  nginx:
+    build: ./config/nginx
+    container_name: livestream-nginx
+    ports:
+      - "8080:8080"
+      - "1935:1935"
+    volumes:
+      - hls_data:/var/www/html/hls
+    depends_on:
+      frontend:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  default:
+    name: livestream-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+  hls_data:
