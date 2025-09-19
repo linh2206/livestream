@@ -68,33 +68,9 @@ MaxAuthTries 3
 ClientAliveInterval 300
 ClientAliveCountMax 2
 UseDNS no
-Banner /etc/ssh/banner
-EOF
-
-# Create SSH banner
-print_status "Creating SSH banner..."
-sudo tee /etc/ssh/banner > /dev/null << 'EOF'
-***************************************************************************
-                    AUTHORIZED ACCESS ONLY
-***************************************************************************
-This system is for the use of authorized users only. Individuals using
-this computer system without authority, or in excess of their authority,
-are subject to having all of their activities on this system monitored
-and recorded by system personnel.
-
-In the course of monitoring individuals improperly using this system,
-or in the course of system maintenance, the activities of authorized
-users may also be monitored.
-
-Anyone using this system expressly consents to such monitoring and is
-advised that if such monitoring reveals possible evidence of criminal
-activity, system personnel may provide the evidence of such monitoring
-to law enforcement officials.
-***************************************************************************
 EOF
 
 # Set proper permissions
-sudo chmod 644 /etc/ssh/banner
 sudo chmod 600 /etc/ssh/sshd_config
 
 # Setup SSH directory and keys
@@ -121,9 +97,9 @@ sudo ufw default allow outgoing
 sudo ufw allow ssh
 sudo ufw status
 
-# Test and restart SSH
+# Test SSH configuration
 print_status "Testing SSH configuration..."
-if sudo sshd -t; then
+if sudo sshd -t 2>/dev/null; then
     print_status "SSH configuration is valid"
     print_status "Restarting SSH service..."
     sudo systemctl restart ssh
@@ -132,6 +108,9 @@ if sudo sshd -t; then
     sudo systemctl status ssh --no-pager
 else
     print_error "SSH configuration has errors. Please check the configuration."
+    print_error "Restoring backup configuration..."
+    sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config 2>/dev/null || true
+    sudo systemctl restart ssh
     exit 1
 fi
 
