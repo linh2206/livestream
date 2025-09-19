@@ -41,6 +41,19 @@ install_docker() {
         sudo apt install -y docker.io docker-compose
     fi
     
+    # Install newer docker-compose if needed
+    log_info "Checking docker-compose version..."
+    if docker-compose --version | grep -q "1.2"; then
+        log_info "Installing newer docker-compose..."
+        if [ "$(id -u)" = "0" ]; then
+            curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+        else
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+        fi
+    fi
+    
     # Start Docker service
     log_info "Starting Docker service..."
     if [ "$(id -u)" = "0" ]; then
