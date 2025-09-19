@@ -169,11 +169,8 @@ install_docker() {
     # Initialize Docker daemon
     echo "[INFO] Initializing Docker daemon..."
     $SUDO dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376 &
-    DOCKERD_PID=$!
-    sleep 10
-    $SUDO kill $DOCKERD_PID 2>/dev/null || true
-    $SUDO pkill dockerd 2>/dev/null || true
-    sleep 2
+    sleep 5
+    $SUDO pkill dockerd
     
     # Start and enable Docker
     echo "[INFO] Starting Docker service..."
@@ -281,6 +278,34 @@ EOF
         echo "[INFO] .env file already exists"
     fi
 
+    # Initialize Docker daemon if needed
+    echo "[INFO] Initializing Docker daemon..."
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ "$(id -u)" = "0" ]; then
+            # Create Docker directories
+            mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
+            # Initialize Docker daemon
+            dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock &
+            DOCKERD_PID=$!
+            sleep 10
+            kill $DOCKERD_PID 2>/dev/null || true
+            pkill dockerd 2>/dev/null || true
+            # Start Docker service
+            systemctl start docker
+        else
+            # Create Docker directories
+            sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
+            # Initialize Docker daemon
+            sudo dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock &
+            DOCKERD_PID=$!
+            sleep 10
+            sudo kill $DOCKERD_PID 2>/dev/null || true
+            sudo pkill dockerd 2>/dev/null || true
+            # Start Docker service
+            sudo systemctl start docker
+        fi
+    fi
+    
     # Wait for Docker to be ready
     echo "[INFO] Waiting for Docker to be ready..."
     for i in {1..30}; do
@@ -291,24 +316,6 @@ EOF
         echo "[INFO] Waiting for Docker... ($i/30)"
         sleep 2
     done
-    
-    # Check Docker again
-    if ! docker info >/dev/null 2>&1; then
-        echo "[ERROR] Docker is not ready after 60 seconds"
-        echo "[INFO] Trying to restart Docker..."
-        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            if [ "$(id -u)" = "0" ]; then
-                systemctl stop docker
-                mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-                systemctl start docker
-            else
-                sudo systemctl stop docker
-                sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-                sudo systemctl start docker
-            fi
-            sleep 10
-        fi
-    fi
     
     echo "[INFO] Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
@@ -332,18 +339,21 @@ EOF
         echo "[INFO] Ping command not available, skipping network test"
     fi
     
-    # Build services
-    echo "[INFO] Building services..."
-    if ! $COMPOSE_CMD build; then
-        echo "[WARNING] Build failed, trying to build individual services..."
-        # Try building services one by one (skip mongodb and redis as they use pre-built images)
-        for service in api frontend nginx; do
-            echo "[INFO] Building $service..."
-            if ! $COMPOSE_CMD build $service; then
-                echo "[ERROR] Failed to build $service"
-                exit 1
-            fi
-        done
+    # Build with timeout and retry
+    echo "[INFO] Building with timeout 10 minutes..."
+    if ! $COMPOSE_CMD build --no-cache; then
+        echo "[WARNING] Build with --no-cache failed, trying without --no-cache..."
+        if ! $COMPOSE_CMD build; then
+            echo "[WARNING] Build failed, trying to build individual services..."
+            # Try building services one by one (skip mongodb and redis as they use pre-built images)
+            for service in api frontend nginx; do
+                echo "[INFO] Building $service..."
+                if ! $COMPOSE_CMD build $service; then
+                    echo "[ERROR] Failed to build $service"
+                    exit 1
+                fi
+            done
+        fi
     fi
     
     echo "[SUCCESS] Dependencies installed"
