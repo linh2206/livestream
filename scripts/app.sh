@@ -282,25 +282,25 @@ EOF
     echo "[INFO] Initializing Docker daemon..."
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         if [ "$(id -u)" = "0" ]; then
+            # Stop Docker if running
+            systemctl stop docker 2>/dev/null || true
+            pkill dockerd 2>/dev/null || true
+            rm -f /var/run/docker.pid 2>/dev/null || true
+            
             # Create Docker directories
             mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-            # Initialize Docker daemon
-            dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock &
-            DOCKERD_PID=$!
-            sleep 10
-            kill $DOCKERD_PID 2>/dev/null || true
-            pkill dockerd 2>/dev/null || true
+            
             # Start Docker service
             systemctl start docker
         else
+            # Stop Docker if running
+            sudo systemctl stop docker 2>/dev/null || true
+            sudo pkill dockerd 2>/dev/null || true
+            sudo rm -f /var/run/docker.pid 2>/dev/null || true
+            
             # Create Docker directories
             sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
-            # Initialize Docker daemon
-            sudo dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock &
-            DOCKERD_PID=$!
-            sleep 10
-            sudo kill $DOCKERD_PID 2>/dev/null || true
-            sudo pkill dockerd 2>/dev/null || true
+            
             # Start Docker service
             sudo systemctl start docker
         fi
