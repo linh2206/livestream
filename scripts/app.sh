@@ -277,14 +277,18 @@ EOF
     export COMPOSE_HTTP_TIMEOUT=300
     
     # Debug info
-    log_info "Docker version: $(docker --version)"
-    log_info "Docker Compose version: $($COMPOSE_CMD version)"
-    log_info "Docker info: $(docker info --format '{{.ServerVersion}}')"
+    log_info "Docker version: $(docker --version 2>/dev/null || echo 'Not found')"
+    log_info "Docker Compose version: $($COMPOSE_CMD version 2>/dev/null || echo 'Not found')"
+    log_info "Docker info: $(docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'Not available')"
     
     # Test network connectivity
     log_info "Testing network connectivity..."
-    if ! ping -c 1 registry-1.docker.io >/dev/null 2>&1; then
-        log_warning "Cannot reach Docker registry. Check network connection."
+    if command -v ping >/dev/null 2>&1; then
+        if ! ping -c 1 registry-1.docker.io >/dev/null 2>&1; then
+            log_warning "Cannot reach Docker registry. Check network connection."
+        fi
+    else
+        log_info "Ping command not available, skipping network test"
     fi
     
     # Build with timeout and retry
@@ -293,8 +297,8 @@ EOF
         log_warning "Build with --no-cache failed, trying without --no-cache..."
         if ! timeout 600 $COMPOSE_CMD build; then
             log_warning "Build failed, trying to build individual services..."
-            # Try building services one by one
-            for service in mongodb redis api frontend nginx; do
+            # Try building services one by one (skip mongodb and redis as they use pre-built images)
+            for service in api frontend nginx; do
                 log_info "Building $service..."
                 if ! timeout 300 $COMPOSE_CMD build $service; then
                     log_error "Failed to build $service"
