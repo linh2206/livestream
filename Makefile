@@ -69,12 +69,12 @@ ssh-status:
 
 # Maintenance
 clean:
-	@echo "Cleaning up..."
-	@./scripts/livestream.sh clean
+	@echo "Cleaning up containers and images..."
+	./scripts/app.sh clean
 
 logs:
 	@echo "Showing service logs..."
-	./scripts/livestream.sh status
+	./scripts/app.sh logs
 
 # Quick setup
 setup: install start
