@@ -39,6 +39,7 @@ install:
 	@echo "Installing Docker, dependencies and setup..."
 	./scripts/app.sh install
 
+
 start:
 	@echo "Starting all services..."
 	./scripts/app.sh start
