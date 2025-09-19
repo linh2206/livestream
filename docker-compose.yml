@@ -1,8 +1,7 @@
-# LiveStream App - Ubuntu Docker Compose v1 compatible
+# LiveStream App - Ubuntu compatible
 # Frontend: Port 3000, Backend: Port 9000
 
 services:
-  # MongoDB Database
   mongodb:
     image: mongo:7.0
     container_name: livestream-mongodb
@@ -17,7 +16,6 @@ services:
       - "27017:27017"
     restart: unless-stopped
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: livestream-redis
@@ -27,7 +25,6 @@ services:
       - ./data/redis:/data
     restart: unless-stopped
 
-  # NestJS API Service - Backend on Port 9000
   api:
     build: ./services/api
     container_name: livestream-api
@@ -45,7 +42,6 @@ services:
       - redis
     restart: unless-stopped
 
-  # Next.js Frontend Service - Frontend on Port 3000
   frontend:
     build: ./services/frontend
     container_name: livestream-frontend
@@ -60,7 +56,6 @@ services:
       - api
     restart: unless-stopped
 
-  # Nginx RTMP + HLS + Reverse Proxy
   nginx:
     build: ./config/nginx
     container_name: livestream-nginx
