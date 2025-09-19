@@ -169,8 +169,11 @@ install_docker() {
     # Initialize Docker daemon
     echo "[INFO] Initializing Docker daemon..."
     $SUDO dockerd --data-root=/var/lib/docker --pidfile=/var/run/docker.pid --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376 &
-    sleep 5
-    $SUDO pkill dockerd
+    DOCKERD_PID=$!
+    sleep 10
+    $SUDO kill $DOCKERD_PID 2>/dev/null || true
+    $SUDO pkill dockerd 2>/dev/null || true
+    sleep 2
     
     # Start and enable Docker
     echo "[INFO] Starting Docker service..."
@@ -295,9 +298,13 @@ EOF
         echo "[INFO] Trying to restart Docker..."
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             if [ "$(id -u)" = "0" ]; then
-                systemctl restart docker
+                systemctl stop docker
+                mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
+                systemctl start docker
             else
-                sudo systemctl restart docker
+                sudo systemctl stop docker
+                sudo mkdir -p /var/lib/docker/tmp /var/lib/docker/containers /var/lib/docker/volumes /var/lib/docker/image /var/lib/docker/overlay2
+                sudo systemctl start docker
             fi
             sleep 10
         fi
@@ -325,21 +332,18 @@ EOF
         echo "[INFO] Ping command not available, skipping network test"
     fi
     
-    # Build with timeout and retry
-    echo "[INFO] Building with timeout 10 minutes..."
-    if ! $COMPOSE_CMD build --no-cache; then
-        echo "[WARNING] Build with --no-cache failed, trying without --no-cache..."
-        if ! $COMPOSE_CMD build; then
-            echo "[WARNING] Build failed, trying to build individual services..."
-            # Try building services one by one (skip mongodb and redis as they use pre-built images)
-            for service in api frontend nginx; do
-                echo "[INFO] Building $service..."
-                if ! $COMPOSE_CMD build $service; then
-                    echo "[ERROR] Failed to build $service"
-                    exit 1
-                fi
-            done
-        fi
+    # Build services
+    echo "[INFO] Building services..."
+    if ! $COMPOSE_CMD build; then
+        echo "[WARNING] Build failed, trying to build individual services..."
+        # Try building services one by one (skip mongodb and redis as they use pre-built images)
+        for service in api frontend nginx; do
+            echo "[INFO] Building $service..."
+            if ! $COMPOSE_CMD build $service; then
+                echo "[ERROR] Failed to build $service"
+                exit 1
+            fi
+        done
     fi
     
     echo "[SUCCESS] Dependencies installed"
