@@ -1,28 +1,37 @@
 # LiveStream App Makefile
-.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all
+.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all setup
+
+# Default target
+.DEFAULT_GOAL := help
 
 help:
-	@echo "LiveStream App - Available Commands:"
+	@echo "🚀 LiveStream App - Available Commands:"
 	@echo ""
-	@echo "Development:"
+	@echo "📦 Development:"
 	@echo "  make install    - Install dependencies and setup"
 	@echo "  make start      - Start all services"
 	@echo "  make stop       - Stop all services"
 	@echo "  make status     - Show service status"
 	@echo "  make build      - Build all services"
 	@echo "  make test       - Run tests"
+	@echo "  make setup      - Quick setup (install + start)"
 	@echo ""
-	@echo "Deployment:"
+	@echo "🚀 Deployment:"
 	@echo "  make deploy     - Deploy to single server"
 	@echo ""
-	@echo "Server Setup:"
+	@echo "🔧 Server Setup:"
 	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
 	@echo "  make ssh-status - Show SSH service status"
 	@echo ""
-	@echo "Maintenance:"
+	@echo "🧹 Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make logs       - Show service logs"
 	@echo "  make reset-all  - Reset everything (keep SSH and code)"
+	@echo ""
+	@echo "📊 Quick Access:"
+	@echo "  Frontend: http://localhost:3000"
+	@echo "  Backend:  http://localhost:9000"
+	@echo "  Web UI:   http://localhost:8080"
 	@echo ""
 
 # Development

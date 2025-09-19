@@ -9,45 +9,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        service: [api, frontend]
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: |
-          services/api/package-lock.json
-          services/frontend/package-lock.json
-
-    - name: Install API dependencies
-      run: cd services/api && npm install
-
-    - name: Install Frontend dependencies
-      run: cd services/frontend && npm install
-
-    - name: Run API tests
-      run: cd services/api && npm test || echo "No API tests"
-
-    - name: Run Frontend tests
-      run: cd services/frontend && npm test || echo "No Frontend tests"
-
-    - name: Build API
-      run: cd services/api && npm run build
-
-    - name: Build Frontend
-      run: cd services/frontend && npm run build
-
-    - name: Lint API
-      run: cd services/api && npm run lint || echo "No lint script"
-
-    - name: Lint Frontend
-      run: cd services/frontend && npm run lint || echo "No lint script"
-
+        cache-dependency-path: services/${{ matrix.service }}/package-lock.json
+    - name: Install dependencies
+      run: cd services/${{ matrix.service }} && npm ci
+    - name: Run tests
+      run: cd services/${{ matrix.service }} && npm test || echo "No tests configured"
+    - name: Build service
+      run: cd services/${{ matrix.service }} && npm run build
+    - name: Lint service
+      run: cd services/${{ matrix.service }} && npm run lint || echo "No lint script"
     - name: Security audit
-      run: |
-        cd services/api && npm audit --audit-level moderate || echo "API audit completed"
-        cd ../frontend && npm audit --audit-level moderate || echo "Frontend audit completed"
+      run: cd services/${{ matrix.service }} && npm audit --audit-level moderate || echo "Audit completed"

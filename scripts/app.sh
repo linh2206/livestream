@@ -15,6 +15,53 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Function to check if Docker is running
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "Docker is not installed. Please install Docker first."
+        return 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        log_warning "Docker is not running. Please start Docker first."
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to get Docker Compose command
+get_compose_cmd() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    else
+        echo "docker-compose"
+    fi
+}
+
+# Function to wait for service health
+wait_for_health() {
+    local service=$1
+    local max_attempts=${2:-30}
+    local attempt=1
+    
+    log_info "Waiting for $service to be healthy..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        if docker ps --filter "name=$service" --filter "health=healthy" | grep -q "$service"; then
+            log_success "$service is healthy"
+            return 0
+        fi
+        
+        log_info "Attempt $attempt/$max_attempts - $service not ready yet..."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    log_error "$service failed to become healthy after $max_attempts attempts"
+    return 1
+}
+
 # Install Docker
 install_docker() {
     log_info "Installing Docker on Ubuntu..."
@@ -145,13 +192,35 @@ install() {
         fi
     fi
     
-    log_info "Building services..."
-    # Try new syntax first, fallback to old syntax
-    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-        docker compose build
+    # Create .env file if it doesn't exist
+    if [ ! -f ".env" ]; then
+        log_info "Creating .env file..."
+        if [ -f "env.example" ]; then
+            cp env.example .env
+            log_success ".env file created from env.example"
+        else
+            # Create basic .env file
+            cat > .env << EOF
+# LiveStream App Environment Variables
+JWT_SECRET=your-secret-key-change-this-in-production
+FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=ws://localhost:9000
+MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
+REDIS_URL=redis://redis:6379
+RTMP_URL=rtmp://localhost:1935/live
+HLS_URL=http://localhost:8080/hls
+NODE_ENV=production
+EOF
+            log_success ".env file created with default values"
+        fi
     else
-        docker-compose build
+        log_info ".env file already exists"
     fi
+
+    log_info "Building services..."
+    COMPOSE_CMD=$(get_compose_cmd)
+    $COMPOSE_CMD build
     log_success "Dependencies installed"
 }
 
@@ -159,12 +228,15 @@ install() {
 start() {
     log_info "Starting LiveStream App..."
     if check_docker; then
-        # Try new syntax first, fallback to old syntax
-        if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose up -d
-        else
-            docker-compose up -d
-        fi
+        COMPOSE_CMD=$(get_compose_cmd)
+        $COMPOSE_CMD up -d
+        
+        # Wait for critical services to be healthy
+        wait_for_health "livestream-mongodb" 30
+        wait_for_health "livestream-redis" 20
+        wait_for_health "livestream-api" 40
+        wait_for_health "livestream-frontend" 30
+        
         log_success "Services started"
         log_info "Frontend: http://localhost:3000"
         log_info "Backend: http://localhost:9000"
