@@ -67,18 +67,12 @@ sudo tee /etc/ssh/sshd_config > /dev/null << 'EOF'
 
 # Basic settings
 Port 22
-Protocol 2
-AddressFamily any
-# ListenAddress 0.0.0.0
-# ListenAddress ::
 
 # Host keys
 HostKey /etc/ssh/ssh_host_rsa_key
-HostKey /etc/ssh/ssh_host_ecdsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
 
 # Logging
-SyslogFacility AUTH
 LogLevel INFO
 
 # Authentication
