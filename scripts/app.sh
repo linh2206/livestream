@@ -32,20 +32,12 @@ check_docker() {
 
 # Function to get Docker Compose command
 get_compose_cmd() {
-    # Use docker compose (plugin) - this is the modern way
-    if command -v docker >/dev/null 2>&1; then
-        if docker compose version >/dev/null 2>&1; then
-            echo "docker compose"
-        elif command -v docker-compose >/dev/null 2>&1; then
-            echo "[WARNING] Using legacy docker-compose command" >&2
-            echo "docker-compose"
-        else
-            echo "[ERROR] Docker Compose not found. Please install docker-compose-plugin:" >&2
-            echo "[ERROR]   sudo apt-get install docker-compose-plugin" >&2
-            exit 1
-        fi
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        echo "docker-compose"
     else
-        echo "[ERROR] Docker not found. Please install Docker first." >&2
+        echo "[ERROR] Docker Compose not found" >&2
         exit 1
     fi
 }
