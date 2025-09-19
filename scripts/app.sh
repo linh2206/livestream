@@ -276,12 +276,31 @@ EOF
     export DOCKER_BUILDKIT=1
     export COMPOSE_HTTP_TIMEOUT=300
     
+    # Debug info
+    log_info "Docker version: $(docker --version)"
+    log_info "Docker Compose version: $($COMPOSE_CMD version)"
+    log_info "Docker info: $(docker info --format '{{.ServerVersion}}')"
+    
+    # Test network connectivity
+    log_info "Testing network connectivity..."
+    if ! ping -c 1 registry-1.docker.io >/dev/null 2>&1; then
+        log_warning "Cannot reach Docker registry. Check network connection."
+    fi
+    
     # Build with timeout and retry
+    log_info "Building with timeout 10 minutes..."
     if ! timeout 600 $COMPOSE_CMD build --no-cache; then
-        log_warning "Build failed, trying without --no-cache..."
-        if ! timeout 300 $COMPOSE_CMD build; then
-            log_error "Build failed after retry. Please check Docker and network connection."
-            exit 1
+        log_warning "Build with --no-cache failed, trying without --no-cache..."
+        if ! timeout 600 $COMPOSE_CMD build; then
+            log_warning "Build failed, trying to build individual services..."
+            # Try building services one by one
+            for service in mongodb redis api frontend nginx; do
+                log_info "Building $service..."
+                if ! timeout 300 $COMPOSE_CMD build $service; then
+                    log_error "Failed to build $service"
+                    exit 1
+                fi
+            done
         fi
     fi
     
