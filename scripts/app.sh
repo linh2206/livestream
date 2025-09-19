@@ -10,10 +10,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1" >&2; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1" >&2; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1" >&2; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+log_info() { echo "[INFO] $1"; }
+log_success() { echo "[SUCCESS] $1"; }
+log_warning() { echo "[WARNING] $1"; }
+log_error() { echo "[ERROR] $1"; }
 
 # Function to check if Docker is running
 check_docker() {
@@ -300,8 +300,8 @@ EOF
             # Try building services one by one (skip mongodb and redis as they use pre-built images)
             for service in api frontend nginx; do
                 log_info "Building $service..."
-                if ! timeout 300 $COMPOSE_CMD build $service 2>&1; then
-                    log_error "Failed to build $service. Check the output above for details."
+                if ! timeout 300 $COMPOSE_CMD build $service; then
+                    log_error "Failed to build $service"
                     exit 1
                 fi
             done
