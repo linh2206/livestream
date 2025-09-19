@@ -4,8 +4,7 @@ FROM tiangolo/nginx-rtmp
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Create directories
-RUN mkdir -p /var/www/html/hls \
-    && chown -R nginx:nginx /var/www/html
+RUN mkdir -p /var/www/html/hls
 
 # Expose ports
 EXPOSE 8080 1935
