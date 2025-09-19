@@ -41,18 +41,21 @@ install_docker() {
         sudo apt install -y docker.io docker-compose
     fi
     
-    # Install newer docker-compose if needed
-    log_info "Checking docker-compose version..."
-    if docker-compose --version | grep -q "1.2"; then
-        log_info "Installing newer docker-compose..."
-        if [ "$(id -u)" = "0" ]; then
-            curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-        else
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-        fi
+    # Install latest docker-compose
+    log_info "Installing latest docker-compose..."
+    COMPOSE_VERSION="v2.23.0"
+    if [ "$(id -u)" = "0" ]; then
+        curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+        # Create symlink for docker compose (new syntax)
+        ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
+    else
+        sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        # Create symlink for docker compose (new syntax)
+        sudo ln -sf /usr/local/bin/docker-compose /usr/local/bin/docker-compose-v2
     fi
+    log_success "Docker Compose ${COMPOSE_VERSION} installed"
     
     # Start Docker service
     log_info "Starting Docker service..."
