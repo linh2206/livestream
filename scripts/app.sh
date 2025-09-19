@@ -33,10 +33,19 @@ check_docker() {
 # Function to get Docker Compose command
 get_compose_cmd() {
     # Use docker compose (plugin) - this is the modern way
-    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-        echo "docker compose"
+    if command -v docker >/dev/null 2>&1; then
+        if docker compose version >/dev/null 2>&1; then
+            echo "docker compose"
+        elif command -v docker-compose >/dev/null 2>&1; then
+            log_warning "Using legacy docker-compose command"
+            echo "docker-compose"
+        else
+            log_error "Docker Compose not found. Please install docker-compose-plugin:"
+            log_error "  sudo apt-get install docker-compose-plugin"
+            exit 1
+        fi
     else
-        log_error "Docker Compose not found. Please run 'make install' first."
+        log_error "Docker not found. Please install Docker first."
         exit 1
     fi
 }
@@ -127,6 +136,15 @@ install_docker() {
     log_info "Installing Docker Engine..."
     $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
+    # Verify Docker Compose plugin installation
+    log_info "Verifying Docker Compose plugin..."
+    if docker compose version >/dev/null 2>&1; then
+        log_success "Docker Compose plugin installed successfully"
+    else
+        log_warning "Docker Compose plugin not found, trying to install manually..."
+        $SUDO apt-get install -y docker-compose-plugin
+    fi
+    
     # Verify Docker installation
     log_info "Verifying Docker installation..."
     if docker --version >/dev/null 2>&1; then
@@ -196,12 +214,19 @@ install() {
     # Check if Docker is running
     if ! docker info >/dev/null 2>&1; then
         log_info "Starting Docker service..."
-        if [ "$(id -u)" = "0" ]; then
-            systemctl start docker
-            systemctl enable docker
-        else
-            sudo systemctl start docker
-            sudo systemctl enable docker
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Linux: Use systemctl
+            if [ "$(id -u)" = "0" ]; then
+                systemctl start docker
+                systemctl enable docker
+            else
+                sudo systemctl start docker
+                sudo systemctl enable docker
+            fi
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS: Start Docker Desktop
+            log_info "Please start Docker Desktop manually on macOS"
+            open -a Docker 2>/dev/null || true
         fi
     fi
     
@@ -246,7 +271,20 @@ EOF
 
     log_info "Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
-    $COMPOSE_CMD build
+    
+    # Set build timeout and retry
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_HTTP_TIMEOUT=300
+    
+    # Build with timeout and retry
+    if ! timeout 600 $COMPOSE_CMD build --no-cache; then
+        log_warning "Build failed, trying without --no-cache..."
+        if ! timeout 300 $COMPOSE_CMD build; then
+            log_error "Build failed after retry. Please check Docker and network connection."
+            exit 1
+        fi
+    fi
+    
     log_success "Dependencies installed"
 }
 
