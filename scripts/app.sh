@@ -18,63 +18,94 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then
-        log_error "Docker is not running. Please start Docker first."
-        exit 1
+        log_warning "Docker is not running. Some commands may fail."
+        return 1
     fi
+    return 0
 }
 
 # Install dependencies
 install() {
     log_info "Installing dependencies..."
-    check_docker
-    log_info "Building services..."
-    docker-compose build
-    log_success "Dependencies installed"
+    if check_docker; then
+        log_info "Building services..."
+        docker-compose build
+        log_success "Dependencies installed"
+    else
+        log_error "Cannot install without Docker. Please start Docker first."
+        exit 1
+    fi
 }
 
 # Start services
 start() {
     log_info "Starting LiveStream App..."
-    check_docker
-    docker-compose up -d
-    log_success "Services started"
-    log_info "Frontend: http://localhost:3000"
-    log_info "Backend: http://localhost:9000"
-    log_info "Web Interface: http://localhost:8080"
+    if check_docker; then
+        docker-compose up -d
+        log_success "Services started"
+        log_info "Frontend: http://localhost:3000"
+        log_info "Backend: http://localhost:9000"
+        log_info "Web Interface: http://localhost:8080"
+    else
+        log_error "Cannot start without Docker. Please start Docker first."
+        exit 1
+    fi
 }
 
 # Stop services
 stop() {
     log_info "Stopping LiveStream App..."
-    docker-compose down
-    log_success "Services stopped"
+    if check_docker; then
+        docker-compose down
+        log_success "Services stopped"
+    else
+        log_warning "Docker not running, nothing to stop"
+    fi
 }
 
 # Show status
 status() {
     log_info "Service Status:"
-    docker-compose ps
+    if check_docker; then
+        docker-compose ps
+    else
+        log_warning "Docker not running, cannot show status"
+    fi
 }
 
 # Show logs
 logs() {
-    docker-compose logs -f
+    log_info "Showing service logs..."
+    if check_docker; then
+        docker-compose logs -f
+    else
+        log_error "Cannot show logs without Docker. Please start Docker first."
+        exit 1
+    fi
 }
 
 # Clean up
 clean() {
     log_info "Cleaning up..."
-    docker-compose down -v
-    docker system prune -f
-    log_success "Cleanup complete"
+    if check_docker; then
+        docker-compose down -v
+        docker system prune -f
+        log_success "Cleanup complete"
+    else
+        log_warning "Docker not running, nothing to clean"
+    fi
 }
 
 # Build services
 build() {
     log_info "Building services..."
-    check_docker
-    docker-compose build
-    log_success "Build complete"
+    if check_docker; then
+        docker-compose build
+        log_success "Build complete"
+    else
+        log_error "Cannot build without Docker. Please start Docker first."
+        exit 1
+    fi
 }
 
 # Main function
