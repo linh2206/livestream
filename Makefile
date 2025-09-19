@@ -8,7 +8,7 @@ help:
 	@echo "🚀 LiveStream App - Available Commands:"
 	@echo ""
 	@echo "📦 Development:"
-	@echo "  make install    - Install dependencies and setup"
+	@echo "  make install    - Install Docker, dependencies and setup"
 	@echo "  make start      - Start all services"
 	@echo "  make stop       - Stop all services"
 	@echo "  make status     - Show service status"
@@ -36,7 +36,7 @@ help:
 
 # Development
 install:
-	@echo "Installing dependencies..."
+	@echo "Installing Docker, dependencies and setup..."
 	./scripts/app.sh install
 
 start:
@@ -89,8 +89,7 @@ logs:
 # Reset everything (keep SSH and code)
 reset-all:
 	@echo "Resetting everything (keeping SSH and code)..."
-	@chmod +x scripts/reset-all.sh
-	@bash scripts/reset-all.sh
+	./scripts/app.sh reset-all
 
 # Quick setup
 setup: install start

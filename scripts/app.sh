@@ -77,57 +77,81 @@ install_docker() {
         exit 1
     fi
     
-    # Update package list
-    log_info "Updating package list..."
+    # Check if running as root
     if [ "$(id -u)" = "0" ]; then
-        apt update
+        SUDO=""
     else
-        sudo apt update
+        SUDO="sudo"
     fi
     
-    # Install Docker from official repository
-    log_info "Installing Docker from official repository..."
+    # Remove old Docker installations
+    log_info "Removing old Docker installations..."
+    $SUDO apt-get remove -y docker docker-engine docker.io containerd runc docker-compose || true
+    
+    # Update package index
+    log_info "Updating package index..."
+    $SUDO apt-get update
+    
+    # Install prerequisites
+    log_info "Installing prerequisites..."
+    $SUDO apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release
     
     # Add Docker's official GPG key
-    if [ "$(id -u)" = "0" ]; then
-        apt update
-        apt install -y ca-certificates curl gnupg lsb-release
-        mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-        apt update
-        apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    else
-        sudo apt update
-        sudo apt install -y ca-certificates curl gnupg lsb-release
-        sudo mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt update
-        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    fi
+    log_info "Adding Docker's official GPG key..."
+    $SUDO mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     
-    # Docker Compose is now included with docker-compose-plugin
-    log_info "Docker Compose is included with docker-compose-plugin"
+    # Set up the repository
+    log_info "Setting up Docker repository..."
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
     
-    # Start Docker service
+    # Update package index again
+    log_info "Updating package index..."
+    $SUDO apt-get update
+    
+    # Install Docker Engine
+    log_info "Installing Docker Engine..."
+    $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # Start and enable Docker
     log_info "Starting Docker service..."
-    if [ "$(id -u)" = "0" ]; then
-        systemctl start docker
-        systemctl enable docker
-    else
-        sudo systemctl start docker
-        sudo systemctl enable docker
-    fi
+    $SUDO systemctl start docker
+    $SUDO systemctl enable docker
     
     # Add user to docker group
     if [ "$(id -u)" != "0" ]; then
         log_info "Adding user to docker group..."
-        sudo usermod -aG docker $USER
+        $SUDO usermod -aG docker $USER
         log_warning "Please logout and login again, or run: newgrp docker"
     fi
     
-    log_success "Docker installed successfully!"
+    # Verify installation
+    log_info "Verifying Docker installation..."
+    if docker --version >/dev/null 2>&1; then
+        log_success "Docker installed successfully:"
+        docker --version
+    else
+        log_error "Docker installation failed"
+        exit 1
+    fi
+    
+    # Verify Docker Compose installation
+    log_info "Verifying Docker Compose installation..."
+    if docker compose version >/dev/null 2>&1; then
+        log_success "Docker Compose installed successfully:"
+        docker compose version
+    else
+        log_error "Docker Compose installation failed"
+        exit 1
+    fi
+    
+    log_success "Docker and Docker Compose installation completed!"
 }
 
 
@@ -282,6 +306,156 @@ build() {
     fi
 }
 
+# Reset everything (keep SSH and code)
+reset_all() {
+    log_warning "⚠️  WARNING: This will DELETE EVERYTHING except SSH and source code!"
+    log_warning "This includes: Docker, databases, logs, caches, and all data!"
+    echo ""
+    read -p "Are you absolutely sure you want to continue? Type 'YES' to confirm: " confirm
+    if [ "$confirm" != "YES" ]; then
+        log_info "Operation cancelled."
+        exit 1
+    fi
+    
+    log_info "Starting complete system reset..."
+    
+    # Check if running as root
+    if [ "$(id -u)" = "0" ]; then
+        SUDO=""
+    else
+        SUDO="sudo"
+    fi
+    
+    # Stop all services
+    log_info "Stopping all services..."
+    $SUDO systemctl stop docker mongodb redis nginx 2>/dev/null || true
+    
+    # Remove Docker completely
+    log_info "Removing Docker completely..."
+    if command -v docker >/dev/null 2>&1; then
+        # Stop all containers
+        docker stop $(docker ps -aq) 2>/dev/null || true
+        docker rm $(docker ps -aq) 2>/dev/null || true
+        
+        # Remove all images, volumes, networks
+        docker rmi $(docker images -aq) 2>/dev/null || true
+        docker volume rm $(docker volume ls -q) 2>/dev/null || true
+        docker network rm $(docker network ls -q) 2>/dev/null || true
+        
+        # Remove Docker packages
+        $SUDO apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
+        $SUDO apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
+        
+        # Remove Docker directories
+        $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+        
+        log_success "Docker completely removed"
+    fi
+    
+    # Remove Node.js and npm
+    log_info "Removing Node.js and npm..."
+    $SUDO apt-get remove -y nodejs npm 2>/dev/null || true
+    $SUDO apt-get purge -y nodejs npm 2>/dev/null || true
+    $SUDO rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
+    $SUDO rm -rf ~/.npm ~/.node-gyp 2>/dev/null || true
+    log_success "Node.js and npm removed"
+    
+    # Remove MongoDB
+    log_info "Removing MongoDB..."
+    $SUDO systemctl stop mongod 2>/dev/null || true
+    $SUDO apt-get remove -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
+    $SUDO apt-get purge -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
+    $SUDO rm -rf /var/lib/mongodb /var/log/mongodb /etc/mongod.conf 2>/dev/null || true
+    log_success "MongoDB removed"
+    
+    # Remove Redis
+    log_info "Removing Redis..."
+    $SUDO systemctl stop redis 2>/dev/null || true
+    $SUDO apt-get remove -y redis-server redis-tools 2>/dev/null || true
+    $SUDO apt-get purge -y redis-server redis-tools 2>/dev/null || true
+    $SUDO rm -rf /var/lib/redis /var/log/redis /etc/redis 2>/dev/null || true
+    log_success "Redis removed"
+    
+    # Remove Nginx
+    log_info "Removing Nginx..."
+    $SUDO systemctl stop nginx 2>/dev/null || true
+    $SUDO apt-get remove -y nginx nginx-common nginx-core 2>/dev/null || true
+    $SUDO apt-get purge -y nginx nginx-common nginx-core 2>/dev/null || true
+    $SUDO rm -rf /var/www/html /etc/nginx /var/log/nginx 2>/dev/null || true
+    log_success "Nginx removed"
+    
+    # Remove all project data
+    log_info "Removing all project data..."
+    rm -rf data/ hls/ logs/ tmp/ .env 2>/dev/null || true
+    log_success "Project data removed"
+    
+    # Remove all build artifacts
+    log_info "Removing all build artifacts..."
+    rm -rf services/api/node_modules/ services/api/dist/ services/frontend/node_modules/ services/frontend/.next/ services/frontend/out/ services/frontend/build/ 2>/dev/null || true
+    log_success "Build artifacts removed"
+    
+    # Remove all caches
+    log_info "Removing all caches..."
+    $SUDO rm -rf /var/cache/apt/archives/* /var/cache/apt/lists/* /tmp/* /var/tmp/* ~/.cache 2>/dev/null || true
+    log_success "Caches removed"
+    
+    # Remove all logs
+    log_info "Removing all logs..."
+    $SUDO rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
+    find . -name "*.log" -type f -delete 2>/dev/null || true
+    log_success "Logs removed"
+    
+    # Clean up temporary files
+    log_info "Cleaning up temporary files..."
+    find . -name "*.tmp" -o -name ".DS_Store" -o -name "Thumbs.db" -o -name "*.swp" -o -name "*.swo" -o -name "*~" -type f -delete 2>/dev/null || true
+    log_success "Temporary files removed"
+    
+    # Reset file permissions
+    log_info "Resetting file permissions..."
+    chmod +x scripts/*.sh 2>/dev/null || true
+    chmod 644 *.md *.yml *.json 2>/dev/null || true
+    log_success "File permissions reset"
+    
+    # Clean up package manager
+    log_info "Cleaning up package manager..."
+    $SUDO apt-get autoremove -y 2>/dev/null || true
+    $SUDO apt-get autoclean 2>/dev/null || true
+    log_success "Package manager cleaned"
+    
+    # Show what was preserved
+    log_info "The following were preserved:"
+    echo "  ✓ Source code (all .ts, .tsx, .js, .jsx files)"
+    echo "  ✓ Configuration files (.json, .yml, .yaml, .conf)"
+    echo "  ✓ Environment template (env.example)"
+    echo "  ✓ Documentation files (.md, .txt)"
+    echo "  ✓ SSH configuration and keys"
+    echo "  ✓ Git repository and history"
+    echo "  ✓ Makefile and scripts"
+    echo "  ✓ Project structure"
+    
+    # Show what was removed
+    log_warning "The following were completely removed:"
+    echo "  ✗ Docker and all containers/images/volumes"
+    echo "  ✗ Node.js and npm"
+    echo "  ✗ MongoDB and all data"
+    echo "  ✗ Redis and all data"
+    echo "  ✗ Nginx and all configs"
+    echo "  ✗ All project data and logs"
+    echo "  ✗ All build artifacts and caches"
+    echo "  ✗ All temporary files"
+    
+    # Show next steps
+    log_success "Complete system reset finished!"
+    echo ""
+    log_info "Next steps:"
+    echo "  1. Run 'make install' to reinstall everything"
+    echo "  2. Run 'make start' to start services"
+    echo "  3. Or run 'make setup' for quick setup"
+    echo ""
+    log_info "Your SSH configuration and source code are intact."
+    log_warning "You will need to reconfigure everything from scratch."
+}
+
 # Main function
 main() {
     case "$1" in
@@ -292,8 +466,9 @@ main() {
         logs) logs ;;
         clean) clean ;;
         build) build ;;
+        reset-all) reset_all ;;
         *) 
-            echo "Usage: $0 {install|start|stop|status|logs|clean|build}"
+            echo "Usage: $0 {install|start|stop|status|logs|clean|build|reset-all}"
             exit 1
             ;;
     esac
