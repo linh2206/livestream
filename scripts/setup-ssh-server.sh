@@ -111,8 +111,8 @@ MaxSessions 10
 PubkeyAuthentication yes
 AuthorizedKeysFile .ssh/authorized_keys
 
-# Password authentication (disable for security)
-PasswordAuthentication no
+# Password authentication (temporarily enabled for setup)
+PasswordAuthentication yes
 PermitEmptyPasswords no
 ChallengeResponseAuthentication no
 
@@ -158,8 +158,8 @@ MaxSessions 10
 PubkeyAuthentication yes
 AuthorizedKeysFile .ssh/authorized_keys
 
-# Password authentication (disable for security)
-PasswordAuthentication no
+# Password authentication (temporarily enabled for setup)
+PasswordAuthentication yes
 PermitEmptyPasswords no
 ChallengeResponseAuthentication no
 
@@ -242,14 +242,72 @@ else
     fi
 fi
 
+# Setup SSH authorized_keys
+echo "Setting up SSH authorized_keys..."
+
+# Get current user info
+if [ "$(id -u)" = "0" ]; then
+    USER_HOME="/root"
+    USER_NAME="root"
+else
+    USER_HOME="$HOME"
+    USER_NAME="$(whoami)"
+fi
+
+echo "Setting up SSH keys for user: $USER_NAME"
+
+# Create .ssh directory if it doesn't exist
+if [ ! -d "$USER_HOME/.ssh" ]; then
+    echo "Creating .ssh directory..."
+    if [ "$(id -u)" = "0" ]; then
+        mkdir -p "$USER_HOME/.ssh"
+        chmod 700 "$USER_HOME/.ssh"
+    else
+        mkdir -p "$USER_HOME/.ssh"
+        chmod 700 "$USER_HOME/.ssh"
+    fi
+fi
+
+# Create authorized_keys file if it doesn't exist
+if [ ! -f "$USER_HOME/.ssh/authorized_keys" ]; then
+    echo "Creating authorized_keys file..."
+    if [ "$(id -u)" = "0" ]; then
+        touch "$USER_HOME/.ssh/authorized_keys"
+        chmod 600 "$USER_HOME/.ssh/authorized_keys"
+    else
+        touch "$USER_HOME/.ssh/authorized_keys"
+        chmod 600 "$USER_HOME/.ssh/authorized_keys"
+    fi
+fi
+
+# Add the SSH key to authorized_keys
+echo "Adding SSH key to authorized_keys..."
+SSH_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDAY9aCNhhLV+eB3cSd0afCzawhnGZE1Dj17AYILokT+/VSGJJR+YXC0Bd5HtiXximu86J2jcW7dfyL4NvhXZeDLzv4NkNxnWa6TNH4IEyqhYPzVWnsZVutB4huYqzIyUMKqxYpXjoOoWN1iKWb2vVpO7DmqGWmGm+qOBCA6B8RrPOCNuiL2QCaFp82z1XARE6EGmXNzXbWpFtUYfIZ41bTwpc/M2p7+Az7nj/fUXSPtvVqkCc/txMjU9QOI5aKVkCz25d9fT7jSEEtf9dWjwAXusmDzfTWReQV1uRmtDxSHso26+v4fKIGwJtkupTjlBOh+E3ug1DVuuf5dErvB5IT14qwZoquLmt58dPUb0G92D8oYc/3Pv3+dY7EjM4p6orEaR0QTTBe++ke5BOsNfhoal0ihZznJ7fEazrPc2msLOlZkpnhKO6TjiIXQksqJlk/7ZgJ5M1b0BPOfr0j+HRPdU43nzZ2oV4Brlui4VX4Na4c7BGTNhWkje1B79SNTuU= linh@Macbook-Pro.local"
+
+# Check if key already exists
+if ! grep -q "linh@Macbook-Pro.local" "$USER_HOME/.ssh/authorized_keys" 2>/dev/null; then
+    if [ "$(id -u)" = "0" ]; then
+        echo "$SSH_KEY" >> "$USER_HOME/.ssh/authorized_keys"
+        chmod 600 "$USER_HOME/.ssh/authorized_keys"
+    else
+        echo "$SSH_KEY" >> "$USER_HOME/.ssh/authorized_keys"
+        chmod 600 "$USER_HOME/.ssh/authorized_keys"
+    fi
+    echo "SSH key added successfully!"
+else
+    echo "SSH key already exists in authorized_keys"
+fi
+
+echo ""
 echo "SSH Server Configuration Complete"
 echo "SSH server is running with enhanced security settings."
 echo ""
 echo "Important:"
-echo "1. Add your SSH public key to ~/.ssh/authorized_keys"
+echo "1. SSH key has been added to ~/.ssh/authorized_keys"
 echo "2. Test SSH connection before closing this session"
+echo "3. After testing, disable password auth for security"
 echo ""
 echo "Commands:"
 echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
-echo "Add key: cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
+echo "Disable password auth: sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart ssh"
 echo "Restore config: sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config && sudo systemctl restart ssh"
