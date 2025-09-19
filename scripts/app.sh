@@ -293,14 +293,14 @@ EOF
     
     # Build with timeout and retry
     log_info "Building with timeout 10 minutes..."
-    if ! timeout 600 $COMPOSE_CMD build --no-cache; then
+    if ! $COMPOSE_CMD build --no-cache; then
         log_warning "Build with --no-cache failed, trying without --no-cache..."
-        if ! timeout 600 $COMPOSE_CMD build; then
+        if ! $COMPOSE_CMD build; then
             log_warning "Build failed, trying to build individual services..."
             # Try building services one by one (skip mongodb and redis as they use pre-built images)
             for service in api frontend nginx; do
                 log_info "Building $service..."
-                if ! timeout 300 $COMPOSE_CMD build $service; then
+                if ! $COMPOSE_CMD build $service; then
                     log_error "Failed to build $service"
                     exit 1
                 fi
