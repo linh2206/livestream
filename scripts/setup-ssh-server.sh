@@ -32,13 +32,13 @@ print_header() {
 }
 
 # Check if running as root
-if [[ $(id -u) -eq 0 ]]; then
+if [ "$(id -u)" = "0" ]; then
    print_error "This script should not be run as root for security reasons"
    exit 1
 fi
 
 # Check if apt is available (Ubuntu only)
-if ! command -v apt &> /dev/null; then
+if ! command -v apt >/dev/null 2>&1; then
    print_error "This script requires Ubuntu with apt package manager"
    exit 1
 fi
@@ -69,7 +69,6 @@ PubkeyAuthentication yes
 MaxAuthTries 3
 ClientAliveInterval 300
 ClientAliveCountMax 2
-X11Forwarding no
 UseDNS no
 Banner /etc/ssh/banner
 EOF
@@ -106,7 +105,7 @@ mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
 # Generate SSH key pair if it doesn't exist
-if [[ ! -f ~/.ssh/id_rsa ]]; then
+if [ ! -f ~/.ssh/id_rsa ]; then
     print_status "Generating SSH key pair..."
     ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "$USER@$(hostname)"
     print_warning "SSH key pair generated. Add the public key to authorized_keys:"
