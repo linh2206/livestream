@@ -110,3 +110,43 @@ hls/
 
 # Redis dump
 dump.rdb
+
+# Server specific files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# SSH keys
+id_rsa*
+id_ed25519*
+known_hosts
+authorized_keys
+
+# Server logs
+/var/log/
+*.log.*
+
+# Docker volumes
+docker-data/
+volumes/
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Server configs
+/etc/ssh/sshd_config.backup
+/root/.ssh/
+/home/*/.ssh/
+
+# Runtime files
+*.pid
+*.sock
+*.lock
+
+# Temporary server files
+/tmp/
+/var/tmp/
