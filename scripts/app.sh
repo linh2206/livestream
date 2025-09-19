@@ -32,12 +32,9 @@ check_docker() {
 
 # Function to get Docker Compose command
 get_compose_cmd() {
-    # Check for new docker compose (v2) first - this is the modern way
+    # Use docker compose (plugin) - this is the modern way
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         echo "docker compose"
-    # Fallback to docker-compose binary
-    elif command -v docker-compose >/dev/null 2>&1; then
-        echo "docker-compose"
     else
         log_error "Docker Compose not found. Please run 'make install' first."
         exit 1
@@ -84,9 +81,17 @@ install_docker() {
         SUDO="sudo"
     fi
     
-    # Remove old Docker installations
-    log_info "Removing old Docker installations..."
+    # Remove old Docker installations completely
+    log_info "Removing old Docker installations completely..."
     $SUDO apt-get remove -y docker docker-engine docker.io containerd runc docker-compose || true
+    $SUDO apt-get purge -y docker docker-engine docker.io containerd runc docker-compose || true
+    $SUDO rm -rf /var/lib/docker || true
+    $SUDO rm -rf /var/lib/containerd || true
+    $SUDO rm -rf /etc/docker || true
+    $SUDO rm -rf /etc/apt/sources.list.d/docker.list || true
+    $SUDO rm -rf /etc/apt/keyrings/docker.gpg || true
+    $SUDO rm -rf /usr/local/bin/docker-compose || true
+    $SUDO rm -rf /usr/bin/docker-compose || true
     
     # Update package index
     log_info "Updating package index..."
@@ -119,12 +124,25 @@ install_docker() {
     log_info "Installing Docker Engine..."
     $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
-    # Install latest docker-compose binary as backup
-    log_info "Installing latest docker-compose binary..."
-    COMPOSE_VERSION="v2.23.0"
-    $SUDO curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    $SUDO chmod +x /usr/local/bin/docker-compose
-    $SUDO ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    # Verify Docker installation
+    log_info "Verifying Docker installation..."
+    if docker --version >/dev/null 2>&1; then
+        log_success "Docker installed successfully:"
+        docker --version
+    else
+        log_error "Docker installation failed"
+        exit 1
+    fi
+    
+    # Verify Docker Compose installation
+    log_info "Verifying Docker Compose installation..."
+    if docker compose version >/dev/null 2>&1; then
+        log_success "Docker Compose installed successfully:"
+        docker compose version
+    else
+        log_error "Docker Compose installation failed"
+        exit 1
+    fi
     
     # Start and enable Docker
     log_info "Starting Docker service..."
