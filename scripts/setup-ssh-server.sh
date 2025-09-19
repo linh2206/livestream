@@ -1,135 +1,255 @@
 #!/bin/bash
 
-# SSH Server Configuration Script for Ubuntu
-# Complete and tested configuration
-
-set -e
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# Print functions
-print_status() { echo -e "${GREEN}[INFO]${NC} $1"; }
-print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-print_header() {
-    echo -e "${BLUE}================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}================================${NC}"
-}
+# SSH Server Configuration for Ubuntu
+echo "SSH Server Configuration for Ubuntu"
+echo "This script requires sudo privileges. You will be prompted for your password."
+echo ""
 
 # Check if running as root
 if [ "$(id -u)" = "0" ]; then
-   print_error "This script should not be run as root for security reasons"
-   exit 1
+   echo "WARNING: Running as root"
+   echo "This is not recommended for security reasons"
+   echo "Consider running as a regular user with sudo privileges"
+   echo ""
+   read -p "Continue anyway? (y/N): " -n 1 -r
+   echo ""
+   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+       echo "Exiting..."
+       exit 1
+   fi
 fi
 
-# Check if apt is available (Ubuntu only)
+# Check if apt is available
 if ! command -v apt >/dev/null 2>&1; then
-   print_error "This script requires Ubuntu with apt package manager"
+   echo "ERROR: This script requires Ubuntu with apt package manager"
    exit 1
 fi
 
-print_header "SSH Server Configuration for Ubuntu"
-
-# Check sudo privileges
-print_status "Checking sudo privileges..."
-if ! sudo -n true 2>/dev/null; then
-    print_warning "This script requires sudo privileges."
-    print_warning "You will be prompted for your password multiple times."
-    echo ""
-    read -p "Press Enter to continue or Ctrl+C to exit..."
-    echo ""
+echo "Installing OpenSSH server..."
+if [ "$(id -u)" = "0" ]; then
+    apt update
+    apt install -y openssh-server
+else
+    sudo apt update
+    sudo apt install -y openssh-server
 fi
 
-# Install OpenSSH server
-print_status "Installing OpenSSH server..."
-sudo apt update && sudo apt install -y openssh-server
+echo "Backing up original SSH configuration..."
+if [ "$(id -u)" = "0" ]; then
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
+else
+    sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
+fi
 
-# Backup original SSH config
-print_status "Backing up original SSH configuration..."
-sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup.$(date +%Y%m%d_%H%M%S)
+echo "Creating SSH banner..."
+if [ "$(id -u)" = "0" ]; then
+    tee /etc/ssh/banner > /dev/null << 'EOF'
+***************************************************************************
+                    AUTHORIZED ACCESS ONLY
+***************************************************************************
+This system is for the use of authorized users only. Individuals using
+this computer system without authority, or in excess of their authority,
+are subject to having all of their activities on this system monitored
+and recorded by system personnel.
 
-# Create new SSH config
-print_status "Configuring SSH server..."
-sudo tee /etc/ssh/sshd_config > /dev/null << 'EOF'
+In the course of monitoring individuals improperly using this system,
+or in the course of system maintenance, the activities of authorized
+users may also be monitored.
+
+Anyone using this system expressly consents to such monitoring and is
+advised that if such monitoring reveals possible evidence of criminal
+activity, system personnel may provide the evidence of such monitoring
+to law enforcement officials.
+***************************************************************************
+EOF
+    chmod 644 /etc/ssh/banner
+else
+    sudo tee /etc/ssh/banner > /dev/null << 'EOF'
+***************************************************************************
+                    AUTHORIZED ACCESS ONLY
+***************************************************************************
+This system is for the use of authorized users only. Individuals using
+this computer system without authority, or in excess of their authority,
+are subject to having all of their activities on this system monitored
+and recorded by system personnel.
+
+In the course of monitoring individuals improperly using this system,
+or in the course of system maintenance, the activities of authorized
+users may also be monitored.
+
+Anyone using this system expressly consents to such monitoring and is
+advised that if such monitoring reveals possible evidence of criminal
+activity, system personnel may provide the evidence of such monitoring
+to law enforcement officials.
+***************************************************************************
+EOF
+    sudo chmod 644 /etc/ssh/banner
+fi
+
+echo "Configuring SSH server..."
+if [ "$(id -u)" = "0" ]; then
+    tee /etc/ssh/sshd_config > /dev/null << 'EOF'
 # SSH Server Configuration
 Port 22
+Protocol 2
+
+# Host keys
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Logging
+LogLevel INFO
+
+# Authentication
+LoginGraceTime 2m
 PermitRootLogin no
-PasswordAuthentication no
-PubkeyAuthentication yes
+StrictModes yes
 MaxAuthTries 3
+MaxSessions 10
+
+# Public key authentication
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Password authentication (disable for security)
+PasswordAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+
+# X11 forwarding
+X11Forwarding no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+
+# Security settings
 ClientAliveInterval 300
 ClientAliveCountMax 2
+Compression delayed
 UseDNS no
+
+# Banner
+Banner /etc/ssh/banner
+
+# Subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
 EOF
+else
+    sudo tee /etc/ssh/sshd_config > /dev/null << 'EOF'
+# SSH Server Configuration
+Port 22
+Protocol 2
 
-# Set proper permissions
-sudo chmod 600 /etc/ssh/sshd_config
+# Host keys
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
 
-# Setup SSH directory and keys
-print_status "Setting up SSH directory for user: $USER"
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
+# Logging
+LogLevel INFO
 
-# Generate SSH key if needed
+# Authentication
+LoginGraceTime 2m
+PermitRootLogin no
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 10
+
+# Public key authentication
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Password authentication (disable for security)
+PasswordAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+
+# X11 forwarding
+X11Forwarding no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+
+# Security settings
+ClientAliveInterval 300
+ClientAliveCountMax 2
+Compression delayed
+UseDNS no
+
+# Banner
+Banner /etc/ssh/banner
+
+# Subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
+EOF
+fi
+
+echo "Setting up SSH directory..."
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+echo "Generating SSH key if needed..."
 if [ ! -f ~/.ssh/id_rsa ]; then
-    print_status "Generating SSH key pair..."
     ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N "" -C "$USER@$(hostname)"
-    print_warning "SSH key generated. Add to authorized_keys:"
+    echo "SSH key generated. Add to authorized_keys:"
     echo "cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
 fi
 
-# Set permissions
+echo "Setting permissions..."
 chmod 600 ~/.ssh/id_rsa ~/.ssh/authorized_keys 2>/dev/null || true
 chmod 644 ~/.ssh/id_rsa.pub
 
-# Configure firewall
-print_status "Configuring UFW firewall..."
-sudo ufw --force enable
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw status
-
-# Test SSH configuration
-print_status "Testing SSH configuration..."
-if sudo sshd -t 2>/dev/null; then
-    print_status "SSH configuration is valid"
-    print_status "Restarting SSH service..."
-    sudo systemctl restart ssh
-    sudo systemctl enable ssh
-    print_status "SSH service status:"
-    sudo systemctl status ssh --no-pager
+echo "Configuring firewall..."
+if [ "$(id -u)" = "0" ]; then
+    ufw --force enable
+    ufw default deny incoming
+    ufw default allow outgoing
+    ufw allow ssh
 else
-    print_error "SSH configuration has errors. Restoring backup..."
-    sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config 2>/dev/null || true
-    sudo systemctl restart ssh
-    exit 1
+    sudo ufw --force enable
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    sudo ufw allow ssh
 fi
 
-print_header "SSH Server Configuration Complete"
+echo "Testing SSH configuration..."
+if [ "$(id -u)" = "0" ]; then
+    if sshd -t; then
+        echo "SSH configuration is valid"
+        echo "Restarting SSH service..."
+        systemctl restart ssh
+        systemctl enable ssh
+        echo "SSH service status:"
+        systemctl status ssh --no-pager
+    else
+        echo "ERROR: SSH configuration has errors. Restoring backup..."
+        cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config
+        systemctl restart ssh
+        exit 1
+    fi
+else
+    if sudo sshd -t; then
+        echo "SSH configuration is valid"
+        echo "Restarting SSH service..."
+        sudo systemctl restart ssh
+        sudo systemctl enable ssh
+        echo "SSH service status:"
+        sudo systemctl status ssh --no-pager
+    else
+        echo "ERROR: SSH configuration has errors. Restoring backup..."
+        sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config
+        sudo systemctl restart ssh
+        exit 1
+    fi
+fi
 
-print_status "SSH server has been configured with the following settings:"
-echo "  - Port: 22"
-echo "  - Root login: Disabled"
-echo "  - Password authentication: Disabled"
-echo "  - Public key authentication: Enabled"
-echo "  - Max authentication tries: 3"
-echo "  - Client alive interval: 300 seconds"
-
-print_warning "Important:"
-echo "  1. This script requires sudo privileges - you will be prompted for password"
-echo "  2. Add your SSH public key to ~/.ssh/authorized_keys"
-echo "  3. Test SSH connection before closing this session"
-
-print_status "Commands:"
-echo "  Test connection: ssh $USER@\$(hostname -I | awk '{print \$1}')"
-echo "  Add key: cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
-echo "  Restore config: sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config && sudo systemctl restart ssh"
-
-print_header "Configuration Complete"
+echo "SSH Server Configuration Complete"
 echo "SSH server is running with enhanced security settings."
+echo ""
+echo "Important:"
+echo "1. Add your SSH public key to ~/.ssh/authorized_keys"
+echo "2. Test SSH connection before closing this session"
+echo ""
+echo "Commands:"
+echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
+echo "Add key: cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
+echo "Restore config: sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config && sudo systemctl restart ssh"

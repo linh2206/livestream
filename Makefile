@@ -1,9 +1,6 @@
 # LiveStream App Makefile
-# Simple commands for development and deployment
-
 .PHONY: help install start stop status clean build test setup-ssh
 
-# Default target
 help:
 	@echo "LiveStream App - Available Commands:"
 	@echo ""
@@ -17,7 +14,6 @@ help:
 	@echo ""
 	@echo "Deployment:"
 	@echo "  make deploy     - Deploy to single server"
-	@echo "  make deploy-multi - Deploy to multiple servers"
 	@echo ""
 	@echo "Server Setup:"
 	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
@@ -27,51 +23,45 @@ help:
 	@echo "  make logs       - Show service logs"
 	@echo ""
 
-# Development commands
+# Development
 install:
-	@echo "Installing dependencies and setting up..."
-	./scripts/livestream.sh install
+	@echo "Installing dependencies..."
+	./scripts/app.sh install
 
 start:
 	@echo "Starting all services..."
-	@./scripts/livestream.sh start || (echo "Failed to start services. Check logs above." && exit 1)
+	./scripts/app.sh start
 
 stop:
 	@echo "Stopping all services..."
-	./scripts/livestream.sh stop
+	./scripts/app.sh stop
 
 status:
 	@echo "Checking service status..."
-	./scripts/livestream.sh status
+	./scripts/app.sh status
 
-# Build commands
+# Build & Test
 build:
 	@echo "Building all services..."
-	cd services/api && npm run build
-	cd services/frontend && npm run build
+	./scripts/app.sh build
 
-# Test commands
 test:
 	@echo "Running tests..."
 	cd services/api && npm test || echo "No tests configured"
 	cd services/frontend && npm test || echo "No tests configured"
 
-# Deployment commands
+# Deployment
 deploy:
-	@echo "Deploying to single server..."
-	./scripts/livestream.sh start
+	@echo "Deploying to server..."
+	./scripts/app.sh start
 
-deploy-multi:
-	@echo "Deploying to multiple servers..."
-	./scripts/livestream.sh multi
-
-# Server setup commands
+# Server Setup
 setup-ssh:
-	@echo "Configuring SSH server for Ubuntu (Ubuntu only)..."
+	@echo "Configuring SSH server for Ubuntu..."
 	@chmod +x scripts/setup-ssh-server.sh
 	@bash scripts/setup-ssh-server.sh
 
-# Maintenance commands
+# Maintenance
 clean:
 	@echo "Cleaning up..."
 	@./scripts/livestream.sh clean
@@ -80,6 +70,6 @@ logs:
 	@echo "Showing service logs..."
 	./scripts/livestream.sh status
 
-# Quick setup for new developers
+# Quick setup
 setup: install start
-	@echo "Setup complete! Access the app at http://localhost:8080"
+	@echo "Setup complete! Access at http://localhost:8080"

@@ -8,7 +8,6 @@ A complete live streaming application with real-time chat, built with modern tec
 - **Real-time Chat**: WebSocket-based chat system
 - **User Management**: Registration, authentication, and profiles
 - **Stream Management**: Create, manage, and monitor streams
-- **Social Features**: Like, follow, and interact with streams
 - **Responsive Design**: Works on desktop and mobile devices
 
 ## 🏗️ Architecture
@@ -33,16 +32,23 @@ A complete live streaming application with real-time chat, built with modern tec
 - **Cache**: Redis 7.0
 - **Streaming**: Nginx RTMP module
 - **Reverse Proxy**: Nginx
+- **CI/CD**: GitHub Actions for automated testing and deployment
 
 ## 📁 Project Structure
 
 ```
 livestream/
+├── config/                     # Configuration files
+│   ├── database/              # MongoDB config
+│   └── nginx/                 # Nginx config
+├── scripts/                   # Scripts
+│   ├── app.sh                # Main app control script
+│   └── setup-ssh-server.sh   # SSH server setup
 ├── services/
-│   ├── api/                    # NestJS Backend
+│   ├── api/                  # NestJS Backend
 │   │   ├── src/
-│   │   │   ├── auth/          # Authentication
-│   │   │   ├── users/         # User management
+│   │   │   ├── auth/         # Authentication
+│   │   │   ├── users/        # User management
 │   │   │   ├── streams/       # Stream management
 │   │   │   ├── chat/          # Chat & WebSocket
 │   │   │   └── main.ts        # Application entry
@@ -54,18 +60,13 @@ livestream/
 │       ├── hooks/             # Custom hooks
 │       ├── package.json
 │       └── Dockerfile
-├── infrastructure/
-│   ├── database/              # Database setup
-│   │   └── init-mongo.js     # MongoDB initialization
-│   └── nginx/                 # Nginx configuration
-├── deployments/
-│   └── docker/               # Docker configurations
-│       ├── docker-compose.single.yml
-│       └── docker-compose.multi.yml
 ├── .github/
-│   └── workflows/
-│       └── deploy.yml        # GitHub Actions CI/CD
-├── deploy.sh                 # Deployment script
+│   └── workflows/          # GitHub Actions
+│       ├── ci.yml         # Continuous Integration
+│       └── cd.yml         # Continuous Deployment
+├── docker-compose.yml     # Docker Compose
+├── Makefile              # Build automation
+├── .env.example          # Environment variables
 └── README.md
 ```
 
@@ -85,25 +86,39 @@ git clone <repository-url>
 cd livestream
 ```
 
-2. **Install dependencies and setup:**
+2. **Environment setup:**
 ```bash
-./scripts/livestream.sh install
+cp .env.example .env
+# Edit .env with your configuration
 ```
-   This will automatically:
-   - Install Docker and Docker Compose
-   - Install FFmpeg (via snap on Ubuntu, brew on macOS)
-   - Create `.env` file from `env.example`
-   - Set up project directories
 
 3. **Start the application:**
 ```bash
-./scripts/livestream.sh start
+make start
+# or
+docker-compose up -d
 ```
 
 4. **Access the application:**
-- **Web Interface**: http://localhost:8080
-- **API**: http://localhost:9000
 - **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:9000
+- **Web Interface**: http://localhost:8080
+
+### Available Commands
+
+```bash
+make help          # Show all available commands
+make install       # Install dependencies
+make start         # Start all services
+make stop          # Stop all services
+make status        # Show service status
+make build         # Build all services
+make test          # Run tests
+make deploy        # Deploy to server
+make setup-ssh     # Configure SSH server for Ubuntu
+make clean         # Clean up containers and images
+make logs          # Show service logs
+```
 
 ### Streaming
 

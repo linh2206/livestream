@@ -1,4 +1,4 @@
-# Unified Deployment - All services on one server
+# LiveStream App - Unified Deployment
 # Frontend: Port 3000, Backend: Port 9000
 version: '3.8'
 
@@ -13,7 +13,7 @@ services:
       MONGO_INITDB_DATABASE: livestream
     volumes:
       - mongodb_data:/data/db
-      - ../../infrastructure/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     ports:
       - "27017:27017"
     networks:
@@ -45,7 +45,7 @@ services:
   # NestJS API Service - Backend on Port 9000
   api:
     build:
-      context: ../../services/api
+      context: ./services/api
       dockerfile: Dockerfile
     container_name: livestream-api
     environment:
@@ -74,7 +74,7 @@ services:
   # Next.js Frontend Service - Frontend on Port 3000
   frontend:
     build:
-      context: ../../services/frontend
+      context: ./services/frontend
       dockerfile: Dockerfile
     container_name: livestream-frontend
     environment:
@@ -99,7 +99,7 @@ services:
   # Nginx RTMP + HLS + Reverse Proxy
   nginx:
     build:
-      context: ../../infrastructure/nginx
+      context: ./config/nginx
       dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:

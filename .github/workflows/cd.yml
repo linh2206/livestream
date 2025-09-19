@@ -1,0 +1,25 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to production
+      run: |
+        echo "Deploying LiveStream App to production..."
+        docker-compose up -d --build
+        
+    - name: Verify deployment
+      run: |
+        echo "Verifying deployment..."
+        sleep 30
+        curl -f http://localhost:3000 && echo "Frontend OK"
+        curl -f http://localhost:9000 && echo "Backend OK"
