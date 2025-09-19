@@ -37,15 +37,15 @@ get_compose_cmd() {
         if docker compose version >/dev/null 2>&1; then
             echo "docker compose"
         elif command -v docker-compose >/dev/null 2>&1; then
-            log_warning "Using legacy docker-compose command"
+            echo "[WARNING] Using legacy docker-compose command"
             echo "docker-compose"
         else
-            log_error "Docker Compose not found. Please install docker-compose-plugin:"
-            log_error "  sudo apt-get install docker-compose-plugin"
+            echo "[ERROR] Docker Compose not found. Please install docker-compose-plugin:"
+            echo "[ERROR]   sudo apt-get install docker-compose-plugin"
             exit 1
         fi
     else
-        log_error "Docker not found. Please install Docker first."
+        echo "[ERROR] Docker not found. Please install Docker first."
         exit 1
     fi
 }
@@ -269,7 +269,7 @@ EOF
         log_info ".env file already exists"
     fi
 
-    log_info "Building services..."
+    echo "[INFO] Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
     
     # Set build timeout and retry
@@ -277,29 +277,29 @@ EOF
     export COMPOSE_HTTP_TIMEOUT=300
     
     # Debug info
-    log_info "Docker version: $(docker --version 2>/dev/null || echo 'Not found')"
-    log_info "Docker Compose version: $(docker compose version 2>/dev/null || echo 'Not found')"
-    log_info "Docker info: $(docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'Not available')"
+    echo "[INFO] Docker version: $(docker --version 2>/dev/null || echo 'Not found')"
+    echo "[INFO] Docker Compose version: $(docker compose version 2>/dev/null || echo 'Not found')"
+    echo "[INFO] Docker info: $(docker info --format '{{.ServerVersion}}' 2>/dev/null || echo 'Not available')"
     
     # Test network connectivity
-    log_info "Testing network connectivity..."
+    echo "[INFO] Testing network connectivity..."
     if command -v ping >/dev/null 2>&1; then
         if ! ping -c 1 registry-1.docker.io >/dev/null 2>&1; then
-            log_warning "Cannot reach Docker registry. Check network connection."
+            echo "[WARNING] Cannot reach Docker registry. Check network connection."
         fi
     else
-        log_info "Ping command not available, skipping network test"
+        echo "[INFO] Ping command not available, skipping network test"
     fi
     
     # Build with timeout and retry
-    log_info "Building with timeout 10 minutes..."
+    echo "[INFO] Building with timeout 10 minutes..."
     if ! $COMPOSE_CMD build --no-cache; then
         echo "[WARNING] Build with --no-cache failed, trying without --no-cache..."
         if ! $COMPOSE_CMD build; then
             echo "[WARNING] Build failed, trying to build individual services..."
             # Try building services one by one (skip mongodb and redis as they use pre-built images)
             for service in api frontend nginx; do
-                log_info "Building $service..."
+                echo "[INFO] Building $service..."
                 if ! $COMPOSE_CMD build $service; then
                     echo "[ERROR] Failed to build $service"
                     exit 1
@@ -308,7 +308,7 @@ EOF
         fi
     fi
     
-    log_success "Dependencies installed"
+    echo "[SUCCESS] Dependencies installed"
 }
 
 # Start services
