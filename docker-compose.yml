@@ -1,6 +1,5 @@
-# LiveStream App - Unified Deployment
+# LiveStream App - Compatible with all Docker Compose versions
 # Frontend: Port 3000, Backend: Port 9000
-# Compatible with all Docker Compose versions
 
 services:
   # MongoDB Database
@@ -42,7 +41,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL}
     ports:
-      - "9000:3000"  # Backend exposed on port 9000
+      - "9000:3000"
     depends_on:
       - mongodb
       - redis
@@ -60,7 +59,7 @@ services:
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       BACKEND_URL: http://api:3000
     ports:
-      - "3000:3000"  # Frontend exposed on port 3000
+      - "3000:3000"
     depends_on:
       - api
     restart: unless-stopped
@@ -72,12 +71,11 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:
-      - "8080:8080"    # Web interface
-      - "1935:1935"    # RTMP port
+      - "8080:8080"
+      - "1935:1935"
     volumes:
       - ./data/hls:/var/www/html/hls
     depends_on:
       - frontend
       - api
     restart: unless-stopped
-
