@@ -37,6 +37,12 @@ if [[ $EUID -eq 0 ]]; then
    exit 1
 fi
 
+# Check if apt is available (Ubuntu/Debian only)
+if ! command -v apt &> /dev/null; then
+   print_error "This script requires Ubuntu/Debian with apt package manager"
+   exit 1
+fi
+
 print_header "SSH Server Configuration for Ubuntu"
 
 # Update system packages
@@ -204,11 +210,9 @@ echo "  - Max authentication tries: 3"
 echo "  - Client alive interval: 300 seconds"
 echo "  - Banner: Enabled"
 
-print_warning "Important security notes:"
-echo "  1. Make sure you have your SSH public key in ~/.ssh/authorized_keys"
+print_warning "Important:"
+echo "  1. Add your SSH public key to ~/.ssh/authorized_keys"
 echo "  2. Test SSH connection before closing this session"
-echo "  3. Consider changing the default SSH port (22) for additional security"
-echo "  4. Regularly update your system: sudo apt update && sudo apt upgrade"
 
 print_status "To test SSH connection, run:"
 echo "  ssh $USER@$(hostname -I | awk '{print $1}')"
@@ -219,3 +223,6 @@ echo "  cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys"
 print_header "Configuration Summary"
 echo "SSH server is now running with enhanced security settings."
 echo "Make sure to test your SSH connection before logging out!"
+
+print_warning "To restore original config:"
+echo "  sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config && sudo systemctl restart ssh"
