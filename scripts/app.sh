@@ -18,12 +18,12 @@ log_error() { echo "[ERROR] $1"; }
 # Function to check if Docker is running
 check_docker() {
     if ! command -v docker >/dev/null 2>&1; then
-        log_error "Docker is not installed. Please install Docker first."
+        echo "[ERROR] Docker is not installed. Please install Docker first."
         return 1
     fi
     
     if ! docker info >/dev/null 2>&1; then
-        log_warning "Docker is not running. Please start Docker first."
+        echo "[WARNING] Docker is not running. Please start Docker first."
         return 1
     fi
     
@@ -56,30 +56,30 @@ wait_for_health() {
     local max_attempts=${2:-30}
     local attempt=1
     
-    log_info "Waiting for $service to be healthy..."
+    echo "[INFO] Waiting for $service to be healthy..."
     
     while [ $attempt -le $max_attempts ]; do
         if docker ps --filter "name=$service" --filter "health=healthy" | grep -q "$service"; then
-            log_success "$service is healthy"
+            echo "[SUCCESS] $service is healthy"
             return 0
         fi
         
-        log_info "Attempt $attempt/$max_attempts - $service not ready yet..."
+        echo "[INFO] Attempt $attempt/$max_attempts - $service not ready yet..."
         sleep 2
         attempt=$((attempt + 1))
     done
     
-    log_error "$service failed to become healthy after $max_attempts attempts"
+    echo "[ERROR] $service failed to become healthy after $max_attempts attempts"
     return 1
 }
 
 # Install Docker
 install_docker() {
-    log_info "Installing Docker on Ubuntu..."
+    echo "[INFO] Installing Docker on Ubuntu..."
     
     # Check if apt is available
     if ! command -v apt >/dev/null 2>&1; then
-        log_error "This script requires Ubuntu with apt package manager"
+        echo "[ERROR] This script requires Ubuntu with apt package manager"
         exit 1
     fi
     
@@ -91,7 +91,7 @@ install_docker() {
     fi
     
     # Remove old Docker installations completely
-    log_info "Removing old Docker installations completely..."
+    echo "[INFO] Removing old Docker installations completely..."
     $SUDO apt-get remove -y docker docker-engine docker.io containerd runc docker-compose || true
     $SUDO apt-get purge -y docker docker-engine docker.io containerd runc docker-compose || true
     $SUDO rm -rf /var/lib/docker || true
@@ -106,11 +106,11 @@ install_docker() {
     $SUDO rm -rf /snap/bin/docker-compose || true
     
     # Update package index
-    log_info "Updating package index..."
+    echo "[INFO] Updating package index..."
     $SUDO apt-get update
     
     # Install prerequisites
-    log_info "Installing prerequisites..."
+    echo "[INFO] Installing prerequisites..."
     $SUDO apt-get install -y \
         ca-certificates \
         curl \
@@ -118,102 +118,102 @@ install_docker() {
         lsb-release
     
     # Add Docker's official GPG key
-    log_info "Adding Docker's official GPG key..."
+    echo "[INFO] Adding Docker's official GPG key..."
     $SUDO mkdir -p /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     
     # Set up the repository
-    log_info "Setting up Docker repository..."
+    echo "[INFO] Setting up Docker repository..."
     echo \
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
       $(lsb_release -cs) stable" | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
     
     # Update package index again
-    log_info "Updating package index..."
+    echo "[INFO] Updating package index..."
     $SUDO apt-get update
     
     # Install Docker Engine
-    log_info "Installing Docker Engine..."
+    echo "[INFO] Installing Docker Engine..."
     $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
     # Verify Docker Compose plugin installation
-    log_info "Verifying Docker Compose plugin..."
+    echo "[INFO] Verifying Docker Compose plugin..."
     if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose plugin installed successfully"
+        echo "[SUCCESS] Docker Compose plugin installed successfully"
     else
-        log_warning "Docker Compose plugin not found, trying to install manually..."
+        echo "[WARNING] Docker Compose plugin not found, trying to install manually..."
         $SUDO apt-get install -y docker-compose-plugin
     fi
     
     # Verify Docker installation
-    log_info "Verifying Docker installation..."
+    echo "[INFO] Verifying Docker installation..."
     if docker --version >/dev/null 2>&1; then
-        log_success "Docker installed successfully:"
+        echo "[SUCCESS] Docker installed successfully:"
         docker --version
     else
-        log_error "Docker installation failed"
+        echo "[ERROR] Docker installation failed"
         exit 1
     fi
     
     # Verify Docker Compose installation
-    log_info "Verifying Docker Compose installation..."
+    echo "[INFO] Verifying Docker Compose installation..."
     if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose installed successfully:"
+        echo "[SUCCESS] Docker Compose installed successfully:"
         docker compose version
     else
-        log_error "Docker Compose installation failed"
+        echo "[ERROR] Docker Compose installation failed"
         exit 1
     fi
     
     # Start and enable Docker
-    log_info "Starting Docker service..."
+    echo "[INFO] Starting Docker service..."
     $SUDO systemctl start docker
     $SUDO systemctl enable docker
     
     # Add user to docker group
     if [ "$(id -u)" != "0" ]; then
-        log_info "Adding user to docker group..."
+        echo "[INFO] Adding user to docker group..."
         $SUDO usermod -aG docker $USER
-        log_warning "Please logout and login again, or run: newgrp docker"
+        echo "[WARNING] Please logout and login again, or run: newgrp docker"
     fi
     
     # Verify installation
-    log_info "Verifying Docker installation..."
+    echo "[INFO] Verifying Docker installation..."
     if docker --version >/dev/null 2>&1; then
-        log_success "Docker installed successfully:"
+        echo "[SUCCESS] Docker installed successfully:"
         docker --version
     else
-        log_error "Docker installation failed"
+        echo "[ERROR] Docker installation failed"
         exit 1
     fi
     
     # Verify Docker Compose installation
-    log_info "Verifying Docker Compose installation..."
+    echo "[INFO] Verifying Docker Compose installation..."
     if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose installed successfully:"
+        echo "[SUCCESS] Docker Compose installed successfully:"
         docker compose version
     else
-        log_error "Docker Compose installation failed"
+        echo "[ERROR] Docker Compose installation failed"
         exit 1
     fi
     
-    log_success "Docker and Docker Compose installation completed!"
+    echo "[SUCCESS] Docker and Docker Compose installation completed!"
 }
 
 
 # Install dependencies
 install() {
-    log_info "Installing dependencies..."
+    echo "[INFO] Installing dependencies..."
     
     # Check if Docker is installed
     if ! command -v docker >/dev/null 2>&1; then
-        log_info "Docker not found. Installing Docker..."
+        echo "[INFO] Docker not found. Installing Docker..."
         install_docker
     fi
     
     # Check if Docker is running
     if ! docker info >/dev/null 2>&1; then
-        log_info "Starting Docker service..."
+        echo "[INFO] Starting Docker service..."
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             # Linux: Use systemctl
             if [ "$(id -u)" = "0" ]; then
@@ -225,17 +225,17 @@ install() {
             fi
         elif [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS: Start Docker Desktop
-            log_info "Please start Docker Desktop manually on macOS"
+            echo "[INFO] Please start Docker Desktop manually on macOS"
             open -a Docker 2>/dev/null || true
         fi
     fi
     
     # Create .env file if it doesn't exist
     if [ ! -f ".env" ]; then
-        log_info "Creating .env file..."
+        echo "[INFO] Creating .env file..."
         if [ -f "env.example" ]; then
             cp env.example .env
-            log_success ".env file created from env.example"
+            echo "[SUCCESS] .env file created from env.example"
         else
             # Create basic .env file
             cat > .env << 'EOF'
@@ -263,10 +263,10 @@ HLS_URL=http://localhost:8080/hls
 # Development
 NODE_ENV=production
 EOF
-            log_success ".env file created with default values"
+            echo "[SUCCESS] .env file created with default values"
         fi
     else
-        log_info ".env file already exists"
+        echo "[INFO] .env file already exists"
     fi
 
     echo "[INFO] Building services..."
@@ -313,100 +313,100 @@ EOF
 
 # Start services
 start() {
-    log_info "Starting LiveStream App..."
+    echo "[INFO] Starting LiveStream App..."
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD up -d
         
         # Wait for critical services to be healthy (non-blocking)
-        wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
-        wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
-        wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
-        wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
+        wait_for_health "livestream-mongodb" 30 || echo "[WARNING] MongoDB health check timeout"
+        wait_for_health "livestream-redis" 20 || echo "[WARNING] Redis health check timeout"
+        wait_for_health "livestream-api" 40 || echo "[WARNING] API health check timeout"
+        wait_for_health "livestream-frontend" 30 || echo "[WARNING] Frontend health check timeout"
         
-        log_success "Services started"
-        log_info "Frontend: http://localhost:3000"
-        log_info "Backend: http://localhost:9000"
-        log_info "Web Interface: http://localhost:8080"
+        echo "[SUCCESS] Services started"
+        echo "[INFO] Frontend: http://localhost:3000"
+        echo "[INFO] Backend: http://localhost:9000"
+        echo "[INFO] Web Interface: http://localhost:8080"
     else
-        log_error "Cannot start without Docker. Please start Docker first."
+        echo "[ERROR] Cannot start without Docker. Please start Docker first."
         exit 1
     fi
 }
 
 # Stop services
 stop() {
-    log_info "Stopping LiveStream App..."
+    echo "[INFO] Stopping LiveStream App..."
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD down
-        log_success "Services stopped"
+        echo "[SUCCESS] Services stopped"
     else
-        log_warning "Docker not running, nothing to stop"
+        echo "[WARNING] Docker not running, nothing to stop"
     fi
 }
 
 # Show status
 status() {
-    log_info "Service Status:"
+    echo "[INFO] Service Status:"
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD ps
     else
-        log_warning "Docker not running, cannot show status"
+        echo "[WARNING] Docker not running, cannot show status"
     fi
 }
 
 # Show logs
 logs() {
-    log_info "Showing service logs..."
+    echo "[INFO] Showing service logs..."
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD logs -f
     else
-        log_error "Cannot show logs without Docker. Please start Docker first."
+        echo "[ERROR] Cannot show logs without Docker. Please start Docker first."
         exit 1
     fi
 }
 
 # Clean up
 clean() {
-    log_info "Cleaning up..."
+    echo "[INFO] Cleaning up..."
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD down -v
         docker system prune -f
-        log_success "Cleanup complete"
+        echo "[SUCCESS] Cleanup complete"
     else
-        log_warning "Docker not running, nothing to clean"
+        echo "[WARNING] Docker not running, nothing to clean"
     fi
 }
 
 # Build services
 build() {
-    log_info "Building services..."
+    echo "[INFO] Building services..."
     if check_docker; then
         COMPOSE_CMD=$(get_compose_cmd)
         $COMPOSE_CMD build
-        log_success "Build complete"
+        echo "[SUCCESS] Build complete"
     else
-        log_error "Cannot build without Docker. Please start Docker first."
+        echo "[ERROR] Cannot build without Docker. Please start Docker first."
         exit 1
     fi
 }
 
 # Reset everything (keep SSH and code)
 reset_all() {
-    log_warning "⚠️  WARNING: This will DELETE EVERYTHING except SSH and source code!"
-    log_warning "This includes: Docker, databases, logs, caches, and all data!"
+    echo "[WARNING] ⚠️  WARNING: This will DELETE EVERYTHING except SSH and source code!"
+    echo "[WARNING] This includes: Docker, databases, logs, caches, and all data!"
     echo ""
     read -p "Are you absolutely sure you want to continue? Type 'YES' to confirm: " confirm
     if [ "$confirm" != "YES" ]; then
-        log_info "Operation cancelled."
+        echo "[INFO] Operation cancelled."
         exit 1
     fi
     
-    log_info "Starting complete system reset..."
+    echo "[INFO] Starting complete system reset..."
     
     # Detect OS
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -420,18 +420,18 @@ reset_all() {
             SUDO="sudo"
         fi
     else
-        log_error "Unsupported OS: $OSTYPE"
+        echo "[ERROR] Unsupported OS: $OSTYPE"
         exit 1
     fi
     
-    log_info "Detected OS: $OS"
+    echo "[INFO] Detected OS: $OS"
     
     # Stop all services
-    log_info "Stopping all services..."
+    echo "[INFO] Stopping all services..."
     $SUDO systemctl stop docker mongodb redis nginx 2>/dev/null || true
     
     # Remove Docker completely
-    log_info "Removing Docker completely..."
+    echo "[INFO] Removing Docker completely..."
     if command -v docker >/dev/null 2>&1; then
         # Stop all containers
         docker stop $(docker ps -aq) 2>/dev/null || true
@@ -444,7 +444,7 @@ reset_all() {
         
         if [ "$OS" = "macos" ]; then
             # macOS: Remove Docker Desktop
-            log_info "Removing Docker Desktop on macOS..."
+            echo "[INFO] Removing Docker Desktop on macOS..."
             # Stop Docker Desktop
             osascript -e 'quit app "Docker Desktop"' 2>/dev/null || true
             # Remove Docker Desktop app
@@ -470,11 +470,11 @@ reset_all() {
             $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
         fi
         
-        log_success "Docker completely removed"
+        echo "[SUCCESS] Docker completely removed"
     fi
     
     # Remove Node.js and npm
-    log_info "Removing Node.js and npm..."
+    echo "[INFO] Removing Node.js and npm..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove Node.js via Homebrew or manual
         if command -v brew >/dev/null 2>&1; then
@@ -493,10 +493,10 @@ reset_all() {
         $SUDO rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
         $SUDO rm -rf ~/.npm ~/.node-gyp 2>/dev/null || true
     fi
-    log_success "Node.js and npm removed"
+    echo "[SUCCESS] Node.js and npm removed"
     
     # Remove MongoDB
-    log_info "Removing MongoDB..."
+    echo "[INFO] Removing MongoDB..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove MongoDB via Homebrew
         if command -v brew >/dev/null 2>&1; then
@@ -513,10 +513,10 @@ reset_all() {
         $SUDO apt-get purge -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
         $SUDO rm -rf /var/lib/mongodb /var/log/mongodb /etc/mongod.conf 2>/dev/null || true
     fi
-    log_success "MongoDB removed"
+    echo "[SUCCESS] MongoDB removed"
     
     # Remove Redis
-    log_info "Removing Redis..."
+    echo "[INFO] Removing Redis..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove Redis via Homebrew
         if command -v brew >/dev/null 2>&1; then
@@ -533,10 +533,10 @@ reset_all() {
         $SUDO apt-get purge -y redis-server redis-tools 2>/dev/null || true
         $SUDO rm -rf /var/lib/redis /var/log/redis /etc/redis 2>/dev/null || true
     fi
-    log_success "Redis removed"
+    echo "[SUCCESS] Redis removed"
     
     # Remove Nginx
-    log_info "Removing Nginx..."
+    echo "[INFO] Removing Nginx..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove Nginx via Homebrew
         if command -v brew >/dev/null 2>&1; then
@@ -552,20 +552,20 @@ reset_all() {
         $SUDO apt-get purge -y nginx nginx-common nginx-core 2>/dev/null || true
         $SUDO rm -rf /var/www/html /etc/nginx /var/log/nginx 2>/dev/null || true
     fi
-    log_success "Nginx removed"
+    echo "[SUCCESS] Nginx removed"
     
     # Remove all project data
-    log_info "Removing all project data..."
+    echo "[INFO] Removing all project data..."
     rm -rf data/ hls/ logs/ tmp/ .env 2>/dev/null || true
-    log_success "Project data removed"
+    echo "[SUCCESS] Project data removed"
     
     # Remove all build artifacts
-    log_info "Removing all build artifacts..."
+    echo "[INFO] Removing all build artifacts..."
     rm -rf services/api/node_modules/ services/api/dist/ services/frontend/node_modules/ services/frontend/.next/ services/frontend/out/ services/frontend/build/ 2>/dev/null || true
-    log_success "Build artifacts removed"
+    echo "[SUCCESS] Build artifacts removed"
     
     # Remove all caches
-    log_info "Removing all caches..."
+    echo "[INFO] Removing all caches..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove caches
         rm -rf ~/Library/Caches/* 2>/dev/null || true
@@ -579,10 +579,10 @@ reset_all() {
         # Ubuntu: Remove caches
         $SUDO rm -rf /var/cache/apt/archives/* /var/cache/apt/lists/* /tmp/* /var/tmp/* ~/.cache 2>/dev/null || true
     fi
-    log_success "Caches removed"
+    echo "[SUCCESS] Caches removed"
     
     # Remove all logs
-    log_info "Removing all logs..."
+    echo "[INFO] Removing all logs..."
     if [ "$OS" = "macos" ]; then
         # macOS: Remove logs
         rm -rf ~/Library/Logs/* 2>/dev/null || true
@@ -592,21 +592,21 @@ reset_all() {
         $SUDO rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
     fi
     find . -name "*.log" -type f -delete 2>/dev/null || true
-    log_success "Logs removed"
+    echo "[SUCCESS] Logs removed"
     
     # Clean up temporary files
-    log_info "Cleaning up temporary files..."
+    echo "[INFO] Cleaning up temporary files..."
     find . -name "*.tmp" -o -name ".DS_Store" -o -name "Thumbs.db" -o -name "*.swp" -o -name "*.swo" -o -name "*~" -type f -delete 2>/dev/null || true
-    log_success "Temporary files removed"
+    echo "[SUCCESS] Temporary files removed"
     
     # Reset file permissions
-    log_info "Resetting file permissions..."
+    echo "[INFO] Resetting file permissions..."
     chmod +x scripts/*.sh 2>/dev/null || true
     chmod 644 *.md *.yml *.json 2>/dev/null || true
-    log_success "File permissions reset"
+    echo "[SUCCESS] File permissions reset"
     
     # Clean up package manager
-    log_info "Cleaning up package manager..."
+    echo "[INFO] Cleaning up package manager..."
     if [ "$OS" = "macos" ]; then
         # macOS: Clean up Homebrew
         if command -v brew >/dev/null 2>&1; then
@@ -618,10 +618,10 @@ reset_all() {
         $SUDO apt-get autoremove -y 2>/dev/null || true
         $SUDO apt-get autoclean 2>/dev/null || true
     fi
-    log_success "Package manager cleaned"
+    echo "[SUCCESS] Package manager cleaned"
     
     # Show what was preserved
-    log_info "The following were preserved:"
+    echo "[INFO] The following were preserved:"
     echo "  ✓ Source code (all .ts, .tsx, .js, .jsx files)"
     echo "  ✓ Configuration files (.json, .yml, .yaml, .conf)"
     echo "  ✓ Environment template (env.example)"
@@ -632,7 +632,7 @@ reset_all() {
     echo "  ✓ Project structure"
     
     # Show what was removed
-    log_warning "The following were completely removed:"
+    echo "[WARNING] The following were completely removed:"
     echo "  ✗ Docker and all containers/images/volumes"
     echo "  ✗ Node.js and npm"
     echo "  ✗ MongoDB and all data"
@@ -643,15 +643,15 @@ reset_all() {
     echo "  ✗ All temporary files"
     
     # Show next steps
-    log_success "Complete system reset finished!"
+    echo "[SUCCESS] Complete system reset finished!"
     echo ""
-    log_info "Next steps:"
+    echo "[INFO] Next steps:"
     echo "  1. Run 'make install' to reinstall everything"
     echo "  2. Run 'make start' to start services"
     echo "  3. Or run 'make setup' for quick setup"
     echo ""
-    log_info "Your SSH configuration and source code are intact."
-    log_warning "You will need to reconfigure everything from scratch."
+    echo "[INFO] Your SSH configuration and source code are intact."
+    echo "[WARNING] You will need to reconfigure everything from scratch."
 }
 
 # Main function
