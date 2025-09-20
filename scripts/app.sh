@@ -51,11 +51,11 @@ check_docker_build() {
     
     # Check if API Dockerfile exists and fix COPY command
     if [ -f "services/api/Dockerfile" ]; then
-        if ! grep -q "COPY src/ ./" services/api/Dockerfile; then
+        if ! grep -q "COPY src ./src" services/api/Dockerfile; then
             log_warning "Fixing API Dockerfile COPY command..."
             # Fix the COPY command to use correct path
-            sed -i.bak 's/COPY src.*/COPY src\/ .\//' services/api/Dockerfile
-            log_success "API Dockerfile fixed - now using 'COPY src/ ./'"
+            sed -i.bak 's/COPY src.*/COPY src .\/src/' services/api/Dockerfile
+            log_success "API Dockerfile fixed - now using 'COPY src ./src'"
         else
             log_success "API Dockerfile already has correct COPY command"
         fi
