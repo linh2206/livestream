@@ -132,6 +132,14 @@ authorized_keys
 docker-data/
 volumes/
 
+# MongoDB data
+data/mongodb/
+data/redis/
+data/hls/
+
+# Database data directories
+data/
+
 # Backup files
 *.backup
 *.bak

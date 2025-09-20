@@ -3,15 +3,16 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 COPY tsconfig*.json ./
+COPY nest-cli.json ./
 
 # Install all dependencies (including dev for build)
-RUN npm install --timeout=300000 --verbose && npm cache clean --force
+RUN npm install --timeout=300000 && npm cache clean --force
 
 # Copy source code
-COPY src/ ./src/
+COPY src ./src
 
 # Build the application
 RUN npm run build
@@ -32,7 +33,7 @@ RUN adduser -S nestjs -u 1001
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm install --only=production --timeout=300000 && npm cache clean --force
+RUN npm install --omit=dev --timeout=300000 && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
