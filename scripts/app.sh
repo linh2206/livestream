@@ -45,9 +45,24 @@ check_docker() {
     return 0
 }
 
-# Check frontend build issues
-check_frontend_build() {
-    log_info "Checking frontend build issues..."
+# Check and fix Docker build issues
+check_docker_build() {
+    log_info "Checking Docker build configuration..."
+    
+    # Check if API Dockerfile exists and fix COPY command
+    if [ -f "services/api/Dockerfile" ]; then
+        if ! grep -q "COPY src/ ./" services/api/Dockerfile; then
+            log_warning "Fixing API Dockerfile COPY command..."
+            # Fix the COPY command to use correct path
+            sed -i.bak 's/COPY src.*/COPY src\/ .\//' services/api/Dockerfile
+            log_success "API Dockerfile fixed - now using 'COPY src/ ./'"
+        else
+            log_success "API Dockerfile already has correct COPY command"
+        fi
+    else
+        log_error "API Dockerfile not found"
+        return 1
+    fi
     
     # Check if frontend directory exists
     if [ ! -d "services/frontend" ]; then
@@ -153,7 +168,7 @@ EOF
         log_success "Created useSocket.ts"
     fi
     
-    log_success "Frontend build check completed"
+    log_success "Docker build check completed"
     return 0
 }
 
@@ -307,8 +322,8 @@ sync_code() {
 setup() {
     log_info "Setting up LiveStream App..."
     
-    # Check frontend build issues first
-    check_frontend_build
+    # Check Docker build issues first
+    check_docker_build
     
     # Check if Docker is installed
     if ! check_docker; then
