@@ -39,8 +39,8 @@ services:
 
   api:
     build:
-      context: ./services/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/api/Dockerfile
     container_name: livestream-api
     environment:
       NODE_ENV: production
