@@ -11,7 +11,8 @@ COPY nest-cli.json ./
 # Install all dependencies (including dev for build)
 RUN npm install --timeout=300000 && npm cache clean --force
 
-# Copy source code
+# Create src directory if it doesn't exist and copy source code
+RUN mkdir -p src
 COPY src/ ./
 
 # Build the application

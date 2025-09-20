@@ -64,6 +64,13 @@ check_docker_build() {
         return 1
     fi
     
+    # Check if API src directory exists
+    if [ ! -d "services/api/src" ]; then
+        log_warning "API src directory not found, creating..."
+        mkdir -p services/api/src
+        log_success "Created services/api/src directory"
+    fi
+    
     # Check if frontend directory exists
     if [ ! -d "services/frontend" ]; then
         log_error "Frontend directory not found"
