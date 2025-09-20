@@ -45,6 +45,65 @@ check_docker() {
     return 0
 }
 
+# Fix network and DNS issues
+fix_network() {
+    log_info "Fixing network and DNS issues..."
+    
+    # Stop systemd-resolved if running
+    log_info "Stopping systemd-resolved..."
+    sudo systemctl stop systemd-resolved 2>/dev/null || true
+    sudo systemctl disable systemd-resolved 2>/dev/null || true
+    
+    # Fix DNS resolution
+    log_info "Backing up resolv.conf..."
+    sudo cp /etc/resolv.conf /etc/resolv.conf.backup 2>/dev/null || true
+    
+    log_info "Setting DNS to multiple providers..."
+    cat << 'EOF' | sudo tee /etc/resolv.conf
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+nameserver 208.67.222.222
+nameserver 208.67.220.220
+EOF
+    log_success "DNS fixed with multiple providers"
+    
+    # Make resolv.conf immutable
+    sudo chattr +i /etc/resolv.conf 2>/dev/null || true
+    
+    # Restart network services
+    log_info "Restarting network services..."
+    sudo systemctl restart networking 2>/dev/null || true
+    sudo systemctl restart NetworkManager 2>/dev/null || true
+    
+    # Restart Docker daemon
+    log_info "Restarting Docker daemon..."
+    sudo systemctl stop docker 2>/dev/null || true
+    sleep 3
+    sudo systemctl start docker
+    sleep 5
+    
+    # Test network connectivity
+    log_info "Testing network connectivity..."
+    for dns in 8.8.8.8 1.1.1.1 208.67.222.222; do
+        if ping -c 1 -W 5 $dns >/dev/null 2>&1; then
+            log_success "Network connectivity OK with $dns"
+            break
+        else
+            log_warning "Failed to ping $dns"
+        fi
+    done
+    
+    # Test Docker Hub connectivity
+    log_info "Testing Docker Hub connectivity..."
+    if curl -s --connect-timeout 10 https://registry-1.docker.io >/dev/null 2>&1; then
+        log_success "Docker Hub accessible"
+    else
+        log_warning "Docker Hub not accessible, will try alternative methods"
+    fi
+}
+
 # Check and fix Docker build issues
 check_docker_build() {
     log_info "Checking Docker build configuration..."
@@ -173,6 +232,71 @@ export function useSocket() {
 }
 EOF
         log_success "Created useSocket.ts"
+    fi
+    
+    # Fix webpack build issues
+    log_info "Fixing webpack build issues..."
+    
+    # Create next.config.js if it doesn't exist
+    if [ ! -f "services/frontend/next.config.js" ]; then
+        log_warning "next.config.js not found, creating..."
+        cat > services/frontend/next.config.js << 'EOF'
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  experimental: {
+    outputFileTracingRoot: undefined,
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+}
+
+module.exports = nextConfig
+EOF
+        log_success "Created next.config.js"
+    fi
+    
+    # Create postcss.config.js if it doesn't exist
+    if [ ! -f "services/frontend/postcss.config.js" ]; then
+        log_warning "postcss.config.js not found, creating..."
+        cat > services/frontend/postcss.config.js << 'EOF'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+EOF
+        log_success "Created postcss.config.js"
+    fi
+    
+    # Create tailwind.config.js if it doesn't exist
+    if [ ! -f "services/frontend/tailwind.config.js" ]; then
+        log_warning "tailwind.config.js not found, creating..."
+        cat > services/frontend/tailwind.config.js << 'EOF'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+EOF
+        log_success "Created tailwind.config.js"
     fi
     
     log_success "Docker build check completed"
@@ -329,7 +453,10 @@ sync_code() {
 setup() {
     log_info "Setting up LiveStream App..."
     
-    # Check Docker build issues first
+    # Fix network issues first
+    fix_network
+    
+    # Check Docker build issues
     check_docker_build
     
     # Check if Docker is installed
@@ -387,11 +514,39 @@ EOF
         sleep 2
     done
     
+    # Fix network issues
+    log_info "Fixing network issues..."
+    
+    # Configure Docker daemon with registry mirrors
+    log_info "Configuring Docker daemon with registry mirrors..."
+    sudo mkdir -p /etc/docker
+    cat << 'EOF' | sudo tee /etc/docker/daemon.json
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ],
+  "dns": ["8.8.8.8", "1.1.1.1"],
+  "max-concurrent-downloads": 3,
+  "max-concurrent-uploads": 5
+}
+EOF
+    sudo systemctl restart docker
+    sleep 5
+    
+    # Try to pull base images first
+    log_info "Pulling base images..."
+    docker pull node:18-alpine || log_warning "Failed to pull node:18-alpine, will try during build"
+    docker pull mongo:7.0 || log_warning "Failed to pull mongo:7.0, will try during build"
+    docker pull redis:7-alpine || log_warning "Failed to pull redis:7-alpine, will try during build"
+    
     # Build services
     log_info "Building services..."
     COMPOSE_CMD=$(get_compose_cmd)
     export DOCKER_BUILDKIT=1
-    export COMPOSE_HTTP_TIMEOUT=300
+    export COMPOSE_HTTP_TIMEOUT=600
+    export DOCKER_BUILDKIT_PROGRESS=plain
     
     if ! $COMPOSE_CMD build --no-cache; then
         log_warning "Build failed, trying individual services..."
