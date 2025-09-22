@@ -16,17 +16,22 @@ export class RtmpService {
     const { name, addr } = data;
     console.log(`Stream started: ${name} from ${addr}`);
     
-    // Update stream status in database
-    await this.streamModel.findOneAndUpdate(
-      { streamKey: name },
-      { 
-        isLive: true, 
-        startTime: new Date(),
-        viewerCount: 0 
-      },
-      { upsert: true }
-    );
+    try {
+      // Update stream status in database
+      await this.streamModel.findOneAndUpdate(
+        { streamKey: name },
+        { 
+          isLive: true, 
+          startTime: new Date(),
+          viewerCount: 0 
+        },
+        { upsert: true }
+      );
+    } catch (error) {
+      console.error('Database error:', error);
+    }
 
+    // Always allow RTMP publish
     return { status: 'ok' };
   }
 
@@ -84,7 +89,9 @@ stream0.ts
 
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.setHeader('Cache-Control', 'no-cache');
-    // CORS headers set in controller
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept');
     
     return res.send(hlsContent);
   }

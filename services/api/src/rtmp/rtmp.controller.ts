@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Res, Options, Header } from '@nestjs/common';
 import { Response } from 'express';
 import { RtmpService } from './rtmp.service';
 import { CreateStreamDto } from './dto/create-stream.dto';
@@ -7,38 +7,78 @@ import { CreateStreamDto } from './dto/create-stream.dto';
 export class RtmpController {
   constructor(private readonly rtmpService: RtmpService) {}
 
+  @Get('health')
+  async health() {
+    return { status: 'ok', service: 'rtmp' };
+  }
+
   @Post('publish')
   async onPublish(@Body() body: any) {
     console.log('RTMP Publish:', body);
-    return this.rtmpService.handlePublish(body);
+    try {
+      return await this.rtmpService.handlePublish(body);
+    } catch (error) {
+      console.error('RTMP Publish error:', error);
+      return { status: 'ok' }; // Always allow
+    }
   }
 
   @Post('publish_done')
   async onPublishDone(@Body() body: any) {
     console.log('RTMP Publish Done:', body);
-    return this.rtmpService.handlePublishDone(body);
+    try {
+      return await this.rtmpService.handlePublishDone(body);
+    } catch (error) {
+      console.error('RTMP Publish Done error:', error);
+      return { status: 'ok' };
+    }
   }
 
   @Post('play')
   async onPlay(@Body() body: any) {
     console.log('RTMP Play:', body);
-    return this.rtmpService.handlePlay(body);
+    try {
+      return await this.rtmpService.handlePlay(body);
+    } catch (error) {
+      console.error('RTMP Play error:', error);
+      return { status: 'ok' };
+    }
   }
 
   @Post('play_done')
   async onPlayDone(@Body() body: any) {
     console.log('RTMP Play Done:', body);
-    return this.rtmpService.handlePlayDone(body);
+    try {
+      return await this.rtmpService.handlePlayDone(body);
+    } catch (error) {
+      console.error('RTMP Play Done error:', error);
+      return { status: 'ok' };
+    }
   }
 
   @Get('hls/:streamKey')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
   async getHlsStream(@Param('streamKey') streamKey: string, @Res() res: Response) {
     // Remove .m3u8 extension if present
     const cleanStreamKey = streamKey.replace('.m3u8', '');
     return this.rtmpService.serveHlsStream(cleanStreamKey, res);
   }
 
+  @Options('hls/:streamKey')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
+  @Header('Access-Control-Max-Age', '86400')
+  async optionsHlsStream() {
+    return { status: 'ok' };
+  }
+
   @Get('hls')
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
   async getHlsStreams(@Res() res: Response) {
     return this.rtmpService.serveHlsDirectory(res);
   }
