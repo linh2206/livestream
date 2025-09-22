@@ -8,8 +8,6 @@ services:
     image: mongo:4.4
     container_name: livestream-mongodb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: livestream
     volumes:
       - ./data/mongodb:/data/db
@@ -45,12 +43,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 9000
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/livestream?authSource=admin
+      MONGODB_URI: mongodb://mongodb:27017/livestream
       REDIS_URL: redis://redis:6379
       JWT_SECRET: your-secret-key-change-this-in-production
       FRONTEND_URL: http://localhost:8080
     ports:
       - "9000:9000"
+    volumes:
+      - ./data/hls:/app/data/hls
     depends_on:
       - mongodb
       - redis
