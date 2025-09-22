@@ -12,7 +12,7 @@ COPY tsconfig*.json ./
 COPY nest-cli.json ./
 
 # Install all dependencies (including dev for build)
-RUN npm ci --only=production --timeout=300000 && npm cache clean --force
+RUN npm ci --timeout=300000 && npm cache clean --force
 
 # Copy source code
 COPY src/ ./src/
@@ -36,7 +36,7 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev --timeout=300000 && \
+RUN npm install --omit=dev --timeout=300000 && \
     npm cache clean --force && \
     rm -rf /tmp/* /var/cache/apk/*
 
