@@ -57,7 +57,7 @@ services:
       HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
       RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
       # Internal URLs for Docker network
-      BACKEND_URL: ${BACKEND_URL:-http://api:9000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:9000}
     ports:
       - "9000:9000"  # Expose for WebSocket connection
     volumes:
@@ -112,9 +112,10 @@ services:
     container_name: livestream-nginx
     environment:
       # Internal URLs for Docker network
-      BACKEND_URL: ${BACKEND_URL:-http://api:9000}
-      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
-      WS_URL: ${WS_URL:-ws://api:9000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:9000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      API_URL: ${API_URL:-http://localhost:9000}
+      WS_URL: ${WS_URL:-ws://localhost:9000}
       # External URLs for RTMP events
       HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
       RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
