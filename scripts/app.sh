@@ -153,6 +153,81 @@ check_docker_build() {
         log_success "Created services/api/src directory"
     fi
     
+    # Check if main.ts exists
+    if [ ! -f "services/api/src/main.ts" ]; then
+        log_warning "main.ts not found, creating basic one..."
+        cat > services/api/src/main.ts << 'EOF'
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(9000);
+}
+bootstrap();
+EOF
+        log_success "Created main.ts"
+    fi
+    
+    # Check if app.module.ts exists
+    if [ ! -f "services/api/src/app.module.ts" ]; then
+        log_warning "app.module.ts not found, creating basic one..."
+        cat > services/api/src/app.module.ts << 'EOF'
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+@Module({
+  imports: [],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+EOF
+        log_success "Created app.module.ts"
+    fi
+    
+    # Check if app.controller.ts exists
+    if [ ! -f "services/api/src/app.controller.ts" ]; then
+        log_warning "app.controller.ts not found, creating basic one..."
+        cat > services/api/src/app.controller.ts << 'EOF'
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller()
+export class AppController {
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
+  getHello(): string {
+    return this.appService.getHello();
+  }
+
+  @Get('health')
+  getHealth(): object {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+}
+EOF
+        log_success "Created app.controller.ts"
+    fi
+    
+    # Check if app.service.ts exists
+    if [ ! -f "services/api/src/app.service.ts" ]; then
+        log_warning "app.service.ts not found, creating basic one..."
+        cat > services/api/src/app.service.ts << 'EOF'
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'Hello World!';
+  }
+}
+EOF
+        log_success "Created app.service.ts"
+    fi
+    
     # Check if frontend directory exists
     if [ ! -d "services/frontend" ]; then
         log_error "Frontend directory not found"

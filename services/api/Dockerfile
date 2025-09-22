@@ -15,8 +15,16 @@ RUN npm install --timeout=300000 && npm cache clean --force
 RUN mkdir -p src
 COPY src/ ./
 
+# Debug: List files to see what was copied
+RUN ls -la
+RUN ls -la src/ || echo "src directory not found"
+
 # Build the application
 RUN npm run build
+
+# Debug: List files after build
+RUN ls -la
+RUN ls -la dist/ || echo "dist directory not found"
 
 # Production stage
 FROM node:18-alpine AS production
