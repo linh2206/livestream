@@ -117,12 +117,12 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-glass-black rounded-lg p-4">
               <h3 className="text-white font-semibold mb-2">RTMP Input</h3>
-              <p className="text-gray-300 text-sm">rtmp://localhost:1935/live</p>
-              <p className="text-gray-400 text-xs mt-1">Stream Key: stream</p>
+              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935/live'}</p>
+              <p className="text-gray-400 text-xs mt-1">Stream Key: {process.env.NEXT_PUBLIC_STREAM_NAME || 'stream'}</p>
             </div>
             <div className="bg-glass-black rounded-lg p-4">
               <h3 className="text-white font-semibold mb-2">HLS Output</h3>
-              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080'}/hls/stream.m3u8</p>
+              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080/hls'}/{process.env.NEXT_PUBLIC_STREAM_NAME || 'stream'}.m3u8</p>
               <p className="text-gray-400 text-xs mt-1">For web players</p>
             </div>
             <div className="bg-glass-black rounded-lg p-4">
