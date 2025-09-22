@@ -467,6 +467,15 @@ EOF
         log_success "Created next.config.js"
     fi
     
+    # Create package-lock.json if missing
+    if [ ! -f services/frontend/package-lock.json ]; then
+        log_warning "package-lock.json not found, creating one..."
+        cd services/frontend
+        npm install --package-lock-only
+        cd ../..
+        log_success "Created package-lock.json"
+    fi
+    
     # Create postcss.config.js if it doesn't exist
     if [ ! -f "services/frontend/postcss.config.js" ]; then
         log_warning "postcss.config.js not found, creating..."

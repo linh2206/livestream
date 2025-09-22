@@ -1,26 +1,9 @@
-# Multi-stage Next.js Dockerfile
-FROM node:18-alpine AS builder
+# Simple Next.js Dockerfile
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production --timeout=300000 && npm cache clean --force
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine AS production
-
-WORKDIR /app
-
-# Install dumb-init for proper signal handling
+# Install dumb-init and curl for health checks
 RUN apk add --no-cache dumb-init curl
 
 # Create non-root user
@@ -30,13 +13,17 @@ RUN adduser -S nextjs -u 1001
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production --timeout=300000 && npm cache clean --force
+# Install dependencies
+RUN npm install --timeout=300000 && npm cache clean --force
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Change ownership to nextjs user
+RUN chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
