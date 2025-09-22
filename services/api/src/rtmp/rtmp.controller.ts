@@ -42,4 +42,5 @@ export class RtmpController {
   async getHlsStreams(@Res() res: Response) {
     return this.rtmpService.serveHlsDirectory(res);
   }
+
 }
