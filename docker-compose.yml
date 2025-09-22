@@ -8,7 +8,7 @@ services:
     image: mongo:4.4
     container_name: livestream-mongodb
     environment:
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-livestream}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
@@ -45,19 +45,17 @@ services:
         NODE_ENV: production
     container_name: livestream-api
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV}
       PORT: 9000
-      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/livestream}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
-      # External URLs for CORS
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      API_URL: ${API_URL:-http://localhost:9000}
-      WS_URL: ${WS_URL:-ws://localhost:9000}
-      HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
-      RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
-      # Internal URLs for Docker network
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:9000}
+      MONGODB_URI: mongodb://mongodb:27017/livestream
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      API_URL: ${API_URL}
+      WS_URL: ${WS_URL}
+      HLS_URL: ${HLS_URL}
+      RTMP_URL: ${RTMP_URL}
+      BACKEND_URL: ${BACKEND_URL}
     ports:
       - "9000:9000"  # Expose for WebSocket connection
     volumes:
@@ -83,15 +81,15 @@ services:
         NODE_ENV: production
     container_name: livestream-frontend
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV}
       PORT: 3000
-      NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9000}
-      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:9000}
-      NEXT_PUBLIC_HLS_URL: ${NEXT_PUBLIC_HLS_URL:-http://localhost:8080/hls}
-      NEXT_PUBLIC_STREAM_NAME: ${NEXT_PUBLIC_STREAM_NAME:-stream}
-      NEXT_PUBLIC_RTMP_URL: ${NEXT_PUBLIC_RTMP_URL:-rtmp://localhost:1935/live}
-      BACKEND_URL: ${BACKEND_URL:-http://api:9000}
+      NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+      NEXT_PUBLIC_HLS_URL: ${NEXT_PUBLIC_HLS_URL}
+      NEXT_PUBLIC_STREAM_NAME: ${NEXT_PUBLIC_STREAM_NAME}
+      NEXT_PUBLIC_RTMP_URL: ${NEXT_PUBLIC_RTMP_URL}
+      BACKEND_URL: ${BACKEND_URL}
     ports:
       - "3000:3000"
     depends_on:
@@ -111,14 +109,12 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-nginx
     environment:
-      # Internal URLs for Docker network
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:9000}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      API_URL: ${API_URL:-http://localhost:9000}
-      WS_URL: ${WS_URL:-ws://localhost:9000}
-      # External URLs for RTMP events
-      HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
-      RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
+      BACKEND_URL: ${BACKEND_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      API_URL: ${API_URL}
+      WS_URL: ${WS_URL}
+      HLS_URL: ${HLS_URL}
+      RTMP_URL: ${RTMP_URL}
     ports:
       - "8080:8080"
       - "1935:1935"
