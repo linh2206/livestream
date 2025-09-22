@@ -509,7 +509,7 @@ export default function VideoPlayer({ streamName = 'stream' }: VideoPlayerProps)
     const video = videoRef.current;
     if (!video) return;
 
-    const hlsUrl = `/hls/${streamName}`;
+    const hlsUrl = `http://localhost:8080/hls/${streamName}`;
     
     // Check if browser supports HLS
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -846,9 +846,10 @@ EOF
     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
     
     log_success "Setup complete!"
-    log_info "Frontend: http://localhost:3000"
+    log_info "Frontend: http://localhost:80"
     log_info "Backend: http://localhost:9000"
-    log_info "Web Interface: http://localhost:8080"
+    log_info "HLS Streaming: http://localhost:8080"
+    log_info "RTMP: rtmp://localhost:1935/live"
 }
 
 # Install dependencies (legacy - use setup instead)
@@ -872,9 +873,10 @@ docker_service() {
                 wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
                 wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
                 log_success "Services started"
-                log_info "Frontend: http://localhost:3000"
+                log_info "Frontend: http://localhost:80"
                 log_info "Backend: http://localhost:9000"
-                log_info "Web Interface: http://localhost:8080"
+                log_info "HLS Streaming: http://localhost:8080"
+                log_info "RTMP: rtmp://localhost:1935/live"
             else
                 log_error "Cannot start without Docker. Please start Docker first."
                 exit 1
