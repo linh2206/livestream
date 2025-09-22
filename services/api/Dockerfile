@@ -12,7 +12,7 @@ COPY tsconfig*.json ./
 COPY nest-cli.json ./
 
 # Install all dependencies (including dev for build)
-RUN npm ci --timeout=300000 && npm cache clean --force
+RUN npm install --timeout=300000 && npm cache clean --force
 
 # Copy source code
 COPY src/ ./src/

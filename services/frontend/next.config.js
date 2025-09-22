@@ -7,11 +7,10 @@ const nextConfig = {
   poweredByHeader: false,
   generateEtags: false,
   
-  // Performance optimizations
-  experimental: {
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', 'socket.io-client'],
-  },
+      // Performance optimizations
+      experimental: {
+        optimizePackageImports: ['lucide-react', 'socket.io-client'],
+      },
   
   // Image optimization
   images: {
