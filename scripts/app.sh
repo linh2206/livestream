@@ -832,8 +832,8 @@ MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
 REDIS_URL=redis://redis:6379
 JWT_SECRET=your-secret-key-change-this-in-production
 FRONTEND_URL=http://localhost:3000
-    NEXT_PUBLIC_API_URL=http://localhost:9000
-    NEXT_PUBLIC_WS_URL=ws://localhost:9000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=ws://localhost:9000
     NEXT_PUBLIC_HLS_URL=http://localhost:8080
     BACKEND_URL=http://api:9000
 EOF
@@ -914,7 +914,7 @@ EOF
     wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
     
-        log_success "Setup complete!"
+    log_success "Setup complete!"
         log_info "🎬 LiveStream App is ready!"
         log_info "🌐 Main App: http://localhost:8080"
         log_info "📺 HLS Streaming: http://localhost:8080/hls"
