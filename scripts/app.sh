@@ -889,20 +889,36 @@ EOF
     docker pull ${MONGO_VERSION:-mongo:4.4} || log_warning "Failed to pull ${MONGO_VERSION:-mongo:4.4}, will try during build"
     docker pull redis:7-alpine || log_warning "Failed to pull redis:7-alpine, will try during build"
     
-    # Build services
-    log_info "Building services..."
-    COMPOSE_CMD=$(get_compose_cmd)
-    export DOCKER_BUILDKIT=1
-    export COMPOSE_HTTP_TIMEOUT=600
-    export DOCKER_BUILDKIT_PROGRESS=plain
-    
-    if ! $COMPOSE_CMD build --no-cache; then
-        log_warning "Build failed, trying individual services..."
-        for service in api frontend nginx; do
-            log_info "Building $service..."
-            $COMPOSE_CMD build $service || { log_error "Failed to build $service"; exit 1; }
-        done
-    fi
+        # Build services
+        log_info "Building services..."
+        COMPOSE_CMD=$(get_compose_cmd)
+        export DOCKER_BUILDKIT=1
+        export COMPOSE_HTTP_TIMEOUT=600
+        export DOCKER_BUILDKIT_PROGRESS=plain
+        
+        # Try building individual services first for better error handling
+        log_info "Building API service..."
+        if ! $COMPOSE_CMD build api; then
+            log_error "Failed to build API service"
+            exit 1
+        fi
+        
+        log_info "Building Frontend service..."
+        if ! $COMPOSE_CMD build frontend; then
+            log_warning "Frontend build failed, trying with npm install instead of npm ci..."
+            # Update frontend Dockerfile to use npm install
+            sed -i 's/RUN npm ci/RUN npm install/g' services/frontend/Dockerfile
+            if ! $COMPOSE_CMD build frontend; then
+                log_error "Failed to build Frontend service"
+                exit 1
+            fi
+        fi
+        
+        log_info "Building Nginx service..."
+        if ! $COMPOSE_CMD build nginx; then
+            log_error "Failed to build Nginx service"
+            exit 1
+        fi
     
     # Start services
     log_info "Starting services..."
