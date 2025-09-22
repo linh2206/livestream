@@ -46,7 +46,7 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/livestream
       REDIS_URL: redis://redis:6379
       JWT_SECRET: your-secret-key-change-this-in-production
-      FRONTEND_URL: http://localhost:8080
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "9000:9000"
     volumes:

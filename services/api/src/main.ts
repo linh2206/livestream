@@ -1,0 +1,45 @@
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Enable CORS for all origins
+  app.enableCors({
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Access-Control-Allow-Origin'],
+  });
+
+  // Additional CORS middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+    } else {
+      next();
+    }
+  });
+  
+  // Global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+  
+  // WebSocket adapter
+  app.useWebSocketAdapter(new IoAdapter(app));
+  
+  const port = process.env.PORT || 9000;
+  await app.listen(port);
+  console.log(`🚀 Backend server running on port ${port}`);
+}
+bootstrap();
