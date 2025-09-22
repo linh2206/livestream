@@ -50,7 +50,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./data/hls:/app/data/hls
+      - ./data/hls:/tmp/hls
     depends_on:
       - mongodb
       - redis
@@ -85,6 +85,7 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:
+      - "80:80"
       - "8080:8080"
       - "1935:1935"
     volumes:
