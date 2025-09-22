@@ -73,24 +73,8 @@ export class RtmpService {
   }
 
   async serveHlsStream(streamKey: string, res: Response) {
-    // For testing, return a simple HLS playlist
-    const hlsContent = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:10
-#EXT-X-MEDIA-SEQUENCE:0
-#EXTINF:9.0,
-stream0.ts
-#EXTINF:9.0,
-stream1.ts
-#EXTINF:9.0,
-stream2.ts
-#EXT-X-ENDLIST`;
-
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    
-    return res.send(hlsContent);
+    // Redirect to Nginx HLS serving
+    return res.redirect(`/hls/${streamKey}.m3u8`);
   }
 
   async serveHlsDirectory(res: Response) {
