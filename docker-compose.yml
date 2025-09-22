@@ -9,7 +9,7 @@ services:
     container_name: livestream-mongodb
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-    command: mongod --bind_ip_all
+    command: mongod --bind_ip_all --wiredTigerCacheSizeGB 0.5
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
@@ -26,6 +26,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: livestream-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:

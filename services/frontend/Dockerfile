@@ -1,29 +1,44 @@
-# Simple Next.js Dockerfile for Ubuntu compatibility
-FROM node:18-alpine
+# Multi-stage Next.js Dockerfile for optimal performance
+FROM node:18-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
-
-# Install system dependencies
-RUN apk add --no-cache libc6-compat dumb-init curl
 
 # Copy package files
 COPY package.json package-lock.json* ./
+RUN npm ci --only=production && npm cache clean --force
 
-# Install dependencies
-RUN npm install
-
-# Copy source code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
 COPY . .
 
 # Build the application
 RUN npm run build
 
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Install system dependencies
+RUN apk add --no-cache dumb-init curl
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Set ownership
-RUN chown -R nextjs:nodejs /app
+# Copy built application
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Switch to non-root user
 USER nextjs
@@ -31,14 +46,10 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000 || exit 1
 
 # Start the application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

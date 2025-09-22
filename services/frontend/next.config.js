@@ -3,8 +3,42 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   output: 'standalone',
-  // Environment variables are automatically loaded from .env files
-  // No need to manually define them here
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+  
+  // Performance optimizations
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'socket.io-client'],
+  },
+  
+  // Image optimization
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+  },
+  
+  // Webpack optimizations
+  webpack: (config, { isServer, dev }) => {
+    // Optimize for production
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      };
+    }
+    
+    return config;
+  },
+  
+  // API rewrites for development
   async rewrites() {
     return [
       {

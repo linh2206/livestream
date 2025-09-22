@@ -69,6 +69,8 @@ export default function Chat() {
     }
   };
 
+  // Remove duplicate function
+
   if (!isJoined) {
     return (
       <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6 h-96">

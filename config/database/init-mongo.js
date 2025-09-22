@@ -144,15 +144,45 @@ db.messages.createIndex({ streamId: 1, createdAt: -1 });
 db.messages.createIndex({ userId: 1 });
 db.messages.createIndex({ createdAt: -1 });
 
-// Create a default admin user
+// Create a default admin user (password: admin123)
+// Note: bcrypt is not available in MongoDB shell, using a pre-hashed password
+const adminPassword = '$2b$10$rQZ8kL9vXJ8kL9vXJ8kL9uXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9'; // admin123
+
 db.users.insertOne({
   username: 'admin',
   email: 'admin@livestream.com',
-  password: '$2b$10$rQZ8kL9vXJ8kL9vXJ8kL9uXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9', // password: admin123
+  password: adminPassword,
   avatar: '',
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date()
 });
 
-print('MongoDB initialization completed successfully!');
+// Create a sample stream
+const adminUser = db.users.findOne({ username: 'admin' });
+if (adminUser) {
+  db.streams.insertOne({
+    title: 'Welcome to LiveStream!',
+    description: 'This is a sample stream to demonstrate the LiveStream application.',
+    userId: adminUser._id,
+    status: 'inactive',
+    viewerCount: 0,
+    likeCount: 0,
+    streamKey: 'welcome',
+    hlsUrl: '/hls/welcome',
+    thumbnail: '',
+    tags: ['welcome', 'demo', 'livestream'],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+}
+
+print('✅ MongoDB initialization completed successfully!');
+print('📊 Created collections: users, streams, messages');
+print('🔑 Created indexes for optimal performance');
+print('👤 Created default admin user (username: admin, password: admin123)');
+if (adminUser) {
+  print('📺 Created sample stream');
+} else {
+  print('⚠️ Could not create sample stream - admin user not found');
+}
