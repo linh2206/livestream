@@ -930,19 +930,21 @@ EOF
     wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
     
-    log_success "Setup complete!"
+        log_success "Setup complete!"
         log_info "🎬 LiveStream App is ready!"
-        log_info "🌐 Main App: http://localhost:8080"
+        log_info "🌐 Frontend: http://localhost:3000"
+        log_info "🔌 API: http://localhost:8080/api/"
         log_info "📺 HLS Streaming: http://localhost:8080/hls"
         log_info "📡 RTMP Ingest: rtmp://localhost:1935/live"
         log_info "📊 RTMP Stats: http://localhost:8080/stat"
         log_info "🗄️ MongoDB: mongodb://localhost:27017/livestream"
         log_info "⚡ Redis: redis://localhost:6379"
         log_info ""
-        log_info "🔧 Internal Services (via Nginx proxy):"
-        log_info "  - Frontend: http://localhost:8080/"
-        log_info "  - API: http://localhost:8080/api/"
-        log_info "  - WebSocket: ws://localhost:8080/socket.io"
+        log_info "🔧 Service Access:"
+        log_info "  - Frontend: http://localhost:3000 (direct)"
+        log_info "  - API: http://localhost:8080/api/ (via Nginx)"
+        log_info "  - WebSocket: ws://localhost:8080/socket.io (via Nginx)"
+        log_info "  - HLS: http://localhost:8080/hls/ (via Nginx)"
 }
 
 # Test all services
@@ -963,11 +965,11 @@ test_services() {
         log_error "❌ Redis is not responding"
     fi
     
-    # Test Nginx (main entry point)
-    if curl -s http://localhost:8080 >/dev/null 2>&1; then
-        log_success "✅ Nginx is running"
+    # Test Frontend (direct)
+    if curl -s http://localhost:3000 >/dev/null 2>&1; then
+        log_success "✅ Frontend is running (direct)"
     else
-        log_error "❌ Nginx is not responding"
+        log_error "❌ Frontend is not responding (direct)"
     fi
     
     # Test API via Nginx
@@ -977,11 +979,11 @@ test_services() {
         log_error "❌ API is not responding (via Nginx)"
     fi
     
-    # Test Frontend via Nginx
-    if curl -s http://localhost:8080/ | grep -q "html\|body" >/dev/null 2>&1; then
-        log_success "✅ Frontend is running (via Nginx)"
+    # Test Nginx proxy
+    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
+        log_success "✅ Nginx proxy is working"
     else
-        log_error "❌ Frontend is not responding (via Nginx)"
+        log_error "❌ Nginx proxy is not responding"
     fi
     
     # Test HLS
