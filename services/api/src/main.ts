@@ -6,12 +6,12 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Enable CORS for API endpoints (Nginx will handle additional CORS)
+  // Enable CORS for API endpoints
   app.enableCors({
-    origin: '*',
+    origin: '*', // Allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Origin', 'X-Requested-With', 'Accept'],
-    credentials: false
+    credentials: false // Must be false when origin is '*'
   });
   
   // Global validation pipe
