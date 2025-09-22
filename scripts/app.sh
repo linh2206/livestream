@@ -162,7 +162,20 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Enable CORS
+  app.enableCors({
+    origin: ['http://localhost:80', 'http://localhost:8080'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+  
+  // Enable graceful shutdown
+  app.enableShutdownHooks();
+  
   await app.listen(9000);
+  console.log('API server running on port 9000');
 }
 bootstrap();
 EOF
@@ -509,7 +522,7 @@ export default function VideoPlayer({ streamName = 'stream' }: VideoPlayerProps)
     const video = videoRef.current;
     if (!video) return;
 
-    const hlsUrl = `http://localhost:8080/hls/${streamName}`;
+    const hlsUrl = `${process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080'}/hls/${streamName}`;
     
     // Check if browser supports HLS
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
