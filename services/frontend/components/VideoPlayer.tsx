@@ -12,7 +12,14 @@ export default function VideoPlayer() {
     const video = videoRef.current;
     if (!video) return;
 
-    const hlsUrl = `${process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080'}/hls/stream.m3u8`;
+    // Use NEXT_PUBLIC_HLS_URL from window.env if available, otherwise fallback to process.env, then to localhost
+    let hlsBaseUrl = 'http://localhost:8080';
+    if (typeof window !== 'undefined' && (window as any).env?.NEXT_PUBLIC_HLS_URL) {
+      hlsBaseUrl = (window as any).env.NEXT_PUBLIC_HLS_URL;
+    } else if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_HLS_URL) {
+      hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_URL;
+    }
+    const hlsUrl = `${hlsBaseUrl}/hls/stream.m3u8`;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
