@@ -161,28 +161,28 @@ db.users.insertOne({
 // Create a sample stream
 const adminUser = db.users.findOne({ username: 'admin' });
 if (adminUser) {
-  db.streams.insertOne({
-    title: 'Welcome to LiveStream!',
-    description: 'This is a sample stream to demonstrate the LiveStream application.',
-    userId: adminUser._id,
-    status: 'inactive',
-    viewerCount: 0,
-    likeCount: 0,
-    streamKey: 'welcome',
-    hlsUrl: '/hls/welcome',
-    thumbnail: '',
-    tags: ['welcome', 'demo', 'livestream'],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
+  try {
+    db.streams.insertOne({
+      title: 'Welcome to LiveStream!',
+      description: 'This is a sample stream to demonstrate the LiveStream application.',
+      userId: adminUser._id,
+      status: 'inactive',
+      viewerCount: 0,
+      likeCount: 0,
+      streamKey: 'welcome',
+      hlsUrl: '/hls/welcome',
+      thumbnail: '',
+      tags: ['welcome', 'demo', 'livestream'],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    print('📺 Created sample stream');
+  } catch (error) {
+    print('⚠️ Could not create sample stream: ' + error.message);
+  }
 }
 
 print('✅ MongoDB initialization completed successfully!');
 print('📊 Created collections: users, streams, messages');
 print('🔑 Created indexes for optimal performance');
 print('👤 Created default admin user (username: admin, password: admin123)');
-if (adminUser) {
-  print('📺 Created sample stream');
-} else {
-  print('⚠️ Could not create sample stream - admin user not found');
-}
