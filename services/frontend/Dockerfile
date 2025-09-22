@@ -39,9 +39,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy public assets
+# Copy public assets (create empty directory if not exists)
 RUN mkdir -p ./public
-COPY --from=builder /app/public ./public
 
 # Switch to non-root user
 USER nextjs
