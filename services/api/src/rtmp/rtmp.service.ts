@@ -16,27 +16,7 @@ export class RtmpService {
     const { name, addr } = data;
     console.log(`Stream started: ${name} from ${addr}`);
     
-    try {
-      // Update stream status in database
-      await this.streamModel.findOneAndUpdate(
-        { streamKey: name },
-        { 
-          title: `Stream ${name}`,
-          description: `Live stream from ${addr}`,
-          userId: new Types.ObjectId(), // Temporary user ID
-          status: 'active',
-          isLive: true, 
-          startTime: new Date(),
-          viewerCount: 0,
-          streamKey: name
-        },
-        { upsert: true }
-      );
-    } catch (error) {
-      console.error('Database error:', error);
-    }
-
-    // Always allow RTMP publish
+    // Always allow RTMP publish - no database required
     return { status: 'ok' };
   }
 
