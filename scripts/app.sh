@@ -176,15 +176,25 @@ EOF
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RtmpController } from './rtmp.controller';
 
 @Module({
   imports: [],
-  controllers: [AppController],
+  controllers: [AppController, RtmpController],
   providers: [AppService],
 })
 export class AppModule {}
 EOF
         log_success "Created app.module.ts"
+    else
+        # Update existing app.module.ts to include RtmpController
+        if ! grep -q "RtmpController" services/api/src/app.module.ts; then
+            log_warning "Adding RtmpController to app.module.ts..."
+            sed -i.bak 's/import { AppService } from/import { AppService } from/' services/api/src/app.module.ts
+            sed -i.bak '/import { AppService } from/a import { RtmpController } from '\''./rtmp.controller'\'';' services/api/src/app.module.ts
+            sed -i.bak 's/controllers: \[AppController\]/controllers: [AppController, RtmpController]/' services/api/src/app.module.ts
+            log_success "Updated app.module.ts"
+        fi
     fi
     
     # Check if app.controller.ts exists
@@ -226,6 +236,52 @@ export class AppService {
 }
 EOF
         log_success "Created app.service.ts"
+    fi
+    
+    # Create RTMP controller for stream authentication
+    if [ ! -f "services/api/src/rtmp.controller.ts" ]; then
+        log_warning "rtmp.controller.ts not found, creating..."
+        mkdir -p services/api/src/rtmp
+        cat > services/api/src/rtmp.controller.ts << 'EOF'
+import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Response } from 'express';
+
+@Controller('rtmp')
+export class RtmpController {
+  @Post('publish')
+  async onPublish(@Body() body: any, @Res() res: Response) {
+    const { name, addr, clientid } = body;
+    
+    // Accept all stream keys for now
+    // You can add authentication logic here
+    console.log(`Stream publish: ${name} from ${addr}`);
+    
+    res.status(200).send('OK');
+  }
+
+  @Post('publish_done')
+  async onPublishDone(@Body() body: any, @Res() res: Response) {
+    const { name, addr, clientid } = body;
+    console.log(`Stream publish done: ${name} from ${addr}`);
+    res.status(200).send('OK');
+  }
+
+  @Post('play')
+  async onPlay(@Body() body: any, @Res() res: Response) {
+    const { name, addr, clientid } = body;
+    console.log(`Stream play: ${name} from ${addr}`);
+    res.status(200).send('OK');
+  }
+
+  @Post('play_done')
+  async onPlayDone(@Body() body: any, @Res() res: Response) {
+    const { name, addr, clientid } = body;
+    console.log(`Stream play done: ${name} from ${addr}`);
+    res.status(200).send('OK');
+  }
+}
+EOF
+        log_success "Created rtmp.controller.ts"
     fi
     
     # Check if frontend directory exists
