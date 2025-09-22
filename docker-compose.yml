@@ -9,6 +9,7 @@ services:
     container_name: livestream-mongodb
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    command: mongod --bind_ip_all
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
@@ -47,7 +48,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: 9000
-      MONGODB_URI: mongodb://mongodb:27017/livestream
+      MONGODB_URI: mongodb://mongodb:27017/livestream?family=4
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -141,3 +142,11 @@ volumes:
     driver: local
   hls_data:
     driver: local
+
+# Network configuration for IPv4 compatibility
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
