@@ -19,20 +19,38 @@ export default function VideoPlayer() {
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 5,
       });
 
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed, starting playback');
-        video.play().catch(console.error);
+        console.log('HLS manifest parsed, ready for playback');
+        // Don't auto-play, let user click play button
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS error:', data);
         if (data.fatal) {
-          setError('Stream not available');
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Fatal network error, trying to recover...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Fatal media error, trying to recover...');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.log('Fatal error, destroying HLS...');
+              hls.destroy();
+              setError('Stream not available');
+              break;
+          }
         }
       });
 
@@ -43,7 +61,7 @@ export default function VideoPlayer() {
       // Safari native HLS support
       video.src = hlsUrl;
       video.addEventListener('loadedmetadata', () => {
-        video.play().catch(console.error);
+        console.log('HLS manifest loaded, ready for playback');
       });
     } else {
       setError('HLS not supported in this browser');
