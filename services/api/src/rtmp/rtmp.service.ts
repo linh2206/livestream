@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Stream } from '../streams/schemas/stream.schema';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,9 +21,14 @@ export class RtmpService {
       await this.streamModel.findOneAndUpdate(
         { streamKey: name },
         { 
+          title: `Stream ${name}`,
+          description: `Live stream from ${addr}`,
+          userId: new Types.ObjectId(), // Temporary user ID
+          status: 'active',
           isLive: true, 
           startTime: new Date(),
-          viewerCount: 0 
+          viewerCount: 0,
+          streamKey: name
         },
         { upsert: true }
       );
