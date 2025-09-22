@@ -176,11 +176,11 @@ EOF
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { RtmpController } from './rtmp.controller';
+import { RtmpController, HlsController } from './rtmp.controller';
 
 @Module({
   imports: [],
-  controllers: [AppController, RtmpController],
+  controllers: [AppController, RtmpController, HlsController],
   providers: [AppService],
 })
 export class AppModule {}
@@ -243,8 +243,10 @@ EOF
         log_warning "rtmp.controller.ts not found, creating..."
         mkdir -p services/api/src/rtmp
         cat > services/api/src/rtmp.controller.ts << 'EOF'
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, Param } from '@nestjs/common';
 import { Response } from 'express';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 @Controller('rtmp')
 export class RtmpController {
@@ -278,6 +280,39 @@ export class RtmpController {
     const { name, addr, clientid } = body;
     console.log(`Stream play done: ${name} from ${addr}`);
     res.status(200).send('OK');
+  }
+}
+
+@Controller('hls')
+export class HlsController {
+  @Get(':streamName')
+  async getHlsStream(@Param('streamName') streamName: string, @Res() res: Response) {
+    const hlsPath = join('/var/www/html/hls', streamName);
+    
+    // Check if .m3u8 file exists
+    const m3u8File = join(hlsPath, 'index.m3u8');
+    if (existsSync(m3u8File)) {
+      const content = readFileSync(m3u8File, 'utf8');
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(content);
+    } else {
+      res.status(404).send('Stream not found');
+    }
+  }
+
+  @Get(':streamName/:segment')
+  async getHlsSegment(@Param('streamName') streamName: string, @Param('segment') segment: string, @Res() res: Response) {
+    const segmentPath = join('/var/www/html/hls', streamName, segment);
+    
+    if (existsSync(segmentPath)) {
+      const content = readFileSync(segmentPath);
+      res.setHeader('Content-Type', 'video/mp2t');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(content);
+    } else {
+      res.status(404).send('Segment not found');
+    }
   }
 }
 EOF
@@ -451,6 +486,93 @@ module.exports = {
 }
 EOF
         log_success "Created tailwind.config.js"
+    fi
+    
+    # Create VideoPlayer component
+    if [ ! -f "services/frontend/components/VideoPlayer.tsx" ]; then
+        log_warning "VideoPlayer.tsx not found, creating..."
+        cat > services/frontend/components/VideoPlayer.tsx << 'EOF'
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
+interface VideoPlayerProps {
+  streamName?: string;
+}
+
+export default function VideoPlayer({ streamName = 'stream' }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const hlsUrl = `/hls/${streamName}`;
+    
+    // Check if browser supports HLS
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      video.addEventListener('loadstart', () => setIsLoading(false));
+      video.addEventListener('error', () => setError('Failed to load stream'));
+    } else if (typeof window !== 'undefined' && (window as any).Hls) {
+      // HLS.js for other browsers
+      const hls = new (window as any).Hls();
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsLoading(false);
+        setError(null);
+      });
+      
+      hls.on(Hls.Events.ERROR, (event: any, data: any) => {
+        console.error('HLS error:', data);
+        setError('Stream error: ' + data.details);
+      });
+    } else {
+      setError('HLS not supported in this browser');
+    }
+
+    return () => {
+      if (video && (video as any).hls) {
+        (video as any).hls.destroy();
+      }
+    };
+  }, [streamName]);
+
+  return (
+    <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white">Loading stream...</div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-500 text-center">
+            <p>{error}</p>
+            <p className="text-sm mt-2">Make sure the stream is active</p>
+          </div>
+        </div>
+      )}
+      
+      <video
+        ref={videoRef}
+        className="w-full h-full object-cover"
+        controls
+        autoPlay
+        muted
+        playsInline
+      />
+    </div>
+  );
+}
+EOF
+        log_success "Created VideoPlayer.tsx"
     fi
     
     log_success "Docker build check completed"
