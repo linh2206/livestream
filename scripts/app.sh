@@ -45,6 +45,41 @@ check_docker() {
     return 0
 }
 
+# Check if Node.js is installed
+check_nodejs() {
+    if command -v node &> /dev/null && command -v npm &> /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Install Node.js
+install_nodejs() {
+    log_info "Installing Node.js..."
+    SUDO_CMD=$(get_sudo_cmd)
+    
+    # Update package list
+    $SUDO_CMD apt-get update
+    
+    # Install curl if not present
+    $SUDO_CMD apt-get install -y curl
+    
+    # Add NodeSource repository
+    curl -fsSL https://deb.nodesource.com/setup_18.x | $SUDO_CMD -E bash -
+    
+    # Install Node.js
+    $SUDO_CMD apt-get install -y nodejs
+    
+    # Verify installation
+    if check_nodejs; then
+        log_success "Node.js $(node --version) and npm $(npm --version) installed successfully"
+    else
+        log_error "Failed to install Node.js"
+        return 1
+    fi
+}
+
 # Check CPU capabilities and fix MongoDB version
 check_cpu_and_mongodb() {
     log_info "Checking CPU capabilities..."
@@ -470,10 +505,21 @@ EOF
     # Create package-lock.json if missing
     if [ ! -f services/frontend/package-lock.json ]; then
         log_warning "package-lock.json not found, creating one..."
-        cd services/frontend
-        npm install --package-lock-only
-        cd ../..
-        log_success "Created package-lock.json"
+        
+        # Check if Node.js is installed
+        if ! check_nodejs; then
+            log_info "Node.js not found, installing..."
+            install_nodejs
+        fi
+        
+        if check_nodejs; then
+            cd services/frontend
+            npm install --package-lock-only
+            cd ../..
+            log_success "Created package-lock.json"
+        else
+            log_warning "npm not available, skipping package-lock.json creation"
+        fi
     fi
     
     # Create postcss.config.js if it doesn't exist
