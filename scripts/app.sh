@@ -933,7 +933,7 @@ EOF
         log_success "Setup complete!"
         log_info "🎬 LiveStream App is ready!"
         log_info "🌐 Frontend: http://localhost:3000"
-        log_info "🔌 API: http://localhost:8080/api/"
+        log_info "🔌 API: http://localhost:9000/"
         log_info "📺 HLS Streaming: http://localhost:8080/hls"
         log_info "📡 RTMP Ingest: rtmp://localhost:1935/live"
         log_info "📊 RTMP Stats: http://localhost:8080/stat"
@@ -942,8 +942,8 @@ EOF
         log_info ""
         log_info "🔧 Service Access:"
         log_info "  - Frontend: http://localhost:3000 (direct)"
-        log_info "  - API: http://localhost:8080/api/ (via Nginx)"
-        log_info "  - WebSocket: ws://localhost:8080/socket.io (via Nginx)"
+        log_info "  - API: http://localhost:9000/ (direct)"
+        log_info "  - WebSocket: ws://localhost:9000/socket.io (direct)"
         log_info "  - HLS: http://localhost:8080/hls/ (via Nginx)"
 }
 
@@ -972,11 +972,11 @@ test_services() {
         log_error "❌ Frontend is not responding (direct)"
     fi
     
-    # Test API via Nginx
-    if curl -s http://localhost:8080/api/health >/dev/null 2>&1; then
-        log_success "✅ API is running (via Nginx)"
+    # Test API direct
+    if curl -s http://localhost:9000/health >/dev/null 2>&1; then
+        log_success "✅ API is running (direct)"
     else
-        log_error "❌ API is not responding (via Nginx)"
+        log_error "❌ API is not responding (direct)"
     fi
     
     # Test Nginx proxy
@@ -1024,7 +1024,7 @@ docker_service() {
                 log_success "Services started"
                 log_info "Frontend: http://localhost:80"
                 log_info "Backend: http://localhost:9000"
-                log_info "HLS Streaming: http://localhost:8080"
+                log_info "HLS Streaming: http://localhost:8080/hls"
                 log_info "RTMP: rtmp://localhost:1935/live"
             else
                 log_error "Cannot start without Docker. Please start Docker first."

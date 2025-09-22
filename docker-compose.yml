@@ -50,11 +50,13 @@ services:
       MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/livestream}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
+      # External URLs for CORS
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       API_URL: ${API_URL:-http://localhost:9000}
       WS_URL: ${WS_URL:-ws://localhost:9000}
       HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
       RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
+      # Internal URLs for Docker network
       BACKEND_URL: ${BACKEND_URL:-http://api:9000}
     ports:
       - "9000:9000"  # Expose for WebSocket connection
@@ -109,10 +111,11 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-nginx
     environment:
+      # Internal URLs for Docker network
       BACKEND_URL: ${BACKEND_URL:-http://api:9000}
       FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
-      API_URL: ${API_URL:-http://api:9000}
       WS_URL: ${WS_URL:-ws://api:9000}
+      # External URLs for RTMP events
       HLS_URL: ${HLS_URL:-http://localhost:8080/hls}
       RTMP_URL: ${RTMP_URL:-rtmp://localhost:1935/live}
     ports:

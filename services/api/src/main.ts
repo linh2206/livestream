@@ -8,26 +8,7 @@ async function bootstrap() {
   
   // Enable CORS for API endpoints with multi-origin support
   app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) return callback(null, true);
-      
-      // Allow all origins for development
-      // In production, you should specify allowed origins
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:8080',
-        'http://localhost:80',
-        'https://yourdomain.com',
-        'https://www.yourdomain.com'
-      ];
-      
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
-        return callback(null, true);
-      }
-      
-      return callback(new Error('Not allowed by CORS'));
-    },
+    origin: true, // Allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Origin', 'X-Requested-With', 'Accept'],
     credentials: true
