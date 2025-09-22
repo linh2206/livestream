@@ -12,12 +12,10 @@ export default function VideoPlayer() {
     const video = videoRef.current;
     if (!video) return;
 
-    // Use NEXT_PUBLIC_HLS_URL from environment
-    let hlsBaseUrl = 'http://localhost:8080/hls';
-    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_HLS_URL) {
-      hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_URL;
-    }
-    const hlsUrl = `${hlsBaseUrl}/stream.m3u8`;
+    // Use environment variables for HLS URL
+    const hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080/hls';
+    const streamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
+    const hlsUrl = `${hlsBaseUrl}/${streamName}.m3u8`;
 
     if (Hls.isSupported()) {
       const hls = new Hls({

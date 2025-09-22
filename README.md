@@ -233,11 +233,11 @@ The `.env` file is automatically created during installation from `env.example`.
 JWT_SECRET=your-super-secret-jwt-key
 
 # Frontend URL
-FRONTEND_URL=http://localhost:8080
+FRONTEND_URL=http://localhost:3000
 
 # API URLs
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_WS_URL=ws://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=ws://localhost:9000
 
 # Database
 MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin

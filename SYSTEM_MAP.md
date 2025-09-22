@@ -85,7 +85,7 @@ Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → F
 |----------|---------|---------|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:9000` | Backend API URL |
 | `NEXT_PUBLIC_WS_URL` | `ws://localhost:9000` | WebSocket URL |
-| `NEXT_PUBLIC_HLS_URL` | `http://localhost:8080` | HLS Streaming URL |
+| `NEXT_PUBLIC_HLS_URL` | `http://localhost:8080/hls` | HLS Streaming URL |
 | `MONGODB_URI` | `mongodb://admin:password@mongodb:27017/livestream` | Database URL |
 | `REDIS_URL` | `redis://redis:6379` | Redis URL |
 
