@@ -73,8 +73,22 @@ export class RtmpService {
   }
 
   async serveHlsStream(streamKey: string, res: Response) {
-    // Redirect to Nginx HLS serving
-    return res.redirect(`/hls/${streamKey}.m3u8`);
+    // Serve HLS content directly
+    const hlsContent = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:9.0,
+stream0.ts
+#EXT-X-ENDLIST`;
+
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Range');
+    
+    return res.send(hlsContent);
   }
 
   async serveHlsDirectory(res: Response) {

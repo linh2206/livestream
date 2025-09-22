@@ -33,7 +33,9 @@ export class RtmpController {
 
   @Get('hls/:streamKey')
   async getHlsStream(@Param('streamKey') streamKey: string, @Res() res: Response) {
-    return this.rtmpService.serveHlsStream(streamKey, res);
+    // Remove .m3u8 extension if present
+    const cleanStreamKey = streamKey.replace('.m3u8', '');
+    return this.rtmpService.serveHlsStream(cleanStreamKey, res);
   }
 
   @Get('hls')
