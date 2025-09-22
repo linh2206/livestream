@@ -8,18 +8,24 @@ async function bootstrap() {
   
   // Enable CORS for all origins
   app.enableCors({
-    origin: true, // Allow all origins
+    origin: ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:9000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Access-Control-Allow-Origin'],
   });
 
-  // Additional CORS middleware
+  // Additional CORS middleware for comprehensive coverage
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:9000'];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
     
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);

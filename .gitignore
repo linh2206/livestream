@@ -111,6 +111,10 @@ hls/
 *.db
 *.sqlite
 
+# Test scripts (temporary)
+test-cors.sh
+rebuild-and-test.sh
+
 # Redis dump
 dump.rdb
 

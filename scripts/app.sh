@@ -915,10 +915,72 @@ EOF
     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
     
         log_success "Setup complete!"
-        log_info "Frontend: http://localhost:3000"
-        log_info "Backend: http://localhost:9000"
-        log_info "HLS Streaming: http://localhost:8080"
-        log_info "RTMP: rtmp://localhost:1935/live"
+        log_info "🎬 LiveStream App is ready!"
+        log_info "🌐 Main App: http://localhost:8080"
+        log_info "📺 HLS Streaming: http://localhost:8080/hls"
+        log_info "📡 RTMP Ingest: rtmp://localhost:1935/live"
+        log_info "📊 RTMP Stats: http://localhost:8080/stat"
+        log_info "🗄️ MongoDB: mongodb://localhost:27017/livestream"
+        log_info "⚡ Redis: redis://localhost:6379"
+        log_info ""
+        log_info "🔧 Internal Services (via Nginx proxy):"
+        log_info "  - Frontend: http://localhost:8080/"
+        log_info "  - API: http://localhost:8080/api/"
+        log_info "  - WebSocket: ws://localhost:8080/socket.io"
+}
+
+# Test all services
+test_services() {
+    log_info "Testing all services..."
+    
+    # Test MongoDB
+    if docker exec livestream-mongodb mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+        log_success "✅ MongoDB is running"
+    else
+        log_error "❌ MongoDB is not responding"
+    fi
+    
+    # Test Redis
+    if docker exec livestream-redis redis-cli ping >/dev/null 2>&1; then
+        log_success "✅ Redis is running"
+    else
+        log_error "❌ Redis is not responding"
+    fi
+    
+    # Test Nginx (main entry point)
+    if curl -s http://localhost:8080 >/dev/null 2>&1; then
+        log_success "✅ Nginx is running"
+    else
+        log_error "❌ Nginx is not responding"
+    fi
+    
+    # Test API via Nginx
+    if curl -s http://localhost:8080/api/health >/dev/null 2>&1; then
+        log_success "✅ API is running (via Nginx)"
+    else
+        log_error "❌ API is not responding (via Nginx)"
+    fi
+    
+    # Test Frontend via Nginx
+    if curl -s http://localhost:8080/ | grep -q "html\|body" >/dev/null 2>&1; then
+        log_success "✅ Frontend is running (via Nginx)"
+    else
+        log_error "❌ Frontend is not responding (via Nginx)"
+    fi
+    
+    # Test HLS
+    if curl -s http://localhost:8080/hls/stream.m3u8 >/dev/null 2>&1; then
+        log_success "✅ HLS streaming is working"
+    else
+        log_warning "⚠️ HLS streaming not available (no active stream)"
+    fi
+    
+    # Test RTMP stats
+    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
+        log_success "✅ RTMP stats are available"
+    else
+        log_error "❌ RTMP stats are not responding"
+    fi
 }
 
 # Install dependencies (legacy - use setup instead)
@@ -1243,10 +1305,11 @@ main() {
         logs) logs ;;
         clean) clean ;;
         build) build ;;
+        test) test_services ;;
         reset-all) reset_all ;;
         sync) sync_to_server ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|reset-all|sync}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|reset-all|sync}"
             exit 1
             ;;
     esac
