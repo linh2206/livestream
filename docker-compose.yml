@@ -63,15 +63,21 @@ services:
     container_name: livestream-frontend
     environment:
       NODE_ENV: production
+      PORT: 3000
       NEXT_PUBLIC_API_URL: http://localhost:9000
       NEXT_PUBLIC_WS_URL: ws://localhost:9000
       NEXT_PUBLIC_HLS_URL: http://localhost:8080
       BACKEND_URL: http://api:9000
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       - api
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     build:
@@ -79,7 +85,6 @@ services:
       dockerfile: Dockerfile
     container_name: livestream-nginx
     ports:
-      - "80:80"
       - "8080:8080"
       - "1935:1935"
     volumes:
@@ -88,3 +93,8 @@ services:
       - frontend
       - api
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/stat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

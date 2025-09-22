@@ -777,9 +777,10 @@ MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
 REDIS_URL=redis://redis:6379
 JWT_SECRET=your-secret-key-change-this-in-production
 FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:9000
-NEXT_PUBLIC_WS_URL=ws://localhost:9000
-BACKEND_URL=http://api:3000
+    NEXT_PUBLIC_API_URL=http://localhost:9000
+    NEXT_PUBLIC_WS_URL=ws://localhost:9000
+    NEXT_PUBLIC_HLS_URL=http://localhost:8080
+    BACKEND_URL=http://api:9000
 EOF
             log_success ".env file created with default values"
         fi
@@ -858,11 +859,11 @@ EOF
     wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
     
-    log_success "Setup complete!"
-    log_info "Frontend: http://localhost:80"
-    log_info "Backend: http://localhost:9000"
-    log_info "HLS Streaming: http://localhost:8080"
-    log_info "RTMP: rtmp://localhost:1935/live"
+        log_success "Setup complete!"
+        log_info "Frontend: http://localhost:3000"
+        log_info "Backend: http://localhost:9000"
+        log_info "HLS Streaming: http://localhost:8080"
+        log_info "RTMP: rtmp://localhost:1935/live"
 }
 
 # Install dependencies (legacy - use setup instead)

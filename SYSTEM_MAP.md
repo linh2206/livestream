@@ -6,7 +6,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        LiveStream System                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Port 80  │  Port 8080  │  Port 9000  │  Port 1935  │  Port 27017 │
+│ Port 3000 │  Port 8080  │  Port 9000  │  Port 1935  │  Port 27017 │
 │ Frontend  │ HLS/API     │ Backend API │ RTMP        │ MongoDB     │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -15,7 +15,7 @@
 
 | Service | Internal Port | External Port | Purpose |
 |---------|---------------|---------------|---------|
-| **Frontend** | 3000 | 80 | Next.js Web Interface |
+| **Frontend** | 3000 | 3000 | Next.js Web Interface |
 | **HLS Streaming** | 8080 | 8080 | HLS Streams & API Proxy |
 | **Backend API** | 9000 | 9000 | NestJS REST API |
 | **RTMP** | 1935 | 1935 | RTMP Ingest |
@@ -25,7 +25,7 @@
 ## 🔄 Data Flow
 
 ```
-Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → Frontend Port 80
+Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → Frontend Port 3000
                                       ↓
                               API:9000 → MongoDB:27017
                                       ↓
@@ -34,10 +34,10 @@ Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → F
 
 ## 🎯 Service Endpoints
 
-### Frontend (Port 80)
-- **Main Interface**: `http://localhost:80`
-- **Player**: `http://localhost:80` (with VideoPlayer component)
-- **Chat**: `http://localhost:80` (with Chat component)
+### Frontend (Port 3000)
+- **Main Interface**: `http://localhost:3000`
+- **Player**: `http://localhost:3000` (with VideoPlayer component)
+- **Chat**: `http://localhost:3000` (with Chat component)
 
 ### HLS Streaming (Port 8080)
 - **HLS Stream**: `http://localhost:8080/hls/{streamName}`
@@ -76,7 +76,7 @@ Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → F
 #   Stream Key: stream
 
 # View stream
-# Browser: http://localhost:80
+# Browser: http://localhost:3000
 ```
 
 ## 🔧 Environment Variables

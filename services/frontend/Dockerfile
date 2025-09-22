@@ -1,5 +1,5 @@
-# Simple Next.js Dockerfile
-FROM node:18-alpine
+# Multi-stage Next.js Dockerfile
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --timeout=300000
+RUN npm ci --only=production --timeout=300000 && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -15,8 +15,39 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production --timeout=300000 && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
+
+# Switch to non-root user
+USER nextjs
+
 # Expose port
-EXPOSE 8080
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
 
 # Start the application
-CMD ["npm", "start", "--", "-p", "8080"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npm", "start"]
