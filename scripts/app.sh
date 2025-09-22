@@ -45,6 +45,29 @@ check_docker() {
     return 0
 }
 
+# Check CPU capabilities and fix MongoDB version
+check_cpu_and_mongodb() {
+    log_info "Checking CPU capabilities..."
+    
+    # Check if CPU has AVX support
+    if grep -q avx /proc/cpuinfo 2>/dev/null; then
+        log_success "CPU has AVX support - using MongoDB 7.0"
+        MONGO_VERSION="mongo:7.0"
+    else
+        log_warning "CPU does not have AVX support - using MongoDB 4.4"
+        MONGO_VERSION="mongo:4.4"
+        
+        # Update docker-compose.yml to use MongoDB 4.4
+        if [ -f "docker-compose.yml" ]; then
+            log_info "Updating docker-compose.yml to use MongoDB 4.4..."
+            sed -i.bak 's/mongo:7.0/mongo:4.4/g' docker-compose.yml
+            log_success "Updated docker-compose.yml"
+        fi
+    fi
+    
+    export MONGO_VERSION
+}
+
 # Fix network and DNS issues
 fix_network() {
     log_info "Fixing network and DNS issues..."
@@ -453,7 +476,10 @@ sync_code() {
 setup() {
     log_info "Setting up LiveStream App..."
     
-    # Fix network issues first
+    # Check CPU and fix MongoDB version first
+    check_cpu_and_mongodb
+    
+    # Fix network issues
     fix_network
     
     # Check Docker build issues
@@ -538,7 +564,7 @@ EOF
     # Try to pull base images first
     log_info "Pulling base images..."
     docker pull node:18-alpine || log_warning "Failed to pull node:18-alpine, will try during build"
-    docker pull mongo:7.0 || log_warning "Failed to pull mongo:7.0, will try during build"
+    docker pull ${MONGO_VERSION:-mongo:4.4} || log_warning "Failed to pull ${MONGO_VERSION:-mongo:4.4}, will try during build"
     docker pull redis:7-alpine || log_warning "Failed to pull redis:7-alpine, will try during build"
     
     # Build services
