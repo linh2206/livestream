@@ -122,7 +122,7 @@ export default function Home() {
             </div>
             <div className="bg-glass-black rounded-lg p-4">
               <h3 className="text-white font-semibold mb-2">HLS Output</h3>
-              <p className="text-gray-300 text-sm">http://localhost:8080/hls/stream.m3u8</p>
+              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_HLS_URL}/hls/stream.m3u8</p>
               <p className="text-gray-400 text-xs mt-1">For web players</p>
             </div>
             <div className="bg-glass-black rounded-lg p-4">
