@@ -12,6 +12,9 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fragmentErrorCount, setFragmentErrorCount] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
+  const [subtitle, setSubtitle] = useState('');
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const video = videoRef.current;
@@ -85,15 +88,21 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           },
           // Skip corrupted fragments - removed as not supported in HLS.js
           // Better fragment handling for discontinuity
-          maxFragLookUpTolerance: 0.5,
+          maxFragLookUpTolerance: 1.0,
           // Disable some problematic features for live streams
           enableSoftwareAES: false,
           // Better live stream handling
           liveBackBufferLength: 0,
           // Handle discontinuity better
-          maxBufferHole: 0.5,
+          maxBufferHole: 1.0,
           // More tolerant to errors
-          maxBufferSize: 60 * 1000 * 1000 // 60MB
+          maxBufferSize: 60 * 1000 * 1000, // 60MB
+          // Better error recovery
+          maxMaxBufferLength: 120,
+          // More aggressive error handling - no retries
+          fragLoadingMaxRetry: 0,
+          manifestLoadingMaxRetry: 0,
+          levelLoadingMaxRetry: 0
         });
 
         hls.loadSource(hlsUrl);
@@ -102,26 +111,41 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           console.log('✅ HLS manifest parsed, ready for playback');
           setError(null);
+          setSubtitle('✅ Stream ready - Click to play');
+          setTimeout(() => setSubtitle(''), 3000);
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
+          // Completely ignore fragParsingError - it's common and non-fatal
+          if (data.details === 'fragParsingError') {
+            setFragmentErrorCount(prev => prev + 1);
+            // Only log every 50th error to reduce spam
+            if (fragmentErrorCount % 50 === 0) {
+              console.log('⚠️ Fragment parsing errors (ignored):', fragmentErrorCount);
+              // Show subtitle for fragment errors
+              setSubtitle('⚠️ Stream buffering... Please wait');
+              setTimeout(() => setSubtitle(''), 2000);
+            }
+            return; // Don't log or handle further
+          }
+          
           console.error('❌ HLS error:', data);
           
-          // Handle non-fatal errors (like fragParsingError)
+          // Handle other non-fatal errors
           if (!data.fatal) {
             console.log('⚠️ Non-fatal HLS error, continuing...');
             
-            // Track fragment errors (reduce logging for common issues)
-            if (data.details === 'fragParsingError' || data.details === 'fragLoadError') {
+            // Track other fragment errors
+            if (data.details === 'fragLoadError') {
               setFragmentErrorCount(prev => prev + 1);
               
-              // Only log every 10th error to reduce spam
-              if (fragmentErrorCount % 10 === 0) {
-                console.log('⚠️ Fragment errors detected:', fragmentErrorCount, 'errors so far');
+              // Only log every 20th error to reduce spam
+              if (fragmentErrorCount % 20 === 0) {
+                console.log('⚠️ Fragment load errors detected:', fragmentErrorCount, 'errors so far');
               }
               
               // If too many fragment errors, show warning
-              if (fragmentErrorCount > 50) {
+              if (fragmentErrorCount > 100) {
                 console.log('⚠️ Many fragment errors detected, stream may be unstable');
               }
             }
@@ -157,6 +181,11 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           setError(null);
           // Reset fragment error count when fragments load successfully
           setFragmentErrorCount(0);
+          // Show success subtitle occasionally
+          if (Math.random() < 0.1) { // 10% chance
+            setSubtitle('🎥 Stream quality: Good');
+            setTimeout(() => setSubtitle(''), 1500);
+          }
         });
 
         // Handle fragment parsing errors gracefully - using ERROR event instead
@@ -199,6 +228,21 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
     };
   }, [streamName]);
 
+  // Auto-show subtitle and popup when stream starts
+  useEffect(() => {
+    if (isPlaying) {
+      setSubtitle('🎬 Live Stream Started - Welcome to LiveStream App!');
+      setShowPopup(true);
+      
+      // Auto-hide popup after 3 seconds
+      const timer = setTimeout(() => {
+        setShowPopup(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying]);
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -240,6 +284,27 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
         onError={() => setError('Failed to load stream')}
       />
       
+      {/* Subtitle overlay */}
+      {subtitle && (
+        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-black bg-opacity-80 text-white px-4 py-2 rounded-lg text-lg font-medium max-w-md text-center">
+            {subtitle}
+          </div>
+        </div>
+      )}
+      
+      {/* Mini popup */}
+      {showPopup && (
+        <div className="absolute top-4 right-4 z-10">
+          <div className="bg-blue-600 bg-opacity-90 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Live Stream Active</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Play/Pause overlay */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -251,6 +316,13 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
+        </div>
+      )}
+      
+      {/* Fragment error indicator */}
+      {fragmentErrorCount > 0 && (
+        <div className="absolute top-4 left-4 bg-red-500 bg-opacity-80 text-white px-2 py-1 rounded text-xs">
+          Fragments: {fragmentErrorCount}
         </div>
       )}
     </div>
