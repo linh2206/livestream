@@ -43,9 +43,11 @@ RUN npm install --omit=dev --timeout=300000 && \
 # Copy built application from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 
-# Create necessary directories
-RUN mkdir -p /tmp/hls && \
-    chown -R nestjs:nodejs /tmp/hls
+# Create necessary directories and set permissions for HLS
+RUN mkdir -p /tmp/hls /var/www/html/hls && \
+    chown -R nestjs:nodejs /tmp/hls && \
+    chown -R nestjs:nodejs /var/www/html/hls && \
+    chmod -R 777 /var/www/html/hls
 
 # Switch to non-root user
 USER nestjs
