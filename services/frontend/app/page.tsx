@@ -11,7 +11,7 @@ export default function Home() {
   const [viewerCount, setViewerCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     if (socket) {
@@ -68,9 +68,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Video Player */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6">
               <VideoPlayer />
               
@@ -111,24 +111,27 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Stream Info */}
+        {/* Online Users */}
         <div className="mt-6 bg-glass-white backdrop-blur-md rounded-2xl p-6">
-          <h2 className="text-2xl font-bold text-white mb-4">Stream Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="text-2xl font-bold text-white mb-4">Online Users</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-glass-black rounded-lg p-4">
-              <h3 className="text-white font-semibold mb-2">RTMP Input</h3>
-              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935/live'}</p>
-              <p className="text-gray-400 text-xs mt-1">Stream Key: {process.env.NEXT_PUBLIC_STREAM_NAME || 'stream'}</p>
+              <h3 className="text-white font-semibold mb-2">Active Viewers</h3>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-white text-lg font-bold">{viewerCount}</span>
+                <span className="text-gray-400 text-sm">viewers online</span>
+              </div>
             </div>
             <div className="bg-glass-black rounded-lg p-4">
-              <h3 className="text-white font-semibold mb-2">HLS Output</h3>
-              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080/hls'}/{process.env.NEXT_PUBLIC_STREAM_NAME || 'stream'}.m3u8</p>
-              <p className="text-gray-400 text-xs mt-1">For web players</p>
-            </div>
-            <div className="bg-glass-black rounded-lg p-4">
-              <h3 className="text-white font-semibold mb-2">Web Interface</h3>
-              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190'}</p>
-              <p className="text-gray-400 text-xs mt-1">This page</p>
+              <h3 className="text-white font-semibold mb-2">Chat Status</h3>
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-white text-lg font-bold">
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </span>
+                <span className="text-gray-400 text-sm">WebSocket</span>
+              </div>
             </div>
           </div>
         </div>

@@ -109,7 +109,7 @@ export default function VideoPlayer() {
 
   if (error) {
     return (
-      <div className="relative w-full h-96 bg-gray-900 rounded-lg flex items-center justify-center">
+      <div className="relative w-full h-[600px] bg-gray-900 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-400 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@ export default function VideoPlayer() {
   }
 
   return (
-    <div className="relative w-full h-96 bg-gray-900 rounded-lg overflow-hidden">
+    <div className="relative w-full h-[600px] bg-gray-900 rounded-lg overflow-hidden">
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
