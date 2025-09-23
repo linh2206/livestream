@@ -8,20 +8,7 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
   
-  // Enable CORS for API endpoints with multi-origin support
-  app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://localhost:80',
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Origin', 'X-Requested-With', 'Accept'],
-    credentials: true,
-    optionsSuccessStatus: 200,
-  });
+  // CORS is handled by Nginx proxy
   
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({

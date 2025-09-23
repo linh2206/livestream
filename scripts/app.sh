@@ -50,8 +50,14 @@ install_docker() {
     # Check if Docker is already installed but not running
     if command -v docker >/dev/null 2>&1; then
         log_info "Docker is installed but not running. Starting Docker service..."
-        $(get_sudo_cmd) systemctl start docker
-        $(get_sudo_cmd) systemctl enable docker
+        if $(get_sudo_cmd) systemctl start docker 2>/dev/null; then
+            $(get_sudo_cmd) systemctl enable docker 2>/dev/null || true
+            log_success "Docker service started via systemctl"
+        else
+            log_warning "systemctl failed, trying to start Docker daemon directly..."
+            # Try to start Docker daemon directly
+            $(get_sudo_cmd) dockerd --daemon 2>/dev/null || true
+        fi
         
         # Wait a moment for Docker to start
         sleep 3
@@ -64,6 +70,8 @@ install_docker() {
             log_success "Docker service started successfully!"
             log_warning "You may need to logout and login again to use Docker without sudo"
             return 0
+        else
+            log_warning "Docker daemon not responding, will proceed with full installation..."
         fi
     fi
     
@@ -94,8 +102,15 @@ install_docker() {
     
     # Start and enable Docker
     log_info "Starting Docker service..."
-    $(get_sudo_cmd) systemctl start docker
-    $(get_sudo_cmd) systemctl enable docker
+    if $(get_sudo_cmd) systemctl start docker 2>/dev/null; then
+        $(get_sudo_cmd) systemctl enable docker 2>/dev/null || true
+        log_success "Docker service started"
+    else
+        log_warning "Failed to start Docker service, trying alternative method..."
+        # Try to start Docker daemon directly
+        $(get_sudo_cmd) dockerd --daemon 2>/dev/null || true
+        sleep 3
+    fi
     
     # Add current user to docker group
     log_info "Adding user to docker group..."
@@ -882,10 +897,21 @@ setup() {
         install_docker
     fi
     
-    # Start Docker service
-    log_info "Starting Docker service..."
-    SUDO_CMD=$(get_sudo_cmd)
-    $SUDO_CMD systemctl start docker
+    # Start Docker service (if not already running)
+    if ! docker info >/dev/null 2>&1; then
+        log_info "Starting Docker service..."
+        SUDO_CMD=$(get_sudo_cmd)
+        if $SUDO_CMD systemctl start docker 2>/dev/null; then
+            log_success "Docker service started"
+        else
+            log_warning "Failed to start Docker service via systemctl"
+            # Try alternative method
+            $SUDO_CMD dockerd --daemon 2>/dev/null || true
+            sleep 3
+        fi
+    else
+        log_info "Docker service is already running"
+    fi
     
     # Create .env file if it doesn't exist
     log_info "Creating .env file..."
