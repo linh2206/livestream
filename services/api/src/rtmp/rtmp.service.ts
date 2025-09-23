@@ -147,4 +147,40 @@ export class RtmpService {
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
+
+  async serveHlsNestedStream(streamKey: string, filename: string, res: Response) {
+    try {
+      const filePath = `/app/hls/${streamKey}/${filename}`;
+      
+      console.log(`Serving nested HLS: ${streamKey}/${filename} from ${filePath}`);
+      
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath);
+        
+        // Determine content type based on file extension
+        let contentType = 'application/octet-stream';
+        if (filename.endsWith('.m3u8')) {
+          contentType = 'application/vnd.apple.mpegurl';
+        } else if (filename.endsWith('.ts')) {
+          contentType = 'video/mp2t';
+        }
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept');
+        
+        return res.send(content);
+      } else {
+        console.log(`File not found: ${filePath}`);
+        return res.status(404).send('Not Found');
+      }
+    } catch (error) {
+      console.error('Error serving nested HLS stream:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
