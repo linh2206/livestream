@@ -7,7 +7,11 @@ COPY nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /var/www/html/hls && \
     chmod -R 777 /var/www/html/hls
 
+# Create script to fix permissions automatically
+RUN echo '#!/bin/sh\nchmod -R 777 /var/www/html/hls\nnginx -g "daemon off;"' > /start.sh && \
+    chmod +x /start.sh
+
 # Expose ports
 EXPOSE 8080 1935
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/start.sh"]

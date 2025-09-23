@@ -8,7 +8,13 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
   
-  // CORS is handled by Nginx proxy
+  // Enable CORS for all origins
+  app.enableCors({
+    origin: true, // Allow all origins
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Origin', 'X-Requested-With', 'Accept'],
+    credentials: true,
+  });
   
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
