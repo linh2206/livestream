@@ -41,47 +41,77 @@ else
     sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 fi
 
-echo "Creating SSH banner..."
+echo "Creating dynamic SSH banner script..."
 if [ "$(id -u)" = "0" ]; then
+    tee /usr/local/bin/ssh-banner > /dev/null << 'EOF'
+#!/bin/bash
+
+# Get system information
+HOSTNAME=$(hostname)
+UPTIME=$(uptime -p | sed 's/up //')
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get top 8 processes by CPU usage
+PROCESSES=$(ps aux --sort=-%cpu | head -9 | tail -8 | awk '{printf "%-12s %-6s %-6s %-8s %s\n", $1, $2, $3"%", $4"%", $11}')
+
+# Create banner
+echo "                          WELLCOM                       "
+echo ""
+echo "┌─────────────┬─────────────────────────────────────────────┐"
+echo "│ Resource    │ Usage                                        │"
+echo "├─────────────┼─────────────────────────────────────────────┤"
+echo "│ CPU Load    │ $LOAD                                         │"
+echo "│ Memory      │ $MEMORY_USED / $MEMORY_TOTAL                           │"
+echo "│ Disk        │ $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)                           │"
+echo "└─────────────┴─────────────────────────────────────────────┘"
+EOF
+    chmod +x /usr/local/bin/ssh-banner
+    
+    # Create the banner file that calls the script
     tee /etc/ssh/banner > /dev/null << 'EOF'
-***************************************************************************
-                    AUTHORIZED ACCESS ONLY
-***************************************************************************
-This system is for the use of authorized users only. Individuals using
-this computer system without authority, or in excess of their authority,
-are subject to having all of their activities on this system monitored
-and recorded by system personnel.
-
-In the course of monitoring individuals improperly using this system,
-or in the course of system maintenance, the activities of authorized
-users may also be monitored.
-
-Anyone using this system expressly consents to such monitoring and is
-advised that if such monitoring reveals possible evidence of criminal
-activity, system personnel may provide the evidence of such monitoring
-to law enforcement officials.
-***************************************************************************
+/usr/local/bin/ssh-banner
 EOF
     chmod 644 /etc/ssh/banner
 else
+    sudo tee /usr/local/bin/ssh-banner > /dev/null << 'EOF'
+#!/bin/bash
+
+# Get system information
+HOSTNAME=$(hostname)
+UPTIME=$(uptime -p | sed 's/up //')
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get top 8 processes by CPU usage
+PROCESSES=$(ps aux --sort=-%cpu | head -9 | tail -8 | awk '{printf "%-12s %-6s %-6s %-8s %s\n", $1, $2, $3"%", $4"%", $11}')
+
+# Create banner
+echo "                          WELLCOM                       "
+echo ""
+echo "┌─────────────┬─────────────────────────────────────────────┐"
+echo "│ Resource    │ Usage                                        │"
+echo "├─────────────┼─────────────────────────────────────────────┤"
+echo "│ CPU Load    │ $LOAD                                         │"
+echo "│ Memory      │ $MEMORY_USED / $MEMORY_TOTAL                           │"
+echo "│ Disk        │ $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)                           │"
+echo "└─────────────┴─────────────────────────────────────────────┘"
+EOF
+    sudo chmod +x /usr/local/bin/ssh-banner
+    
+    # Create the banner file that calls the script
     sudo tee /etc/ssh/banner > /dev/null << 'EOF'
-***************************************************************************
-                    AUTHORIZED ACCESS ONLY
-***************************************************************************
-This system is for the use of authorized users only. Individuals using
-this computer system without authority, or in excess of their authority,
-are subject to having all of their activities on this system monitored
-and recorded by system personnel.
-
-In the course of monitoring individuals improperly using this system,
-or in the course of system maintenance, the activities of authorized
-users may also be monitored.
-
-Anyone using this system expressly consents to such monitoring and is
-advised that if such monitoring reveals possible evidence of criminal
-activity, system personnel may provide the evidence of such monitoring
-to law enforcement officials.
-***************************************************************************
+/usr/local/bin/ssh-banner
 EOF
     sudo chmod 644 /etc/ssh/banner
 fi
