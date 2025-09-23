@@ -8,7 +8,6 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ streamName }: VideoPlayerProps) {
-  console.log("🚀 ~ VideoPlayer ~ streamName:", streamName)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,9 +20,7 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
     // Use backend API for HLS URL
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
     const defaultStreamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
-    console.log("🚀 ~ VideoPlayer ~ defaultStreamName:", defaultStreamName)
     const currentStreamName = streamName || defaultStreamName;
-    console.log("🚀 ~ VideoPlayer ~ currentStreamName:", currentStreamName)
     
     if (!apiBaseUrl) {
       console.error('Missing environment variable: NEXT_PUBLIC_API_URL');
@@ -87,12 +84,16 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
             xhr.timeout = 10000;
           },
           // Skip corrupted fragments - removed as not supported in HLS.js
-          // Better fragment handling
-          maxFragLookUpTolerance: 0.25,
+          // Better fragment handling for discontinuity
+          maxFragLookUpTolerance: 0.5,
           // Disable some problematic features for live streams
           enableSoftwareAES: false,
           // Better live stream handling
-          liveBackBufferLength: 0
+          liveBackBufferLength: 0,
+          // Handle discontinuity better
+          maxBufferHole: 0.5,
+          // More tolerant to errors
+          maxBufferSize: 60 * 1000 * 1000 // 60MB
         });
 
         hls.loadSource(hlsUrl);
@@ -110,13 +111,17 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           if (!data.fatal) {
             console.log('⚠️ Non-fatal HLS error, continuing...');
             
-            // Track fragment errors
+            // Track fragment errors (reduce logging for common issues)
             if (data.details === 'fragParsingError' || data.details === 'fragLoadError') {
               setFragmentErrorCount(prev => prev + 1);
-              console.log('⚠️ Fragment error, skipping fragment:', data.frag?.url);
+              
+              // Only log every 10th error to reduce spam
+              if (fragmentErrorCount % 10 === 0) {
+                console.log('⚠️ Fragment errors detected:', fragmentErrorCount, 'errors so far');
+              }
               
               // If too many fragment errors, show warning
-              if (fragmentErrorCount > 10) {
+              if (fragmentErrorCount > 50) {
                 console.log('⚠️ Many fragment errors detected, stream may be unstable');
               }
             }
