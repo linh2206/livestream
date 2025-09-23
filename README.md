@@ -349,7 +349,18 @@ npm run dev
 
 ### Environment Variables
 
-The `.env` file is automatically created during installation from `env.example`. You can customize it if needed:
+Environment files are automatically created during installation from `.env.example` templates:
+
+```bash
+# Manual creation (optional - script does this automatically)
+./scripts/app.sh create-env
+```
+
+**Environment Files:**
+- `env.example` - Root environment template  
+- `services/frontend/.env.example` - Frontend environment template
+
+The `.env` files are automatically created from these templates. You can customize them if needed:
 
 ```env
 # JWT Secret (change this in production!)

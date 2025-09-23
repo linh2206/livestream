@@ -370,18 +370,23 @@ check_frontend_components() {
 
 # Create .env file from env.example
 create_env_file() {
-    log_info "Creating .env file..."
+    log_info "Creating .env files..."
     
-    # Remove old .env
-    rm -f .env
-    
-    # Create new .env from env.example
+    # Create root .env file
     if [ -f env.example ]; then
         cp env.example .env
-        log_success ".env file created from env.example"
+        log_success "Root .env file created from env.example"
     else
-        log_error "env.example not found - cannot create .env file"
+        log_error "env.example not found - cannot create root .env file"
         return 1
+    fi
+    
+    # Create frontend .env file
+    if [ -f services/frontend/.env.example ]; then
+        cp services/frontend/.env.example services/frontend/.env
+        log_success "Frontend .env file created from .env.example"
+    else
+        log_warning "services/frontend/.env.example not found - skipping frontend .env creation"
     fi
 }
 
@@ -508,8 +513,8 @@ docker_service() {
     local action=$1
     local compose_cmd=$(get_compose_cmd)
     
-    # Create .env file if it doesn't exist
-    if [ ! -f .env ]; then
+    # Create .env files if they don't exist
+    if [ ! -f .env ] || [ ! -f services/frontend/.env ]; then
         create_env_file
     fi
     

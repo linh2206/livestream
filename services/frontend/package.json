@@ -5,10 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "dev:prod": "cp .env.production .env.local && next dev -p 3000",
+    "dev:docker": "cp .env.docker .env.local && next dev -p 3000",
     "build": "next build",
+    "build:prod": "cp .env.production .env.local && next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "env:dev": "./switch-env.sh development",
+    "env:prod": "./switch-env.sh production",
+    "env:docker": "./switch-env.sh docker"
   },
   "dependencies": {
     "@types/node": "^20.0.0",
