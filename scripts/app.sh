@@ -529,7 +529,7 @@ export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000', {
+    const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://183.182.104.226:24190', {
       transports: ['websocket'],
       autoConnect: true,
     });
