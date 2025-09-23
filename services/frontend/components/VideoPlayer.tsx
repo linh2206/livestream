@@ -26,7 +26,7 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
       return;
     }
     
-    const hlsUrl = `${apiBaseUrl}/rtmp/hls/${currentStreamName}/index.m3u8`;
+    const hlsUrl = `${apiBaseUrl}/rtmp/hls/${currentStreamName}`;
 
     let hls: Hls | null = null;
 

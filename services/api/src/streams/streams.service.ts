@@ -28,7 +28,7 @@ export class StreamsService {
 
   async findActive(): Promise<Stream[]> {
     return this.streamModel
-      .find({ status: 'active' })
+      .find({ status: 'active', isLive: true })
       .populate('userId', 'username avatar')
       .sort({ viewerCount: -1 })
       .exec();

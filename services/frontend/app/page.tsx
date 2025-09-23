@@ -48,9 +48,17 @@ export default function Home() {
           console.error('NEXT_PUBLIC_API_URL environment variable is not set');
           return;
         }
-        const response = await fetch(`${apiUrl}/rtmp/hls/stream/index.m3u8`);
-        setIsLive(response.ok);
+        
+        // Check stream status from API
+        const response = await fetch(`${apiUrl}/streams/active`);
+        if (response.ok) {
+          const activeStreams = await response.json();
+          setIsLive(activeStreams && activeStreams.length > 0);
+        } else {
+          setIsLive(false);
+        }
       } catch (error) {
+        console.error('Error checking stream status:', error);
         setIsLive(false);
       }
     };

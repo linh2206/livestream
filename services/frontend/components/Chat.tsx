@@ -19,6 +19,24 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
 
+  // Load saved username and join status from localStorage
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('chat_username');
+    const savedIsJoined = localStorage.getItem('chat_isJoined') === 'true';
+    
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+    if (savedIsJoined && savedUsername && socket) {
+      setIsJoined(true);
+      // Auto-rejoin if we have saved state
+      socket.emit('join', {
+        room: 'main',
+        username: savedUsername,
+      });
+    }
+  }, [socket]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -30,14 +48,36 @@ export default function Chat() {
   useEffect(() => {
     if (socket) {
       socket.on('chat_message', (data: Message) => {
+        console.log('Received message:', data);
         setMessages(prev => [...prev, data]);
       });
+
+      // Load recent messages when joining
+      const loadRecentMessages = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          if (apiUrl) {
+            const response = await fetch(`${apiUrl}/chat/messages?room=main&limit=50`);
+            if (response.ok) {
+              const recentMessages = await response.json();
+              setMessages(recentMessages.reverse()); // Reverse to show oldest first
+            }
+          }
+        } catch (error) {
+          console.error('Error loading recent messages:', error);
+        }
+      };
+
+      // Load messages when socket connects and user is joined
+      if (isJoined) {
+        loadRecentMessages();
+      }
 
       return () => {
         socket.off('chat_message');
       };
     }
-  }, [socket]);
+  }, [socket, isJoined]);
 
   const joinChat = () => {
     if (username.trim() && socket) {
@@ -46,6 +86,10 @@ export default function Chat() {
         username: username.trim(),
       });
       setIsJoined(true);
+      
+      // Save to localStorage
+      localStorage.setItem('chat_username', username.trim());
+      localStorage.setItem('chat_isJoined', 'true');
     }
   };
 
@@ -62,6 +106,21 @@ export default function Chat() {
     }
   };
 
+  const leaveChat = () => {
+    if (socket && isJoined) {
+      socket.emit('leave', { room: 'main' });
+    }
+    
+    // Clear localStorage
+    localStorage.removeItem('chat_username');
+    localStorage.removeItem('chat_isJoined');
+    
+    // Reset state
+    setIsJoined(false);
+    setUsername('');
+    setMessages([]);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -73,33 +132,42 @@ export default function Chat() {
 
   if (!isJoined) {
     return (
-      <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6 h-96">
-        <div className="flex items-center space-x-2 mb-4">
-          <MessageCircle className="w-6 h-6 text-white" />
-          <h2 className="text-xl font-bold text-white">Join Chat</h2>
+      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 h-[500px] border border-white/20 shadow-2xl">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+            <MessageCircle className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Join Live Chat</h2>
+          <p className="text-gray-300 text-sm">Connect with other viewers in real-time</p>
         </div>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-white text-sm font-medium mb-2">
-              Username
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-white text-sm font-semibold">
+              Choose your username
             </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && joinChat()}
-              className="w-full px-4 py-2 bg-glass-black rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Enter your username"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && joinChat()}
+                className="w-full px-6 py-4 bg-black/30 backdrop-blur-sm rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border border-white/10 transition-all duration-300"
+                placeholder="Enter your username"
+              />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-600/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+            </div>
           </div>
           
           <button
             onClick={joinChat}
             disabled={!username.trim()}
-            className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:transform-none"
           >
-            Join Chat
+            <span className="flex items-center justify-center space-x-2">
+              <MessageCircle className="w-5 h-5" />
+              <span>Join Chat</span>
+            </span>
           </button>
         </div>
       </div>
@@ -113,8 +181,16 @@ export default function Chat() {
           <MessageCircle className="w-6 h-6 text-white" />
           <h2 className="text-xl font-bold text-white">Live Chat</h2>
         </div>
-        <div className="text-sm text-gray-300">
-          as {username}
+        <div className="flex items-center space-x-3">
+          <div className="text-sm text-gray-300">
+            as {username}
+          </div>
+          <button
+            onClick={leaveChat}
+            className="text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded border border-red-400/30 hover:border-red-300/50"
+          >
+            Leave
+          </button>
         </div>
       </div>
       

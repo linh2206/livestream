@@ -24,6 +24,15 @@ export class ChatService {
       .exec();
   }
 
+  async findByRoom(room: string, limit: number = 50): Promise<Message[]> {
+    return this.messageModel
+      .find({ room, isDeleted: false })
+      .populate('userId', 'username avatar')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .exec();
+  }
+
   async deleteMessage(messageId: string, userId: string): Promise<Message> {
     return this.messageModel
       .findOneAndUpdate(

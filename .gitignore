@@ -21,6 +21,10 @@ out/
 !**/.env.example
 !.env.example
 
+# Allow favicon files
+!**/favicon.ico
+!favicon.ico
+
 # Logs
 logs/
 *.log
@@ -74,7 +78,7 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+# public  # Commented out to allow frontend public files
 
 # Storybook build outputs
 .out

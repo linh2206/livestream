@@ -14,6 +14,9 @@ export class Message {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Stream' })
   streamId: Types.ObjectId;
 
+  @Prop({ required: true })
+  room: string;
+
   @Prop()
   streamKey: string;
 

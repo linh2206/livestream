@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Mail, Calendar, UserCheck, UserX } from 'lucide-react';
+import { Users, Mail, Calendar, UserCheck, UserX, Plus, Edit, Trash2, Save, X } from 'lucide-react';
 
 interface User {
   _id: string;
@@ -17,6 +17,10 @@ export default function UsersTable() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState({ username: '', email: '' });
+  const [editUser, setEditUser] = useState({ username: '', email: '' });
 
   useEffect(() => {
     fetchUsers();
@@ -54,6 +58,100 @@ export default function UsersTable() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const createUser = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      }
+      
+      const response = await fetch(`${apiUrl}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newUser),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const createdUser = await response.json();
+      setUsers(prev => [...prev, createdUser]);
+      setNewUser({ username: '', email: '' });
+      setShowAddForm(false);
+    } catch (err) {
+      console.error('Error creating user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create user');
+    }
+  };
+
+  const updateUser = async (userId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      }
+      
+      const response = await fetch(`${apiUrl}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editUser),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const updatedUser = await response.json();
+      setUsers(prev => prev.map(user => user._id === userId ? updatedUser : user));
+      setEditingUser(null);
+      setEditUser({ username: '', email: '' });
+    } catch (err) {
+      console.error('Error updating user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update user');
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      }
+      
+      const response = await fetch(`${apiUrl}/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setUsers(prev => prev.filter(user => user._id !== userId));
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const startEdit = (user: User) => {
+    setEditingUser(user._id);
+    setEditUser({ username: user.username, email: user.email });
+  };
+
+  const cancelEdit = () => {
+    setEditingUser(null);
+    setEditUser({ username: '', email: '' });
   };
 
   if (loading) {
