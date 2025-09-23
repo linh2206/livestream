@@ -1514,6 +1514,70 @@ sync_to_server() {
     log_info "Run 'cd ~/livestream && make install' on the server to continue"
 }
 
+# Install Docker on Ubuntu (standalone function)
+install_docker_ubuntu() {
+    log_info "🚀 Installing Docker on Ubuntu..."
+    
+    # Check if running on Ubuntu
+    if ! command -v apt-get >/dev/null 2>&1; then
+        log_error "This script requires Ubuntu with apt package manager"
+        exit 1
+    fi
+    
+    # Check if running as root
+    if [ "$(id -u)" = "0" ]; then
+        SUDO=""
+    else
+        SUDO="sudo"
+    fi
+    
+    # Update package index
+    log_info "📦 Updating package index..."
+    $SUDO apt update
+    
+    # Install required packages
+    log_info "📦 Installing required packages..."
+    $SUDO apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    
+    # Add Docker's official GPG key
+    log_info "🔑 Adding Docker's GPG key..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    
+    # Add Docker repository
+    log_info "📋 Adding Docker repository..."
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # Update package index again
+    log_info "📦 Updating package index..."
+    $SUDO apt update
+    
+    # Install Docker Engine
+    log_info "🐳 Installing Docker Engine..."
+    $SUDO apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # Start and enable Docker service
+    log_info "🚀 Starting Docker service..."
+    $SUDO systemctl start docker
+    $SUDO systemctl enable docker
+    
+    # Add current user to docker group
+    log_info "👤 Adding current user to docker group..."
+    $SUDO usermod -aG docker $USER
+    
+    # Test Docker installation
+    log_info "🧪 Testing Docker installation..."
+    if docker --version > /dev/null 2>&1; then
+        log_success "✅ Docker installed successfully!"
+        docker --version
+    else
+        log_error "❌ Docker installation failed!"
+        exit 1
+    fi
+    
+    log_success "🎉 Docker installation completed!"
+    log_warning "⚠️  You may need to logout and login again to use Docker without sudo"
+}
+
 # Main function
 main() {
     case "$1" in
@@ -1529,8 +1593,9 @@ main() {
         test-stream) test_stream ;;
         reset-all) reset_all ;;
         sync) sync_to_server ;;
+        install-docker) install_docker_ubuntu ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync|install-docker}"
             exit 1
             ;;
     esac
