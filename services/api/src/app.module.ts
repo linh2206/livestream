@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
@@ -6,7 +6,6 @@ import { UsersModule } from './users/users.module';
 import { StreamsModule } from './streams/streams.module';
 import { ChatModule } from './chat/chat.module';
 import { RtmpModule } from './rtmp/rtmp.module';
-import { HlsCorsMiddleware } from './hls-cors.middleware';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -34,10 +33,4 @@ import { AppService } from './app.service';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(HlsCorsMiddleware)
-      .forRoutes('rtmp/hls*');
-  }
-}
+export class AppModule {}
