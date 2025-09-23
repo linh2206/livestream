@@ -220,12 +220,18 @@ EOF
     sudo systemctl restart networking 2>/dev/null || true
     sudo systemctl restart NetworkManager 2>/dev/null || true
     
-    # Restart Docker daemon
-    log_info "Restarting Docker daemon..."
-    sudo systemctl stop docker 2>/dev/null || true
-    sleep 3
-    sudo systemctl start docker
-    sleep 5
+    # Restart Docker daemon (only if Docker is installed)
+    if command -v docker >/dev/null 2>&1; then
+        log_info "Restarting Docker daemon..."
+        sudo systemctl stop docker 2>/dev/null || true
+        sleep 3
+        sudo systemctl start docker 2>/dev/null || {
+            log_warning "Failed to start Docker service, will install Docker later"
+        }
+        sleep 5
+    else
+        log_info "Docker not installed yet, will install during setup"
+    fi
     
     # Test network connectivity
     log_info "Testing network connectivity..."
@@ -901,42 +907,75 @@ setup() {
     if ! docker info >/dev/null 2>&1; then
         log_info "Starting Docker service..."
         SUDO_CMD=$(get_sudo_cmd)
-        if $SUDO_CMD systemctl start docker 2>/dev/null; then
-            log_success "Docker service started"
+        
+        # Check if Docker service exists
+        if $SUDO_CMD systemctl list-unit-files | grep -q "docker.service"; then
+            log_info "Docker service found, starting..."
+            if $SUDO_CMD systemctl start docker 2>/dev/null; then
+                log_success "Docker service started via systemctl"
+            else
+                log_warning "Failed to start Docker service via systemctl"
+                # Try alternative method
+                log_info "Trying to start Docker daemon directly..."
+                $SUDO_CMD dockerd --daemon 2>/dev/null || true
+                sleep 3
+            fi
         else
-            log_warning "Failed to start Docker service via systemctl"
-            # Try alternative method
+            log_warning "Docker service not found in systemctl"
+            log_info "Trying to start Docker daemon directly..."
             $SUDO_CMD dockerd --daemon 2>/dev/null || true
             sleep 3
+        fi
+        
+        # Verify Docker is working
+        if docker info >/dev/null 2>&1; then
+            log_success "Docker is now running"
+        else
+            log_error "Docker failed to start. Please check installation."
+            exit 1
         fi
     else
         log_info "Docker service is already running"
     fi
     
-    # Create .env file if it doesn't exist
-    log_info "Creating .env file..."
-    if [ ! -f .env ]; then
-        if [ -f env.example ]; then
-            cp env.example .env
-            log_success ".env file created from env.example"
-        else
-            cat > .env << EOF
-# LiveStream App Environment Variables
-NODE_ENV=production
-PORT=3000
-MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
-REDIS_URL=redis://redis:6379
-JWT_SECRET=your-secret-key-change-this-in-production
-FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:9000
-NEXT_PUBLIC_WS_URL=ws://localhost:9000
-    NEXT_PUBLIC_HLS_URL=http://localhost:8080
-    BACKEND_URL=http://api:9000
-EOF
-            log_success ".env file created with default values"
-        fi
+    # Remove old .env and create new one
+    log_info "Removing old .env file..."
+    rm -f .env
+    
+    log_info "Creating new .env file..."
+    if [ -f env.example ]; then
+        cp env.example .env
+        log_success ".env file created from env.example"
     else
-        log_info ".env file already exists"
+        cat > .env << EOF
+# Database
+MONGODB_URI=mongodb://mongodb:27017/livestream
+REDIS_URL=redis://redis:6379
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# API
+API_PORT=9000
+API_URL=http://api:9000
+
+# Frontend
+FRONTEND_PORT=3000
+FRONTEND_URL=http://frontend:3000
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=http://localhost:9000
+NEXT_PUBLIC_HLS_URL=http://localhost:9000/rtmp/hls
+NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
+NEXT_PUBLIC_STREAM_NAME=stream
+
+# Nginx
+BACKEND_URL=http://api:9000
+WS_URL=http://api:9000
+HLS_URL=http://localhost:8080/hls
+RTMP_URL=rtmp://localhost:1935/live
+EOF
+        log_success ".env file created with default values"
     fi
     
     # Initialize Docker daemon
@@ -1578,6 +1617,50 @@ install_docker_ubuntu() {
     log_warning "⚠️  You may need to logout and login again to use Docker without sudo"
 }
 
+# Create new .env file
+create_new_env() {
+    log_info "🔧 Creating new .env file..."
+    
+    # Remove old .env
+    log_info "🗑️  Removing old .env file..."
+    rm -f .env
+    
+    # Create new .env
+    log_info "📝 Creating new .env file..."
+    cat > .env << EOF
+# Database
+MONGODB_URI=mongodb://mongodb:27017/livestream
+REDIS_URL=redis://redis:6379
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# API
+API_PORT=9000
+API_URL=http://api:9000
+
+# Frontend
+FRONTEND_PORT=3000
+FRONTEND_URL=http://frontend:3000
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=http://localhost:9000
+NEXT_PUBLIC_HLS_URL=http://localhost:9000/rtmp/hls
+NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
+NEXT_PUBLIC_STREAM_NAME=stream
+
+# Nginx
+BACKEND_URL=http://api:9000
+WS_URL=http://api:9000
+HLS_URL=http://localhost:8080/hls
+RTMP_URL=rtmp://localhost:1935/live
+EOF
+
+    log_success "✅ .env file created successfully!"
+    log_info "📋 Contents:"
+    cat .env
+}
+
 # Main function
 main() {
     case "$1" in
@@ -1594,8 +1677,17 @@ main() {
         reset-all) reset_all ;;
         sync) sync_to_server ;;
         install-docker) install_docker_ubuntu ;;
+        fix-ubuntu) 
+            if [ -f "../fix-ubuntu-streaming.sh" ]; then
+                ../fix-ubuntu-streaming.sh
+            else
+                log_error "fix-ubuntu-streaming.sh not found"
+                exit 1
+            fi
+            ;;
+        create-env) create_new_env ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync|install-docker}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync|install-docker|fix-ubuntu|create-env}"
             exit 1
             ;;
     esac

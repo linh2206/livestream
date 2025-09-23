@@ -63,8 +63,22 @@ export class RtmpController {
     return this.rtmpService.serveHlsStream(cleanStreamKey, res);
   }
 
+  @Get('hls/:streamKey/:filename')
+  async getHlsNestedStream(
+    @Param('streamKey') streamKey: string,
+    @Param('filename') filename: string,
+    @Res() res: Response
+  ) {
+    return this.rtmpService.serveHlsNestedStream(streamKey, filename, res);
+  }
+
   @Options('hls/:streamKey')
   async optionsHlsStream() {
+    return { status: 'ok' };
+  }
+
+  @Options('hls/:streamKey/:filename')
+  async optionsHlsNestedStream() {
     return { status: 'ok' };
   }
 
