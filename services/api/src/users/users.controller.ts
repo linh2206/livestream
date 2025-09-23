@@ -33,9 +33,21 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // Public admin endpoints for CRUD operations
   @Patch(':id')
-  update(
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
+  }
+
+  // Protected endpoints for user self-management
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile/:id')
+  updateProfile(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @Request() req: any,
@@ -48,8 +60,8 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  remove(@Param('id') id: string, @Request() req: any) {
+  @Delete('profile/:id')
+  removeProfile(@Param('id') id: string, @Request() req: any) {
     // Only allow users to delete their own account
     if (req.user.id !== id) {
       throw new Error('Unauthorized');

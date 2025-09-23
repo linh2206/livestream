@@ -6,14 +6,18 @@ import VideoPlayer from '@/components/VideoPlayer';
 import Chat from '@/components/Chat';
 import UsersTable from '@/components/UsersTable';
 import BandwidthMonitor from '@/components/BandwidthMonitor';
+import LoginForm from '@/components/LoginForm';
 import { useSocket } from '@/hooks/useSocket';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [isLive, setIsLive] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [showChat, setShowChat] = useState(true);
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const { socket, isConnected } = useSocket();
 
   useEffect(() => {
@@ -83,6 +87,40 @@ export default function Home() {
     }
   };
 
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold text-white mb-4">
+            🎬 LiveStream App
+          </h1>
+          <p className="text-gray-300 text-xl mb-8">
+            Please login to access the live stream and chat
+          </p>
+          <button
+            onClick={() => setShowLoginForm(true)}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
+          >
+            Login / Register
+          </button>
+        </div>
+        {showLoginForm && (
+          <LoginForm onClose={() => setShowLoginForm(false)} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-7xl mx-auto">
@@ -94,7 +132,7 @@ export default function Home() {
                 🎬 LiveStream App
               </h1>
               <p className="text-gray-300">
-                Real-time streaming with interactive chat
+                Welcome back, {user?.username}! Real-time streaming with interactive chat
               </p>
             </div>
             <div className="flex items-center space-x-4">
@@ -106,6 +144,12 @@ export default function Home() {
                 <Heart className="w-5 h-5 text-white" />
                 <span className="text-white font-medium">{likeCount}</span>
               </div>
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

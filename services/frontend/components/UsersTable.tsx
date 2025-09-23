@@ -21,10 +21,42 @@ export default function UsersTable() {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({ username: '', email: '' });
   const [editUser, setEditUser] = useState({ username: '', email: '' });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const login = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      }
+      
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginForm),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Login failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setToken(data.access_token);
+      setIsLoggedIn(true);
+      setError(null);
+    } catch (err) {
+      console.error('Error logging in:', err);
+      setError(err instanceof Error ? err.message : 'Login failed');
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -61,6 +93,11 @@ export default function UsersTable() {
   };
 
   const createUser = async () => {
+    if (!isLoggedIn || !token) {
+      setError('Please login first to create users');
+      return;
+    }
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
@@ -71,6 +108,7 @@ export default function UsersTable() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(newUser),
       });
@@ -90,6 +128,11 @@ export default function UsersTable() {
   };
 
   const updateUser = async (userId: string) => {
+    if (!isLoggedIn || !token) {
+      setError('Please login first to update users');
+      return;
+    }
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
@@ -97,9 +140,10 @@ export default function UsersTable() {
       }
       
       const response = await fetch(`${apiUrl}/users/${userId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(editUser),
       });
@@ -119,6 +163,11 @@ export default function UsersTable() {
   };
 
   const deleteUser = async (userId: string) => {
+    if (!isLoggedIn || !token) {
+      setError('Please login first to delete users');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this user?')) {
       return;
     }
@@ -131,6 +180,9 @@ export default function UsersTable() {
       
       const response = await fetch(`${apiUrl}/users/${userId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -192,8 +244,47 @@ export default function UsersTable() {
           <Users className="w-6 h-6 text-white" />
           <h2 className="text-2xl font-bold text-white">Registered Users</h2>
         </div>
-        <div className="text-gray-400 text-sm">
-          Total: {users.length} users
+        <div className="flex items-center space-x-4">
+          <div className="text-gray-400 text-sm">
+            Total: {users.length} users
+          </div>
+          {!isLoggedIn ? (
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder="Username"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                className="px-3 py-1 bg-black/30 text-white rounded text-sm"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                className="px-3 py-1 bg-black/30 text-white rounded text-sm"
+              />
+              <button
+                onClick={login}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+              >
+                Login
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-green-400 text-sm">Logged in</span>
+              <button
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setToken(null);
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

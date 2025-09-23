@@ -59,4 +59,46 @@ export class AuthService {
       },
     };
   }
+
+  async googleLogin(googleUser: any) {
+    try {
+      // Check if user exists by email
+      let user;
+      try {
+        user = await this.usersService.findByEmail(googleUser.email);
+      } catch (error) {
+        // User not found, create new one
+        user = null;
+      }
+      
+      if (!user) {
+        // Create new user from Google data
+        const newUser = await this.usersService.create({
+          username: googleUser.username,
+          email: googleUser.email,
+          password: 'google_oauth_' + Math.random().toString(36).substring(7), // Random password
+          avatar: googleUser.avatar,
+        });
+        user = newUser;
+      } else {
+        // Update avatar if changed
+        if (googleUser.avatar && user.avatar !== googleUser.avatar) {
+          user = await this.usersService.update(user._id, { avatar: googleUser.avatar });
+        }
+      }
+
+      const payload = { username: user.username, sub: user._id };
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+  }
 }
