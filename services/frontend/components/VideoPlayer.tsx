@@ -11,6 +11,7 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fragmentErrorCount, setFragmentErrorCount] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -70,14 +71,26 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           fragLoadingTimeOut: 20000,
           manifestLoadingTimeOut: 10000,
           levelLoadingTimeOut: 10000,
-          // Retry configuration
-          fragLoadingMaxRetry: 3,
-          manifestLoadingMaxRetry: 3,
-          levelLoadingMaxRetry: 3,
+          // Retry configuration - reduce retries to avoid spam
+          fragLoadingMaxRetry: 1,
+          manifestLoadingMaxRetry: 1,
+          levelLoadingMaxRetry: 1,
+          // Fragment error handling
+          fragLoadingMaxRetryTimeout: 5000,
           // CORS handling
           xhrSetup: function(xhr, url) {
             xhr.withCredentials = false;
-          }
+            // Add timeout for individual requests
+            xhr.timeout = 10000;
+          },
+          // Skip corrupted fragments
+          skipFragments: true,
+          // Better fragment handling
+          maxFragLookUpTolerance: 0.25,
+          // Disable some problematic features for live streams
+          enableSoftwareAES: false,
+          // Better live stream handling
+          liveBackBufferLength: 0
         });
 
         hls.loadSource(hlsUrl);
@@ -124,6 +137,27 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
         hls.on(Hls.Events.FRAG_LOADED, () => {
           // Stream is working
           setError(null);
+          // Reset fragment error count when fragments load successfully
+          setFragmentErrorCount(0);
+        });
+
+        // Handle fragment parsing errors gracefully
+        hls.on(Hls.Events.FRAG_PARSING_ERROR, (event, data) => {
+          console.log('⚠️ Fragment parsing error, skipping fragment:', data.frag?.url);
+          setFragmentErrorCount(prev => prev + 1);
+          
+          // If too many fragment errors, show warning but don't stop playback
+          if (fragmentErrorCount > 10) {
+            console.log('⚠️ Many fragment errors detected, stream may be unstable');
+          }
+          
+          // HLS.js will automatically skip to the next fragment
+        });
+
+        // Handle fragment loading errors
+        hls.on(Hls.Events.FRAG_LOAD_ERROR, (event, data) => {
+          console.log('⚠️ Fragment load error, will retry:', data.frag?.url);
+          // HLS.js will handle retry automatically
         });
 
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
