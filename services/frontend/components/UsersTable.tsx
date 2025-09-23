@@ -25,7 +25,10 @@ export default function UsersTable() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      }
       const response = await fetch(`${apiUrl}/users`);
       
       if (!response.ok) {

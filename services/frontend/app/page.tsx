@@ -43,7 +43,11 @@ export default function Home() {
   useEffect(() => {
     const checkStreamStatus = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) {
+          console.error('NEXT_PUBLIC_API_URL environment variable is not set');
+          return;
+        }
         const response = await fetch(`${apiUrl}/rtmp/hls/stream/index.m3u8`);
         setIsLive(response.ok);
       } catch (error) {
@@ -102,7 +106,7 @@ export default function Home() {
           {/* Video Player */}
           <div className="lg:col-span-3">
             <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6">
-              <VideoPlayer />
+              <VideoPlayer streamName="stream" />
               
               {/* Stream Controls */}
               <div className="mt-4 flex items-center justify-between">

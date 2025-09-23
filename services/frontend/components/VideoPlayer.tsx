@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
-export default function VideoPlayer() {
+interface VideoPlayerProps {
+  streamName?: string;
+}
+
+export default function VideoPlayer({ streamName }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,9 +17,16 @@ export default function VideoPlayer() {
     if (!video) return;
 
     // Use backend API for HLS URL
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190';
-    const streamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
-    const hlsUrl = `${apiBaseUrl}/rtmp/hls/${streamName}/index.m3u8`;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+    const defaultStreamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
+    const currentStreamName = streamName || defaultStreamName;
+    
+    if (!apiBaseUrl) {
+      console.error('Missing environment variable: NEXT_PUBLIC_API_URL');
+      return;
+    }
+    
+    const hlsUrl = `${apiBaseUrl}/rtmp/hls/${currentStreamName}/index.m3u8`;
 
     let hls: Hls | null = null;
 
@@ -92,7 +103,7 @@ export default function VideoPlayer() {
         hls.destroy();
       }
     };
-  }, []);
+  }, [streamName]);
 
   const togglePlay = () => {
     const video = videoRef.current;
