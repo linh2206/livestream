@@ -150,7 +150,7 @@ export class RtmpService {
 
   async serveHlsNestedStream(streamKey: string, filename: string, res: Response) {
     try {
-      const filePath = `/app/hls/${streamKey}/${filename}`;
+      const filePath = `/var/www/html/hls/${streamKey}/${filename}`;
       
       console.log(`Serving nested HLS: ${streamKey}/${filename} from ${filePath}`);
       

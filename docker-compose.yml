@@ -61,7 +61,7 @@ services:
     ports:
       - "9000:9000"  # Expose for WebSocket connection
     volumes:
-      - hls_data:/tmp/hls
+      - hls_data:/var/www/html/hls
     depends_on:
       mongodb:
         condition: service_healthy
