@@ -19,4 +19,9 @@ export class AppController {
   getStatus() {
     return this.appService.getStatus();
   }
+
+  @Get('bandwidth')
+  getBandwidth() {
+    return this.appService.getBandwidth();
+  }
 }

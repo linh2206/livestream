@@ -17,6 +17,9 @@ out/
 .env.test.local
 .env.production.local
 
+# But allow .env.example
+!.env.example
+
 # Logs
 logs/
 *.log
@@ -103,9 +106,9 @@ Thumbs.db
 hls/
 *.m3u8
 
-# TypeScript files (but not in src directories)
-*.ts
-!services/*/src/**/*.ts
+# TypeScript files - allow all source files
+# *.ts
+# !services/**/*.ts
 
 # Database
 *.db

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # LiveStream App Management Script
-# Ubuntu only version
+# Optimized version with duplicates removed
 
 set -e
 
@@ -32,7 +32,7 @@ check_os() {
     fi
 }
 
-# Check if Docker is installed
+# Check if Docker is installed and running
 check_docker() {
     if ! command -v docker >/dev/null 2>&1; then
         return 1
@@ -45,91 +45,6 @@ check_docker() {
     return 0
 }
 
-# Install Docker if not present
-install_docker() {
-    # Check if Docker is already installed but not running
-    if command -v docker >/dev/null 2>&1; then
-        log_info "Docker is installed but not running. Starting Docker service..."
-        if $(get_sudo_cmd) systemctl start docker 2>/dev/null; then
-            $(get_sudo_cmd) systemctl enable docker 2>/dev/null || true
-            log_success "Docker service started via systemctl"
-        else
-            log_warning "systemctl failed, trying to start Docker daemon directly..."
-            # Try to start Docker daemon directly
-            $(get_sudo_cmd) dockerd --daemon 2>/dev/null || true
-        fi
-        
-        # Wait a moment for Docker to start
-        sleep 3
-        
-        # Test if Docker is now working
-        if docker info >/dev/null 2>&1; then
-            log_success "Docker service started successfully!"
-            return 0
-        elif $(get_sudo_cmd) docker info >/dev/null 2>&1; then
-            log_success "Docker service started successfully!"
-            log_warning "You may need to logout and login again to use Docker without sudo"
-            return 0
-        else
-            log_warning "Docker daemon not responding, will proceed with full installation..."
-        fi
-    fi
-    
-    log_info "Installing Docker..."
-    
-    # Update package index
-    log_info "Updating package index..."
-    $(get_sudo_cmd) apt update
-    
-    # Install required packages
-    log_info "Installing required packages..."
-    $(get_sudo_cmd) apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-    
-    # Add Docker GPG key
-    log_info "Adding Docker GPG key..."
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $(get_sudo_cmd) gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    
-    # Add Docker repository
-    log_info "Adding Docker repository..."
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | $(get_sudo_cmd) tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    # Update package index again
-    $(get_sudo_cmd) apt update
-    
-    # Install Docker Engine
-    log_info "Installing Docker Engine..."
-    $(get_sudo_cmd) apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    
-    # Start and enable Docker
-    log_info "Starting Docker service..."
-    if $(get_sudo_cmd) systemctl start docker 2>/dev/null; then
-        $(get_sudo_cmd) systemctl enable docker 2>/dev/null || true
-        log_success "Docker service started"
-    else
-        log_warning "Failed to start Docker service, trying alternative method..."
-        # Try to start Docker daemon directly
-        $(get_sudo_cmd) dockerd --daemon 2>/dev/null || true
-        sleep 3
-    fi
-    
-    # Add current user to docker group
-    log_info "Adding user to docker group..."
-    $(get_sudo_cmd) usermod -aG docker $USER
-    
-    log_success "Docker installed successfully!"
-    log_warning "Please logout and login again to use Docker without sudo"
-    
-    # Test Docker installation
-    log_info "Testing Docker installation..."
-    if $(get_sudo_cmd) docker --version >/dev/null 2>&1; then
-        log_success "Docker is working!"
-        return 0
-    else
-        log_error "Docker installation failed"
-        return 1
-    fi
-}
-
 # Check if Node.js is installed
 check_nodejs() {
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -137,6 +52,85 @@ check_nodejs() {
     else
         return 1
     fi
+}
+
+# Install Docker on Ubuntu
+install_docker() {
+    log_info "Installing Docker on Ubuntu..."
+    
+    # Check if running on Ubuntu
+    if ! command -v apt-get >/dev/null 2>&1; then
+        log_error "This script requires Ubuntu with apt package manager"
+        exit 1
+    fi
+    
+    SUDO_CMD=$(get_sudo_cmd)
+    
+    # Remove old Docker installations
+    log_info "Removing old Docker installations..."
+    $SUDO_CMD systemctl stop docker 2>/dev/null || true
+    $SUDO_CMD systemctl stop containerd 2>/dev/null || true
+    $SUDO_CMD apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+    $SUDO_CMD apt-get purge -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+    $SUDO_CMD rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+    
+    # Update package index
+    log_info "Updating package index..."
+    $SUDO_CMD apt-get update
+    
+    # Install prerequisites
+    log_info "Installing prerequisites..."
+    $SUDO_CMD apt-get install -y ca-certificates curl gnupg lsb-release
+    
+    # Add Docker's official GPG key
+    log_info "Adding Docker's official GPG key..."
+    $SUDO_CMD mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO_CMD gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    
+    # Set up Docker repository
+    log_info "Setting up Docker repository..."
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | $SUDO_CMD tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # Update package index
+    $SUDO_CMD apt-get update
+    
+    # Install Docker Engine
+    log_info "Installing Docker Engine..."
+    $SUDO_CMD apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # Start and enable Docker service
+    log_info "Starting Docker service..."
+    $SUDO_CMD systemctl start docker
+    $SUDO_CMD systemctl enable docker
+    
+    # Add current user to docker group
+    if [ "$(id -u)" != "0" ]; then
+    log_info "Adding user to docker group..."
+        $SUDO_CMD usermod -aG docker $USER
+    log_warning "Please logout and login again to use Docker without sudo"
+    fi
+    
+    # Verify installation
+    log_info "Verifying Docker installation..."
+    if docker --version >/dev/null 2>&1; then
+        log_success "Docker installed successfully:"
+        docker --version
+    else
+        log_error "Docker installation failed"
+        exit 1
+    fi
+    
+    if docker compose version >/dev/null 2>&1; then
+        log_success "Docker Compose installed successfully:"
+        docker compose version
+    else
+        log_error "Docker Compose installation failed"
+        exit 1
+    fi
+    
+    log_success "Docker and Docker Compose installation completed!"
 }
 
 # Install Node.js
@@ -192,17 +186,19 @@ check_cpu_and_mongodb() {
 fix_network() {
     log_info "Fixing network and DNS issues..."
     
+    SUDO_CMD=$(get_sudo_cmd)
+    
     # Stop systemd-resolved if running
     log_info "Stopping systemd-resolved..."
-    sudo systemctl stop systemd-resolved 2>/dev/null || true
-    sudo systemctl disable systemd-resolved 2>/dev/null || true
+    $SUDO_CMD systemctl stop systemd-resolved 2>/dev/null || true
+    $SUDO_CMD systemctl disable systemd-resolved 2>/dev/null || true
     
     # Fix DNS resolution
     log_info "Backing up resolv.conf..."
-    sudo cp /etc/resolv.conf /etc/resolv.conf.backup 2>/dev/null || true
+    $SUDO_CMD cp /etc/resolv.conf /etc/resolv.conf.backup 2>/dev/null || true
     
     log_info "Setting DNS to multiple providers..."
-    cat << 'EOF' | sudo tee /etc/resolv.conf
+    cat << 'EOF' | $SUDO_CMD tee /etc/resolv.conf
 nameserver 8.8.8.8
 nameserver 8.8.4.4
 nameserver 1.1.1.1
@@ -213,24 +209,22 @@ EOF
     log_success "DNS fixed with multiple providers"
     
     # Make resolv.conf immutable
-    sudo chattr +i /etc/resolv.conf 2>/dev/null || true
+    $SUDO_CMD chattr +i /etc/resolv.conf 2>/dev/null || true
     
     # Restart network services
     log_info "Restarting network services..."
-    sudo systemctl restart networking 2>/dev/null || true
-    sudo systemctl restart NetworkManager 2>/dev/null || true
+    $SUDO_CMD systemctl restart networking 2>/dev/null || true
+    $SUDO_CMD systemctl restart NetworkManager 2>/dev/null || true
     
-    # Restart Docker daemon (only if Docker is installed)
+    # Restart Docker daemon if installed
     if command -v docker >/dev/null 2>&1; then
         log_info "Restarting Docker daemon..."
-        sudo systemctl stop docker 2>/dev/null || true
+        $SUDO_CMD systemctl stop docker 2>/dev/null || true
         sleep 3
-        sudo systemctl start docker 2>/dev/null || {
+        $SUDO_CMD systemctl start docker 2>/dev/null || {
             log_warning "Failed to start Docker service, will install Docker later"
         }
         sleep 5
-    else
-        log_info "Docker not installed yet, will install during setup"
     fi
     
     # Test network connectivity
@@ -243,14 +237,6 @@ EOF
             log_warning "Failed to ping $dns"
         fi
     done
-    
-    # Test Docker Hub connectivity
-    log_info "Testing Docker Hub connectivity..."
-    if curl -s --connect-timeout 10 https://registry-1.docker.io >/dev/null 2>&1; then
-        log_success "Docker Hub accessible"
-    else
-        log_warning "Docker Hub not accessible, will try alternative methods"
-    fi
 }
 
 # Check and fix Docker build issues
@@ -261,7 +247,6 @@ check_docker_build() {
     if [ -f "services/api/Dockerfile" ]; then
         if ! grep -q "COPY src/ ./" services/api/Dockerfile; then
             log_warning "Fixing API Dockerfile COPY command..."
-            # Fix the COPY command to use correct path
             sed -i.bak 's/COPY src.*/COPY src\/ .\//' services/api/Dockerfile
             log_success "API Dockerfile fixed - now using 'COPY src/ ./'"
         else
@@ -279,7 +264,19 @@ check_docker_build() {
         log_success "Created services/api/src directory"
     fi
     
-    # Check if main.ts exists
+    # Create basic API files if missing
+    create_basic_api_files
+    
+    # Check frontend configuration
+    check_frontend_config
+    
+    log_success "Docker build check completed"
+    return 0
+}
+
+# Create basic API files if missing
+create_basic_api_files() {
+    # Create main.ts if missing
     if [ ! -f "services/api/src/main.ts" ]; then
         log_warning "main.ts not found, creating basic one..."
         cat > services/api/src/main.ts << 'EOF'
@@ -308,35 +305,25 @@ EOF
         log_success "Created main.ts"
     fi
     
-    # Check if app.module.ts exists
+    # Create app.module.ts if missing
     if [ ! -f "services/api/src/app.module.ts" ]; then
         log_warning "app.module.ts not found, creating basic one..."
         cat > services/api/src/app.module.ts << 'EOF'
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { RtmpController, HlsController } from './rtmp.controller';
 
 @Module({
   imports: [],
-  controllers: [AppController, RtmpController, HlsController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
 EOF
         log_success "Created app.module.ts"
-    else
-        # Update existing app.module.ts to include RtmpController
-        if ! grep -q "RtmpController" services/api/src/app.module.ts; then
-            log_warning "Adding RtmpController to app.module.ts..."
-            sed -i.bak 's/import { AppService } from/import { AppService } from/' services/api/src/app.module.ts
-            sed -i.bak '/import { AppService } from/a import { RtmpController } from '\''./rtmp.controller'\'';' services/api/src/app.module.ts
-            sed -i.bak 's/controllers: \[AppController\]/controllers: [AppController, RtmpController]/' services/api/src/app.module.ts
-            log_success "Updated app.module.ts"
-        fi
     fi
     
-    # Check if app.controller.ts exists
+    # Create app.controller.ts if missing
     if [ ! -f "services/api/src/app.controller.ts" ]; then
         log_warning "app.controller.ts not found, creating basic one..."
         cat > services/api/src/app.controller.ts << 'EOF'
@@ -361,7 +348,7 @@ EOF
         log_success "Created app.controller.ts"
     fi
     
-    # Check if app.service.ts exists
+    # Create app.service.ts if missing
     if [ ! -f "services/api/src/app.service.ts" ]; then
         log_warning "app.service.ts not found, creating basic one..."
         cat > services/api/src/app.service.ts << 'EOF'
@@ -376,88 +363,10 @@ export class AppService {
 EOF
         log_success "Created app.service.ts"
     fi
-    
-    # Create RTMP controller for stream authentication
-    if [ ! -f "services/api/src/rtmp.controller.ts" ]; then
-        log_warning "rtmp.controller.ts not found, creating..."
-        mkdir -p services/api/src/rtmp
-        cat > services/api/src/rtmp.controller.ts << 'EOF'
-import { Controller, Post, Body, Res, Get, Param } from '@nestjs/common';
-import { Response } from 'express';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-
-@Controller('rtmp')
-export class RtmpController {
-  @Post('publish')
-  async onPublish(@Body() body: any, @Res() res: Response) {
-    const { name, addr, clientid } = body;
-    
-    // Accept all stream keys for now
-    // You can add authentication logic here
-    console.log(`Stream publish: ${name} from ${addr}`);
-    
-    res.status(200).send('OK');
-  }
-
-  @Post('publish_done')
-  async onPublishDone(@Body() body: any, @Res() res: Response) {
-    const { name, addr, clientid } = body;
-    console.log(`Stream publish done: ${name} from ${addr}`);
-    res.status(200).send('OK');
-  }
-
-  @Post('play')
-  async onPlay(@Body() body: any, @Res() res: Response) {
-    const { name, addr, clientid } = body;
-    console.log(`Stream play: ${name} from ${addr}`);
-    res.status(200).send('OK');
-  }
-
-  @Post('play_done')
-  async onPlayDone(@Body() body: any, @Res() res: Response) {
-    const { name, addr, clientid } = body;
-    console.log(`Stream play done: ${name} from ${addr}`);
-    res.status(200).send('OK');
-  }
 }
 
-@Controller('hls')
-export class HlsController {
-  @Get(':streamName')
-  async getHlsStream(@Param('streamName') streamName: string, @Res() res: Response) {
-    const hlsPath = join('/var/www/html/hls', streamName);
-    
-    // Check if .m3u8 file exists
-    const m3u8File = join(hlsPath, 'index.m3u8');
-    if (existsSync(m3u8File)) {
-      const content = readFileSync(m3u8File, 'utf8');
-      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send(content);
-    } else {
-      res.status(404).send('Stream not found');
-    }
-  }
-
-  @Get(':streamName/:segment')
-  async getHlsSegment(@Param('streamName') streamName: string, @Param('segment') segment: string, @Res() res: Response) {
-    const segmentPath = join('/var/www/html/hls', streamName, segment);
-    
-    if (existsSync(segmentPath)) {
-      const content = readFileSync(segmentPath);
-      res.setHeader('Content-Type', 'video/mp2t');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.send(content);
-    } else {
-      res.status(404).send('Segment not found');
-    }
-  }
-}
-EOF
-        log_success "Created rtmp.controller.ts"
-    fi
-    
+# Check frontend configuration
+check_frontend_config() {
     # Check if frontend directory exists
     if [ ! -d "services/frontend" ]; then
         log_error "Frontend directory not found"
@@ -470,15 +379,17 @@ EOF
         return 1
     fi
     
-    # Check if tsconfig.json exists and has correct paths
-    if [ -f "services/frontend/tsconfig.json" ]; then
-        if ! grep -q '"@/*"' services/frontend/tsconfig.json; then
-            log_warning "tsconfig.json missing @/* path mapping"
-            log_info "Adding @/* path mapping to tsconfig.json..."
-            sed -i.bak 's/"compilerOptions": {/"compilerOptions": {\n    "baseUrl": ".",\n    "paths": {\n      "@\/*": [".\/*"]\n    },/' services/frontend/tsconfig.json
-            log_success "Added @/* path mapping"
-        fi
-    else
+    # Create missing configuration files
+    create_frontend_config_files
+    
+    # Create missing components
+    create_frontend_components
+}
+
+# Create frontend configuration files
+create_frontend_config_files() {
+    # Create tsconfig.json if missing
+    if [ ! -f "services/frontend/tsconfig.json" ]; then
         log_warning "tsconfig.json not found, creating basic one..."
         cat > services/frontend/tsconfig.json << 'EOF'
 {
@@ -509,13 +420,78 @@ EOF
         log_success "Created tsconfig.json with @/* path mapping"
     fi
     
-    # Check if hooks directory exists
+    # Create next.config.js if missing
+    if [ ! -f "services/frontend/next.config.js" ]; then
+        log_warning "next.config.js not found, creating..."
+        cat > services/frontend/next.config.js << 'EOF'
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  experimental: {
+    outputFileTracingRoot: undefined,
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+}
+
+module.exports = nextConfig
+EOF
+        log_success "Created next.config.js"
+    fi
+    
+    # Create postcss.config.js if missing
+    if [ ! -f "services/frontend/postcss.config.js" ]; then
+        log_warning "postcss.config.js not found, creating..."
+        cat > services/frontend/postcss.config.js << 'EOF'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+EOF
+        log_success "Created postcss.config.js"
+    fi
+    
+    # Create tailwind.config.js if missing
+    if [ ! -f "services/frontend/tailwind.config.js" ]; then
+        log_warning "tailwind.config.js not found, creating..."
+        cat > services/frontend/tailwind.config.js << 'EOF'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+EOF
+        log_success "Created tailwind.config.js"
+    fi
+}
+
+# Create frontend components
+create_frontend_components() {
+    # Create hooks directory if missing
     if [ ! -d "services/frontend/hooks" ]; then
         log_warning "hooks directory not found, creating..."
         mkdir -p services/frontend/hooks
     fi
     
-    # Check if useSocket.ts exists
+    # Create useSocket.ts if missing
     if [ ! -f "services/frontend/hooks/useSocket.ts" ]; then
         log_warning "useSocket.ts not found, creating basic one..."
         cat > services/frontend/hooks/useSocket.ts << 'EOF'
@@ -562,92 +538,7 @@ EOF
         log_success "Created useSocket.ts"
     fi
     
-    # Fix webpack build issues
-    log_info "Fixing webpack build issues..."
-    
-    # Create next.config.js if it doesn't exist
-    if [ ! -f "services/frontend/next.config.js" ]; then
-        log_warning "next.config.js not found, creating..."
-        cat > services/frontend/next.config.js << 'EOF'
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'standalone',
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-    return config;
-  },
-}
-
-module.exports = nextConfig
-EOF
-        log_success "Created next.config.js"
-    fi
-    
-    # Create package-lock.json if missing
-    if [ ! -f services/frontend/package-lock.json ]; then
-        log_warning "package-lock.json not found, creating one..."
-        
-        # Check if Node.js is installed
-        if ! check_nodejs; then
-            log_info "Node.js not found, installing..."
-            install_nodejs
-        fi
-        
-        if check_nodejs; then
-            cd services/frontend
-            npm install --package-lock-only
-            cd ../..
-            log_success "Created package-lock.json"
-        else
-            log_warning "npm not available, skipping package-lock.json creation"
-        fi
-    fi
-    
-    # Create postcss.config.js if it doesn't exist
-    if [ ! -f "services/frontend/postcss.config.js" ]; then
-        log_warning "postcss.config.js not found, creating..."
-        cat > services/frontend/postcss.config.js << 'EOF'
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-EOF
-        log_success "Created postcss.config.js"
-    fi
-    
-    # Create tailwind.config.js if it doesn't exist
-    if [ ! -f "services/frontend/tailwind.config.js" ]; then
-        log_warning "tailwind.config.js not found, creating..."
-        cat > services/frontend/tailwind.config.js << 'EOF'
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-EOF
-        log_success "Created tailwind.config.js"
-    fi
-    
-    # Create VideoPlayer component
+    # Create VideoPlayer component if missing
     if [ ! -f "services/frontend/components/VideoPlayer.tsx" ]; then
         log_warning "VideoPlayer.tsx not found, creating..."
         cat > services/frontend/components/VideoPlayer.tsx << 'EOF'
@@ -733,216 +624,16 @@ export default function VideoPlayer({ streamName = 'stream' }: VideoPlayerProps)
 EOF
         log_success "Created VideoPlayer.tsx"
     fi
-    
-    log_success "Docker build check completed"
-    return 0
 }
 
-
-# Install Docker on Ubuntu
-install_docker() {
-    log_info "Installing Docker on Ubuntu..."
+# Create .env file
+create_env_file() {
+    log_info "Creating .env file..."
     
-    # Check if running on Ubuntu
-    if ! command -v apt-get >/dev/null 2>&1; then
-        log_error "This script requires Ubuntu with apt package manager"
-        exit 1
-    fi
-    
-    # Check if running as root
-    if [ "$(id -u)" = "0" ]; then
-        SUDO=""
-    else
-        SUDO="sudo"
-    fi
-    
-    log_info "Removing old Docker installations completely..."
-    
-    # Stop Docker services
-    $SUDO systemctl stop docker 2>/dev/null || true
-    $SUDO systemctl stop containerd 2>/dev/null || true
-    
-    # Remove old Docker packages
-    $SUDO apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-    $SUDO apt-get purge -y docker docker-engine docker.io containerd runc 2>/dev/null || true
-    
-    # Remove old Docker directories
-    $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
-    
-    log_info "Updating package index..."
-    $SUDO apt-get update
-    
-    log_info "Installing prerequisites..."
-    $SUDO apt-get install -y ca-certificates curl gnupg lsb-release
-    
-    log_info "Adding Docker's official GPG key..."
-    $SUDO mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    
-    log_info "Setting up Docker repository..."
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(lsb_release -cs) stable" | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    log_info "Updating package index..."
-    $SUDO apt-get update
-    
-    log_info "Installing Docker Engine..."
-    $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    
-    log_info "Verifying Docker Compose plugin..."
-    if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose plugin installed successfully"
-    else
-        log_warning "Docker Compose plugin not found, trying to install manually..."
-        $SUDO apt-get install -y docker-compose-plugin
-    fi
-    
-    log_info "Verifying Docker installation..."
-    if docker --version >/dev/null 2>&1; then
-        log_success "Docker installed successfully:"
-        docker --version
-    else
-        log_error "Docker installation failed"
-        exit 1
-    fi
-    
-    log_info "Verifying Docker Compose installation..."
-    if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose installed successfully:"
-        docker compose version
-    else
-        log_error "Docker Compose installation failed"
-        exit 1
-    fi
-    
-    # Create Docker directories
-    log_info "Creating Docker directories..."
-    $SUDO mkdir -p /var/lib/docker/tmp
-    $SUDO mkdir -p /var/lib/docker/containers
-    $SUDO mkdir -p /var/lib/docker/volumes
-    $SUDO mkdir -p /var/lib/docker/image
-    $SUDO mkdir -p /var/lib/docker/overlay2
-    
-    # Start Docker service
-    log_info "Starting Docker service..."
-    $SUDO systemctl start docker
-    $SUDO systemctl enable docker
-    
-    # Add user to docker group if not root
-    if [ "$(id -u)" != "0" ]; then
-        log_info "Adding user to docker group..."
-        $SUDO usermod -aG docker $USER
-        log_warning "Please logout and login again, or run: newgrp docker"
-    fi
-    
-    # Verify installation
-    log_info "Verifying Docker installation..."
-    if docker info >/dev/null 2>&1; then
-        log_success "Docker installed successfully:"
-        docker --version
-    else
-        log_error "Docker installation failed"
-        exit 1
-    fi
-    
-    log_info "Verifying Docker Compose installation..."
-    if docker compose version >/dev/null 2>&1; then
-        log_success "Docker Compose installed successfully:"
-        docker compose version
-    else
-        log_error "Docker Compose installation failed"
-        exit 1
-    fi
-    
-    log_success "Docker and Docker Compose installation completed!"
-}
-
-# Sync source code to server
-sync_code() {
-    # Check if we're on Ubuntu server
-    if [[ "$HOSTNAME" == *"ubuntu"* ]] || [[ "$USER" == "ubuntu" ]]; then
-        log_info "Ubuntu server detected - syncing code..."
-        
-        # Change to livestream directory
-        cd /root/livestream 2>/dev/null || {
-            log_error "Cannot access /root/livestream directory"
-            exit 1
-        }
-        
-        # Auto-fix missing src directory
-        if [ ! -d "services/api/src" ] && [ -d "/home/ubuntu/src" ]; then
-            log_info "Moving src/ to correct location..."
-            sudo mv /home/ubuntu/src services/api/ && log_success "src/ moved successfully"
-        elif [ ! -d "services/api/src" ]; then
-            log_error "src/ directory not found. Run 'make sync' first."
-            exit 1
-        fi
-        
-        # Check frontend
-        [ ! -d "services/frontend/app" ] && log_warning "Frontend app/ missing - may cause build issues"
-    fi
-}
-
-# Setup everything (install + start)
-setup() {
-    log_info "Setting up LiveStream App..."
-    
-    # Check CPU and fix MongoDB version first
-    check_cpu_and_mongodb
-    
-    # Fix network issues
-    fix_network
-    
-    # Check Docker build issues
-    check_docker_build
-    
-    # Check if Docker is installed
-    if ! check_docker; then
-        log_info "Docker not found. Installing Docker..."
-        install_docker
-    fi
-    
-    # Start Docker service (if not already running)
-    if ! docker info >/dev/null 2>&1; then
-        log_info "Starting Docker service..."
-        SUDO_CMD=$(get_sudo_cmd)
-        
-        # Check if Docker service exists
-        if $SUDO_CMD systemctl list-unit-files | grep -q "docker.service"; then
-            log_info "Docker service found, starting..."
-            if $SUDO_CMD systemctl start docker 2>/dev/null; then
-                log_success "Docker service started via systemctl"
-            else
-                log_warning "Failed to start Docker service via systemctl"
-                # Try alternative method
-                log_info "Trying to start Docker daemon directly..."
-                $SUDO_CMD dockerd --daemon 2>/dev/null || true
-                sleep 3
-            fi
-        else
-            log_warning "Docker service not found in systemctl"
-            log_info "Trying to start Docker daemon directly..."
-            $SUDO_CMD dockerd --daemon 2>/dev/null || true
-            sleep 3
-        fi
-        
-        # Verify Docker is working
-        if docker info >/dev/null 2>&1; then
-            log_success "Docker is now running"
-        else
-            log_error "Docker failed to start. Please check installation."
-            exit 1
-        fi
-    else
-        log_info "Docker service is already running"
-    fi
-    
-    # Remove old .env and create new one
-    log_info "Removing old .env file..."
+    # Remove old .env
     rm -f .env
     
-    log_info "Creating new .env file..."
+    # Create new .env
     if [ -f env.example ]; then
         cp env.example .env
         log_success ".env file created from env.example"
@@ -965,7 +656,7 @@ FRONTEND_URL=http://frontend:3000
 NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
 NEXT_PUBLIC_WS_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_HLS_URL=http://183.182.104.226:24190/rtmp/hls
+NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
 NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
 NEXT_PUBLIC_STREAM_NAME=stream
 
@@ -977,33 +668,35 @@ RTMP_URL=rtmp://localhost:1935/live
 EOF
         log_success ".env file created with default values"
     fi
+}
+
+# Setup everything (install + start)
+setup() {
+    log_info "Setting up LiveStream App..."
     
-    # Initialize Docker daemon
-    log_info "Initializing Docker daemon..."
-    $SUDO_CMD systemctl stop docker 2>/dev/null || true
-    $SUDO_CMD pkill dockerd 2>/dev/null || true
-    $SUDO_CMD rm -f /var/run/docker.pid 2>/dev/null || true
-    $SUDO_CMD mkdir -p /var/lib/docker/{tmp,containers,volumes,image,overlay2}
-    $SUDO_CMD systemctl start docker
-    
-    # Wait for Docker to be ready
-    log_info "Waiting for Docker to be ready..."
-    for i in {1..30}; do
-        if docker info >/dev/null 2>&1; then
-            log_success "Docker is ready"
-            break
-        fi
-        log_info "Waiting for Docker... $i/30"
-        sleep 2
-    done
+    # Check CPU and fix MongoDB version first
+    check_cpu_and_mongodb
     
     # Fix network issues
-    log_info "Fixing network issues..."
+    fix_network
+    
+    # Check Docker build issues
+    check_docker_build
+    
+    # Check if Docker is installed
+    if ! check_docker; then
+        log_info "Docker not found. Installing Docker..."
+        install_docker
+    fi
+    
+    # Create .env file
+    create_env_file
     
     # Configure Docker daemon with registry mirrors
     log_info "Configuring Docker daemon with registry mirrors..."
-    sudo mkdir -p /etc/docker
-    cat << 'EOF' | sudo tee /etc/docker/daemon.json
+    SUDO_CMD=$(get_sudo_cmd)
+    $SUDO_CMD mkdir -p /etc/docker
+    cat << 'EOF' | $SUDO_CMD tee /etc/docker/daemon.json
 {
   "registry-mirrors": [
     "https://docker.mirrors.ustc.edu.cn",
@@ -1015,7 +708,7 @@ EOF
   "max-concurrent-uploads": 5
 }
 EOF
-    sudo systemctl restart docker
+    $SUDO_CMD systemctl restart docker
     sleep 5
     
     # Try to pull base images first
@@ -1074,72 +767,25 @@ EOF
         log_info "📊 RTMP Stats: http://localhost:8080/stat"
         log_info "🗄️ MongoDB: mongodb://localhost:27017/livestream"
         log_info "⚡ Redis: redis://localhost:6379"
-        log_info ""
-        log_info "🔧 Service Access:"
-        log_info "  - Frontend: http://localhost:3000 (direct)"
-        log_info "  - API: http://183.182.104.226:24190/ (direct)"
-        log_info "  - WebSocket: ws://183.182.104.226:24190/socket.io (direct)"
-        log_info "  - HLS: http://localhost:8080/hls/ (via Nginx)"
 }
 
-# Test all services
-test_services() {
-    log_info "Testing all services..."
+# Wait for service health
+wait_for_health() {
+    local service=$1
+    local timeout=${2:-30}
+    local count=0
     
-    # Test MongoDB
-    if docker exec livestream-mongodb mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
-        log_success "✅ MongoDB is running"
-    else
-        log_error "❌ MongoDB is not responding"
-    fi
+    while [ $count -lt $timeout ]; do
+        if docker ps --filter "name=$service" --filter "health=healthy" | grep -q "$service"; then
+            log_success "$service is healthy"
+            return 0
+        fi
+        count=$((count + 1))
+        sleep 1
+    done
     
-    # Test Redis
-    if docker exec livestream-redis redis-cli ping >/dev/null 2>&1; then
-        log_success "✅ Redis is running"
-    else
-        log_error "❌ Redis is not responding"
-    fi
-    
-    # Test Frontend (direct)
-    if curl -s http://localhost:3000 >/dev/null 2>&1; then
-        log_success "✅ Frontend is running (direct)"
-    else
-        log_error "❌ Frontend is not responding (direct)"
-    fi
-    
-    # Test API direct
-    if curl -s http://183.182.104.226:24190/health >/dev/null 2>&1; then
-        log_success "✅ API is running (direct)"
-    else
-        log_error "❌ API is not responding (direct)"
-    fi
-    
-    # Test Nginx proxy
-    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
-        log_success "✅ Nginx proxy is working"
-    else
-        log_error "❌ Nginx proxy is not responding"
-    fi
-    
-    # Test HLS
-    if curl -s http://localhost:8080/hls/stream.m3u8 >/dev/null 2>&1; then
-        log_success "✅ HLS streaming is working"
-    else
-        log_warning "⚠️ HLS streaming not available (no active stream)"
-    fi
-    
-    # Test RTMP stats
-    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
-        log_success "✅ RTMP stats are available"
-    else
-        log_error "❌ RTMP stats are not responding"
-    fi
-}
-
-# Install dependencies (legacy - use setup instead)
-install() {
-    log_warning "install command is deprecated. Use 'setup' instead."
-    setup
+    log_error "$service health check failed"
+    return 1
 }
 
 # Docker service management
@@ -1149,41 +795,7 @@ docker_service() {
     
     # Create .env file if it doesn't exist
     if [ ! -f .env ]; then
-        log_info "Creating .env file..."
-        if [ -f env.example ]; then
-            cp env.example .env
-            log_success ".env file created from env.example"
-        else
-            cat > .env << EOF
-# Database
-MONGODB_URI=mongodb://mongodb:27017/livestream
-REDIS_URL=redis://redis:6379
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# API
-API_PORT=9000
-API_URL=http://api:9000
-
-# Frontend
-FRONTEND_PORT=3000
-FRONTEND_URL=http://frontend:3000
-NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_WS_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
-NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
-NEXT_PUBLIC_STREAM_NAME=stream
-
-# Nginx
-BACKEND_URL=http://api:9000
-WS_URL=http://api:9000
-HLS_URL=http://localhost:8080/hls
-RTMP_URL=rtmp://localhost:1935/live
-EOF
-            log_success ".env file created with default values"
-        fi
+        create_env_file
     fi
     
     case $action in
@@ -1196,7 +808,7 @@ EOF
                 wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
                 wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
                 log_success "Services started"
-                log_info "Frontend: http://localhost:80"
+                log_info "Frontend: http://localhost:3000"
                 log_info "Backend: http://183.182.104.226:24190"
                 log_info "HLS Streaming: http://localhost:8080/hls"
                 log_info "RTMP: rtmp://localhost:1935/live"
@@ -1210,7 +822,7 @@ EOF
                     wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
                     wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
                     log_success "Services started"
-                    log_info "Frontend: http://localhost:80"
+                    log_info "Frontend: http://localhost:3000"
                     log_info "Backend: http://183.182.104.226:24190"
                     log_info "HLS Streaming: http://localhost:8080/hls"
                     log_info "RTMP: rtmp://localhost:1935/live"
@@ -1269,25 +881,6 @@ EOF
     esac
 }
 
-# Wait for service health
-wait_for_health() {
-    local service=$1
-    local timeout=${2:-30}
-    local count=0
-    
-    while [ $count -lt $timeout ]; do
-        if docker ps --filter "name=$service" --filter "health=healthy" | grep -q "$service"; then
-            log_success "$service is healthy"
-            return 0
-        fi
-        count=$((count + 1))
-        sleep 1
-    done
-    
-    log_error "$service health check failed"
-    return 1
-}
-
 # Wrapper functions
 start() { docker_service start; }
 stop() { docker_service stop; }
@@ -1296,6 +889,60 @@ logs() { docker_service logs; }
 clean() { docker_service clean; }
 build() { docker_service build; }
 
+# Test all services
+test_services() {
+    log_info "Testing all services..."
+    
+    # Test MongoDB
+    if docker exec livestream-mongodb mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+        log_success "✅ MongoDB is running"
+    else
+        log_error "❌ MongoDB is not responding"
+    fi
+    
+    # Test Redis
+    if docker exec livestream-redis redis-cli ping >/dev/null 2>&1; then
+        log_success "✅ Redis is running"
+    else
+        log_error "❌ Redis is not responding"
+    fi
+    
+    # Test Frontend (direct)
+    if curl -s http://localhost:3000 >/dev/null 2>&1; then
+        log_success "✅ Frontend is running (direct)"
+    else
+        log_error "❌ Frontend is not responding (direct)"
+    fi
+    
+    # Test API direct
+    if curl -s http://183.182.104.226:24190/health >/dev/null 2>&1; then
+        log_success "✅ API is running (direct)"
+    else
+        log_error "❌ API is not responding (direct)"
+    fi
+    
+    # Test Nginx proxy
+    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
+        log_success "✅ Nginx proxy is working"
+    else
+        log_error "❌ Nginx proxy is not responding"
+    fi
+    
+    # Test HLS
+    if curl -s http://localhost:8080/hls/stream.m3u8 >/dev/null 2>&1; then
+        log_success "✅ HLS streaming is working"
+    else
+        log_warning "⚠️ HLS streaming not available (no active stream)"
+    fi
+    
+    # Test RTMP stats
+    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
+        log_success "✅ RTMP stats are available"
+    else
+        log_error "❌ RTMP stats are not responding"
+    fi
+}
+
 # Test streaming functionality
 test_stream() {
     log_info "Testing streaming functionality..."
@@ -1303,8 +950,9 @@ test_stream() {
     # Check if FFmpeg is available
     if ! command -v ffmpeg >/dev/null 2>&1; then
         log_warning "FFmpeg not found. Installing..."
-        $(get_sudo_cmd) apt update
-        $(get_sudo_cmd) apt install -y ffmpeg
+        SUDO_CMD=$(get_sudo_cmd)
+        $SUDO_CMD apt update
+        $SUDO_CMD apt install -y ffmpeg
     fi
     
     # Start a test pattern stream
@@ -1345,172 +993,6 @@ test_stream() {
     wait $FFMPEG_PID 2>/dev/null || true
     
     log_info "Test stream completed"
-    log_info "Use './scripts/test-stream.sh pattern' to start a longer test"
-}
-
-# Reset everything (keep SSH and code) - Ubuntu only
-reset_all() {
-    log_warning "WARNING: This will DELETE EVERYTHING except SSH and source code!"
-    log_warning "This includes: Docker, databases, logs, caches, and all data!"
-    echo ""
-    read -p "Are you absolutely sure you want to continue? Type 'YES' to confirm: " confirm
-    if [ "$confirm" != "YES" ]; then
-        log_info "Operation cancelled."
-        exit 1
-    fi
-    
-    log_info "Starting complete system reset..."
-    
-    # Check if running on Ubuntu
-    if [[ "$OSTYPE" != "linux-gnu"* ]]; then
-        log_error "This command is only supported on Ubuntu"
-        exit 1
-    fi
-    
-    OS="ubuntu"
-    if [ "$(id -u)" = "0" ]; then
-        SUDO=""
-    else
-        SUDO="sudo"
-    fi
-    
-    log_info "Detected OS: $OS"
-    
-    # Stop all services
-    log_info "Stopping all services..."
-    $SUDO systemctl stop docker mongodb redis nginx 2>/dev/null || true
-    
-    # Remove Docker completely
-    log_info "Removing Docker completely..."
-    if command -v docker >/dev/null 2>&1; then
-        # Stop all containers
-        docker stop $(docker ps -aq) 2>/dev/null || true
-        docker rm $(docker ps -aq) 2>/dev/null || true
-        
-        # Remove all images, volumes, networks
-        docker rmi $(docker images -aq) 2>/dev/null || true
-        docker volume rm $(docker volume ls -q) 2>/dev/null || true
-        docker network rm $(docker network ls -q) 2>/dev/null || true
-        
-        # Ubuntu: Remove Docker packages
-        $SUDO apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
-        $SUDO apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker.io docker-compose 2>/dev/null || true
-        
-        # Remove Docker directories
-        $SUDO rm -rf /var/lib/docker /var/lib/containerd /etc/docker /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg 2>/dev/null || true
-        
-        log_success "Docker completely removed"
-    fi
-    
-    # Remove Node.js and npm
-    log_info "Removing Node.js and npm..."
-    # Ubuntu: Remove Node.js via apt
-    $SUDO apt-get remove -y nodejs npm 2>/dev/null || true
-    $SUDO apt-get purge -y nodejs npm 2>/dev/null || true
-    $SUDO rm -rf /usr/local/bin/npm /usr/local/bin/node /usr/local/lib/node_modules /usr/local/include/node 2>/dev/null || true
-    $SUDO rm -rf ~/.npm ~/.node-gyp 2>/dev/null || true
-    log_success "Node.js and npm removed"
-    
-    # Remove MongoDB
-    log_info "Removing MongoDB..."
-    # Ubuntu: Remove MongoDB via apt
-    $SUDO systemctl stop mongod 2>/dev/null || true
-    $SUDO apt-get remove -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
-    $SUDO apt-get purge -y mongodb-org mongodb-org-server mongodb-org-mongos mongodb-org-tools 2>/dev/null || true
-    $SUDO rm -rf /var/lib/mongodb /var/log/mongodb /etc/mongod.conf 2>/dev/null || true
-    log_success "MongoDB removed"
-    
-    # Remove Redis
-    log_info "Removing Redis..."
-    # Ubuntu: Remove Redis via apt
-    $SUDO systemctl stop redis 2>/dev/null || true
-    $SUDO apt-get remove -y redis-server redis-tools 2>/dev/null || true
-    $SUDO apt-get purge -y redis-server redis-tools 2>/dev/null || true
-    $SUDO rm -rf /var/lib/redis /var/log/redis /etc/redis 2>/dev/null || true
-    log_success "Redis removed"
-    
-    # Remove Nginx
-    log_info "Removing Nginx..."
-    # Ubuntu: Remove Nginx via apt
-    $SUDO systemctl stop nginx 2>/dev/null || true
-    $SUDO apt-get remove -y nginx nginx-common nginx-core 2>/dev/null || true
-    $SUDO apt-get purge -y nginx nginx-common nginx-core 2>/dev/null || true
-    $SUDO rm -rf /var/www/html /etc/nginx /var/log/nginx 2>/dev/null || true
-    log_success "Nginx removed"
-    
-    # Remove all project data
-    log_info "Removing all project data..."
-    rm -rf data/ hls/ logs/ tmp/ .env 2>/dev/null || true
-    log_success "Project data removed"
-    
-    # Remove all build artifacts
-    log_info "Removing all build artifacts..."
-    rm -rf services/api/node_modules/ services/api/dist/ services/frontend/node_modules/ services/frontend/.next/ services/frontend/out/ services/frontend/build/ 2>/dev/null || true
-    log_success "Build artifacts removed"
-    
-    # Remove all caches
-    log_info "Removing all caches..."
-    # Ubuntu: Remove caches
-    $SUDO rm -rf /var/cache/apt/archives/* /var/cache/apt/lists/* /tmp/* /var/tmp/* ~/.cache 2>/dev/null || true
-    log_success "Caches removed"
-    
-    # Remove all logs
-    log_info "Removing all logs..."
-    # Ubuntu: Remove logs
-    $SUDO rm -rf /var/log/*.log /var/log/*.old /var/log/*.gz 2>/dev/null || true
-    find . -name "*.log" -type f -delete 2>/dev/null || true
-    log_success "Logs removed"
-    
-    # Clean up temporary files
-    log_info "Cleaning up temporary files..."
-    find . -name "*.tmp" -o -name ".DS_Store" -o -name "Thumbs.db" -o -name "*.swp" -o -name "*.swo" -o -name "*~" -type f -delete 2>/dev/null || true
-    log_success "Temporary files removed"
-    
-    # Reset file permissions
-    log_info "Resetting file permissions..."
-    chmod +x scripts/*.sh 2>/dev/null || true
-    chmod 644 *.md *.yml *.json 2>/dev/null || true
-    log_success "File permissions reset"
-    
-    # Clean up package manager
-    log_info "Cleaning up package manager..."
-    # Ubuntu: Clean up apt
-    $SUDO apt-get autoremove -y 2>/dev/null || true
-    $SUDO apt-get autoclean 2>/dev/null || true
-    log_success "Package manager cleaned"
-    
-    # Show what was preserved
-    log_info "The following were preserved:"
-    echo "  - Source code files"
-    echo "  - Configuration files"
-    echo "  - Environment template"
-    echo "  - Documentation files"
-    echo "  - SSH configuration and keys"
-    echo "  - Git repository and history"
-    echo "  - Makefile and scripts"
-    echo "  - Project structure"
-    
-    # Show what was removed
-    log_warning "The following were completely removed:"
-    echo "  - Docker and all containers/images/volumes"
-    echo "  - Node.js and npm"
-    echo "  - MongoDB and all data"
-    echo "  - Redis and all data"
-    echo "  - Nginx and all configs"
-    echo "  - All project data and logs"
-    echo "  - All build artifacts and caches"
-    echo "  - All temporary files"
-    
-    # Show next steps
-    log_success "Complete system reset finished!"
-    echo ""
-    log_info "Next steps:"
-    echo "  1. Run 'make install' to reinstall everything"
-    echo "  2. Run 'make start' to start services"
-    echo "  3. Or run 'make setup' for quick setup"
-    echo ""
-    log_info "Your SSH configuration and source code are intact."
-    log_warning "You will need to reconfigure everything from scratch."
 }
 
 # Sync code to server
@@ -1553,118 +1035,56 @@ sync_to_server() {
     log_info "Run 'cd ~/livestream && make install' on the server to continue"
 }
 
-# Install Docker on Ubuntu (standalone function)
-install_docker_ubuntu() {
-    log_info "🚀 Installing Docker on Ubuntu..."
+# System optimization functions
+optimize_docker() {
+    log_info "🐳 Optimizing Docker system..."
     
-    # Check if running on Ubuntu
-    if ! command -v apt-get >/dev/null 2>&1; then
-        log_error "This script requires Ubuntu with apt package manager"
-        exit 1
-    fi
+    # Clean up Docker
+    docker system prune -f
+    docker builder prune -af
+    docker volume prune -f
+    docker image prune -af
     
-    # Check if running as root
-    if [ "$(id -u)" = "0" ]; then
-        SUDO=""
-    else
-        SUDO="sudo"
-    fi
-    
-    # Update package index
-    log_info "📦 Updating package index..."
-    $SUDO apt update
-    
-    # Install required packages
-    log_info "📦 Installing required packages..."
-    $SUDO apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-    
-    # Add Docker's official GPG key
-    log_info "🔑 Adding Docker's GPG key..."
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    
-    # Add Docker repository
-    log_info "📋 Adding Docker repository..."
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    # Update package index again
-    log_info "📦 Updating package index..."
-    $SUDO apt update
-    
-    # Install Docker Engine
-    log_info "🐳 Installing Docker Engine..."
-    $SUDO apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    
-    # Start and enable Docker service
-    log_info "🚀 Starting Docker service..."
-    $SUDO systemctl start docker
-    $SUDO systemctl enable docker
-    
-    # Add current user to docker group
-    log_info "👤 Adding current user to docker group..."
-    $SUDO usermod -aG docker $USER
-    
-    # Test Docker installation
-    log_info "🧪 Testing Docker installation..."
-    if docker --version > /dev/null 2>&1; then
-        log_success "✅ Docker installed successfully!"
-        docker --version
-    else
-        log_error "❌ Docker installation failed!"
-        exit 1
-    fi
-    
-    log_success "🎉 Docker installation completed!"
-    log_warning "⚠️  You may need to logout and login again to use Docker without sudo"
+    log_success "✅ Docker system optimized"
 }
 
-# Create new .env file
-create_new_env() {
-    log_info "🔧 Creating new .env file..."
+clean_temp_files() {
+    log_info "🧹 Cleaning temporary files..."
     
-    # Remove old .env
-    log_info "🗑️  Removing old .env file..."
-    rm -f .env
+    # Remove temporary files
+    find . -name "*.log" -delete 2>/dev/null || true
+    find . -name "*.tmp" -delete 2>/dev/null || true
+    find . -name ".DS_Store" -delete 2>/dev/null || true
+    find . -name "Thumbs.db" -delete 2>/dev/null || true
     
-    # Create new .env
-    log_info "📝 Creating new .env file..."
-    cat > .env << EOF
-# Database
-MONGODB_URI=mongodb://mongodb:27017/livestream
-REDIS_URL=redis://redis:6379
+    # Clean HLS files
+    if [ -d "hls" ]; then
+        rm -rf hls/*
+        log_info "Cleared HLS files"
+    fi
+    
+    log_success "✅ Temporary files cleaned"
+}
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# API
-API_PORT=9000
-API_URL=http://api:9000
-
-# Frontend
-FRONTEND_PORT=3000
-FRONTEND_URL=http://frontend:3000
-NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_WS_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_HLS_URL=http://183.182.104.226:24190/rtmp/hls
-NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
-NEXT_PUBLIC_STREAM_NAME=stream
-
-# Nginx
-BACKEND_URL=http://api:9000
-WS_URL=http://api:9000
-HLS_URL=http://localhost:8080/hls
-RTMP_URL=rtmp://localhost:1935/live
-EOF
-
-    log_success "✅ .env file created successfully!"
-    log_info "📋 Contents:"
-    cat .env
+optimize_all() {
+    log_info "🚀 Starting full system optimization..."
+    
+    # Stop services first
+    log_info "🛑 Stopping services..."
+    docker-compose down 2>/dev/null || true
+    
+    # Run optimizations
+    clean_temp_files
+    create_env_file
+    optimize_docker
+    
+    log_success "🎉 System optimization complete!"
 }
 
 # Main function
 main() {
     case "$1" in
-        install) install ;;
+        install) setup ;;
         setup) setup ;;
         start) start ;;
         stop) stop ;;
@@ -1674,20 +1094,12 @@ main() {
         build) build ;;
         test) test_services ;;
         test-stream) test_stream ;;
-        reset-all) reset_all ;;
         sync) sync_to_server ;;
-        install-docker) install_docker_ubuntu ;;
-        fix-ubuntu) 
-            if [ -f "../fix-ubuntu-streaming.sh" ]; then
-                ../fix-ubuntu-streaming.sh
-            else
-                log_error "fix-ubuntu-streaming.sh not found"
-                exit 1
-            fi
-            ;;
-        create-env) create_new_env ;;
+        install-docker) install_docker ;;
+        create-env) create_env_file ;;
+        optimize) optimize_all ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync|install-docker|fix-ubuntu|create-env}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|sync|install-docker|create-env|optimize}"
             exit 1
             ;;
     esac

@@ -1,5 +1,7 @@
 # LiveStream App Makefile
-.PHONY: help install start stop status clean build test setup-ssh ssh-status reset-all setup sync
+# Optimized version with duplicates removed
+
+.PHONY: help install start stop status clean build test setup sync optimize
 
 # Default target
 .DEFAULT_GOAL := help
@@ -17,17 +19,12 @@ help:
 	@echo "  make setup      - Quick setup (install + start)"
 	@echo ""
 	@echo "🚀 Deployment:"
-	@echo "  make deploy     - Deploy to single server"
 	@echo "  make sync       - Sync code to server"
-	@echo ""
-	@echo "🔧 Server Setup:"
-	@echo "  make setup-ssh  - Configure SSH server for Ubuntu"
-	@echo "  make ssh-status - Show SSH service status"
 	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make logs       - Show service logs"
-	@echo "  make reset-all  - Reset everything (keep SSH and code)"
+	@echo "  make optimize   - Optimize system and clean up"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend: http://localhost:3000"
@@ -39,7 +36,6 @@ help:
 install:
 	@echo "Installing Docker, dependencies and setup..."
 	./scripts/app.sh install
-
 
 start:
 	@echo "Starting all services..."
@@ -60,30 +56,14 @@ build:
 
 test:
 	@echo "Running tests..."
-	cd services/api && npm test || echo "No tests configured"
-	cd services/frontend && npm test || echo "No tests configured"
+	./scripts/app.sh test
 
 # Deployment
-deploy:
-	@echo "Deploying to server..."
-	./scripts/app.sh start
-
 sync:
 	@echo "Syncing code to server..."
 	@echo "Using default server: ubuntu@183.182.104.226:24122"
 	@echo "Override with: SERVER_HOST=ip SERVER_PORT=port SERVER_USER=user make sync"
 	./scripts/app.sh sync
-
-# Server Setup
-setup-ssh:
-	@echo "Configuring SSH server for Ubuntu..."
-	@chmod +x scripts/setup-ssh-server.sh
-	@bash scripts/setup-ssh-server.sh
-
-# SSH Management
-ssh-status:
-	@echo "SSH service status:"
-	@sudo systemctl status ssh --no-pager
 
 # Maintenance
 clean:
@@ -94,14 +74,12 @@ logs:
 	@echo "Showing service logs..."
 	./scripts/app.sh logs
 
-# Reset everything (keep SSH and code)
-reset-all:
-	@echo "Resetting everything (keeping SSH and code)..."
-	./scripts/app.sh reset-all
+optimize:
+	@echo "Optimizing system and cleaning up..."
+	./scripts/app.sh optimize
 
 # Quick setup
 setup:
 	@echo "Setting up LiveStream App..."
 	./scripts/app.sh setup
-	@echo "Setup complete! Access at http://localhost:8080"
-
+	@echo "Setup complete! Access at http://localhost:3000"

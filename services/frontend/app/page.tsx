@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Play, Users, Heart, MessageCircle } from 'lucide-react';
 import VideoPlayer from '@/components/VideoPlayer';
 import Chat from '@/components/Chat';
+import UsersTable from '@/components/UsersTable';
+import BandwidthMonitor from '@/components/BandwidthMonitor';
 import { useSocket } from '@/hooks/useSocket';
 
 export default function Home() {
@@ -11,6 +13,7 @@ export default function Home() {
   const [viewerCount, setViewerCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [showChat, setShowChat] = useState(true);
   const { socket, isConnected } = useSocket();
 
   useEffect(() => {
@@ -23,12 +26,39 @@ export default function Home() {
         setLikeCount(data.count);
       });
 
+      socket.on('like_update', (data: { count: number, liked: boolean }) => {
+        setLikeCount(data.count);
+        setIsLiked(data.liked);
+      });
+
       return () => {
         socket.off('online_count');
         socket.off('like');
+        socket.off('like_update');
       };
     }
   }, [socket]);
+
+  // Check stream status periodically
+  useEffect(() => {
+    const checkStreamStatus = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
+        const response = await fetch(`${apiUrl}/rtmp/hls/stream/index.m3u8`);
+        setIsLive(response.ok);
+      } catch (error) {
+        setIsLive(false);
+      }
+    };
+
+    // Check immediately
+    checkStreamStatus();
+
+    // Check every 5 seconds
+    const interval = setInterval(checkStreamStatus, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLike = () => {
     if (socket) {
@@ -89,10 +119,13 @@ export default function Home() {
                     <span>Like</span>
                   </button>
                   
-                  <div className="flex items-center space-x-2 text-white">
+                  <button
+                    onClick={() => setShowChat(!showChat)}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-glass-white text-white hover:bg-glass-black transition-all"
+                  >
                     <MessageCircle className="w-5 h-5" />
-                    <span>Chat</span>
-                  </div>
+                    <span>{showChat ? 'Hide Chat' : 'Show Chat'}</span>
+                  </button>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -106,9 +139,11 @@ export default function Home() {
           </div>
 
           {/* Chat */}
-          <div className="lg:col-span-1">
-            <Chat />
-          </div>
+          {showChat && (
+            <div className="lg:col-span-1">
+              <Chat />
+            </div>
+          )}
         </div>
 
         {/* Online Users */}
@@ -134,6 +169,16 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="mt-6">
+          <UsersTable />
+        </div>
+
+        {/* Bandwidth Monitor */}
+        <div className="mt-6">
+          <BandwidthMonitor />
         </div>
       </div>
     </div>

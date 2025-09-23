@@ -10,7 +10,16 @@ A complete live streaming application with real-time chat, built with modern tec
 - **Stream Management**: Create, manage, and monitor streams
 - **Responsive Design**: Works on desktop and mobile devices
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        LiveStream System                        │
+├─────────────────────────────────────────────────────────────────┤
+│ Port 3000 │  Port 8080  │  Port 9000  │  Port 1935  │  Port 27017 │
+│ Frontend  │ HLS/API     │ Backend API │ RTMP        │ MongoDB     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Backend (NestJS)
 - **Framework**: NestJS with TypeScript
@@ -40,7 +49,10 @@ A complete live streaming application with real-time chat, built with modern tec
 livestream/
 ├── config/                     # Configuration files
 │   ├── database/              # MongoDB config
+│   │   └── init-mongo.js     # MongoDB initialization script
 │   └── nginx/                 # Nginx config
+│       ├── Dockerfile        # Nginx Docker image
+│       └── nginx.conf        # Nginx reverse proxy config
 ├── scripts/                   # Scripts
 │   ├── app.sh                # Main app control script
 │   └── setup-ssh-server.sh   # SSH server setup
@@ -48,27 +60,160 @@ livestream/
 │   ├── api/                  # NestJS Backend
 │   │   ├── src/
 │   │   │   ├── auth/         # Authentication
+│   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   ├── auth.module.ts
+│   │   │   │   ├── dto/      # Data Transfer Objects
+│   │   │   │   │   ├── login.dto.ts
+│   │   │   │   │   └── register.dto.ts
+│   │   │   │   ├── guards/   # Authentication guards
+│   │   │   │   │   ├── jwt-auth.guard.ts
+│   │   │   │   │   └── local-auth.guard.ts
+│   │   │   │   └── strategies/ # Passport strategies
+│   │   │   │       ├── jwt.strategy.ts
+│   │   │   │       └── local.strategy.ts
 │   │   │   ├── users/        # User management
-│   │   │   ├── streams/       # Stream management
-│   │   │   ├── chat/          # Chat & WebSocket
-│   │   │   └── main.ts        # Application entry
+│   │   │   │   ├── users.controller.ts
+│   │   │   │   ├── users.service.ts
+│   │   │   │   ├── users.module.ts
+│   │   │   │   ├── dto/
+│   │   │   │   │   ├── create-user.dto.ts
+│   │   │   │   │   └── update-user.dto.ts
+│   │   │   │   └── schemas/
+│   │   │   │       └── user.schema.ts
+│   │   │   ├── streams/      # Stream management
+│   │   │   │   ├── streams.controller.ts
+│   │   │   │   ├── streams.service.ts
+│   │   │   │   ├── streams.module.ts
+│   │   │   │   ├── dto/
+│   │   │   │   │   ├── create-stream.dto.ts
+│   │   │   │   │   └── update-stream.dto.ts
+│   │   │   │   └── schemas/
+│   │   │   │       └── stream.schema.ts
+│   │   │   ├── chat/         # Real-time chat
+│   │   │   │   ├── chat.gateway.ts
+│   │   │   │   ├── chat.service.ts
+│   │   │   │   ├── chat.module.ts
+│   │   │   │   ├── dto/
+│   │   │   │   │   └── create-message.dto.ts
+│   │   │   │   └── schemas/
+│   │   │   │       └── message.schema.ts
+│   │   │   ├── rtmp/         # RTMP management
+│   │   │   │   ├── rtmp.controller.ts
+│   │   │   │   ├── rtmp.service.ts
+│   │   │   │   ├── rtmp.module.ts
+│   │   │   │   └── dto/
+│   │   │   │       └── create-stream.dto.ts
+│   │   │   ├── main.ts       # Application entry
+│   │   │   ├── app.module.ts # Root module
+│   │   │   ├── app.controller.ts # Root controller
+│   │   │   └── app.service.ts # Root service
 │   │   ├── package.json
-│   │   └── Dockerfile
-│   └── frontend/              # Next.js Frontend
-│       ├── app/               # App router
-│       ├── components/        # React components
-│       ├── hooks/             # Custom hooks
+│   │   ├── Dockerfile
+│   │   ├── nest-cli.json
+│   │   └── tsconfig.json
+│   └── frontend/             # Next.js Frontend
+│       ├── app/              # App router
+│       │   ├── layout.tsx    # Root layout
+│       │   ├── page.tsx      # Home page
+│       │   └── globals.css   # Global styles
+│       ├── components/       # React components
+│       │   ├── Chat.tsx      # Chat component
+│       │   ├── VideoPlayer.tsx # Video player component
+│       │   ├── UsersTable.tsx # Users table component
+│       │   └── BandwidthMonitor.tsx # Bandwidth monitor
+│       ├── hooks/            # Custom React hooks
+│       │   └── useSocket.ts  # Socket.io hook
+│       ├── public/           # Static assets
+│       │   ├── favicon.ico
+│       │   ├── site.webmanifest
+│       │   └── package.json
 │       ├── package.json
-│       └── Dockerfile
-├── .github/
-│   └── workflows/          # GitHub Actions
-│       ├── ci.yml         # Continuous Integration
-│       └── cd.yml         # Continuous Deployment
-├── docker-compose.yml     # Docker Compose
-├── Makefile              # Build automation
-├── .env.example          # Environment variables
-└── README.md
+│       ├── Dockerfile
+│       ├── next.config.js
+│       ├── tailwind.config.js
+│       ├── postcss.config.js
+│       └── tsconfig.json
+├── hls/                      # HLS video files (runtime)
+├── docker-compose.yml        # Docker Compose configuration
+├── docker-compose.yml.bak    # Backup configuration
+├── Makefile                  # Build automation
+├── env.example               # Environment variables template
+├── LICENSE                   # License file
+└── README.md                 # Project documentation
 ```
+
+## 🔄 Data Flow & Connections
+
+### 1. **Frontend ↔ Backend Communication**
+```
+Frontend (Next.js) ←→ Backend API (NestJS)
+├── HTTP REST API calls
+├── WebSocket connections (Socket.io)
+└── Authentication (JWT tokens)
+```
+
+### 2. **Database Connections**
+```
+Backend API ←→ MongoDB
+├── User data
+├── Stream data
+├── Chat messages
+└── Authentication data
+```
+
+### 3. **Streaming Pipeline**
+```
+Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → Frontend Port 3000
+                                      ↓
+                              API:9000 → MongoDB:27017
+                                      ↓
+                              Redis:6379 (Cache)
+```
+
+### 4. **Docker Services**
+```
+docker-compose.yml
+├── frontend:3000    (Next.js app)
+├── api:9000         (NestJS API)
+├── nginx:8080       (Reverse proxy + RTMP)
+├── mongodb:27017    (Database)
+├── redis:6379       (Cache)
+└── streaming:3002   (Streaming service)
+```
+
+## 📡 Port Mapping
+
+| Service | Internal Port | External Port | Purpose |
+|---------|---------------|---------------|---------|
+| **Frontend** | 3000 | 3000 | Next.js Web Interface |
+| **HLS Streaming** | 8080 | 8080 | HLS Streams & API Proxy |
+| **Backend API** | 9000 | 9000 | NestJS REST API |
+| **RTMP** | 1935 | 1935 | RTMP Ingest |
+| **MongoDB** | 27017 | 27017 | Database |
+| **Redis** | 6379 | 6379 | Cache & Sessions |
+
+## 🎯 Service Endpoints
+
+### Frontend (Port 3000)
+- **Main Interface**: `http://localhost:3000`
+- **Player**: `http://localhost:3000` (with VideoPlayer component)
+- **Chat**: `http://localhost:3000` (with Chat component)
+
+### HLS Streaming (Port 8080)
+- **HLS Stream**: `http://localhost:8080/hls/{streamName}`
+- **API Proxy**: `http://localhost:8080/api/*`
+- **WebSocket**: `ws://localhost:8080/socket.io/`
+- **RTMP Stats**: `http://localhost:8080/stat`
+
+### Backend API (Port 9000)
+- **Health Check**: `http://183.182.104.226:24190/health`
+- **RTMP Auth**: `http://183.182.104.226:24190/rtmp/publish`
+- **HLS Serve**: `http://183.182.104.226:24190/hls/{streamName}`
+
+### RTMP (Port 1935)
+- **Stream URL**: `rtmp://localhost:1935/live`
+- **Stream Key**: `stream` (or any name)
 
 ## 🚀 Quick Start
 
@@ -88,7 +233,7 @@ cd livestream
 
 2. **Environment setup:**
 ```bash
-cp .env.example .env
+cp env.example .env
 # Edit .env with your configuration
 ```
 
@@ -104,36 +249,20 @@ docker-compose up -d
 - **Backend API**: http://183.182.104.226:24190
 - **Web Interface**: http://localhost:8080
 
-### Available Commands
-
-```bash
-make help          # Show all available commands
-make install       # Install dependencies
-make start         # Start all services
-make stop          # Stop all services
-make status        # Show service status
-make build         # Build all services
-make test          # Run tests
-make deploy        # Deploy to server
-make setup-ssh     # Configure SSH server for Ubuntu
-make clean         # Clean up containers and images
-make logs          # Show service logs
-```
-
 ### Streaming
 
 1. **Configure your streaming software:**
 - **RTMP URL**: `rtmp://localhost:1935/live`
 - **Stream Key**: `stream`
 
-2. **View your stream**: http://localhost:8080
+2. **View your stream**: http://localhost:3000
 
 ## 🛠️ Available Commands
 
 ### Main Script Commands
 
 ```bash
-./scripts/livestream.sh [command]
+./scripts/app.sh [command]
 ```
 
 **Commands:**
@@ -209,6 +338,10 @@ npm run dev
 - `PATCH /streams/:id` - Update stream
 - `DELETE /streams/:id` - Delete stream
 
+### RTMP
+- `POST /rtmp/publish` - RTMP authentication
+- `GET /rtmp/status` - RTMP status
+
 ## 🔌 WebSocket Events
 
 ### Client to Server
@@ -238,6 +371,7 @@ FRONTEND_URL=http://localhost:3000
 # API URLs
 NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
 NEXT_PUBLIC_WS_URL=ws://183.182.104.226:24190
+NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
 
 # Database
 MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin
@@ -249,18 +383,18 @@ REDIS_URL=redis://redis:6379
 NODE_ENV=production
 ```
 
-**Note**: The `.env` file is automatically created when you run `./scripts/livestream.sh install`. No manual setup required!
+**Note**: The `.env` file is automatically created when you run `./scripts/app.sh install`. No manual setup required!
 
 ## 🚀 Deployment
 
 ### Single Server
 ```bash
-./scripts/livestream.sh start
+./scripts/app.sh start
 ```
 
 ### Multiple Servers (Docker Swarm)
 ```bash
-./scripts/livestream.sh multi
+./scripts/app.sh multi
 ```
 
 ### GitHub Actions CI/CD
@@ -270,6 +404,73 @@ The project includes GitHub Actions for:
 - **Building**: Build and push Docker images
 - **Deploying**: Deploy to staging/production
 - **Security**: Vulnerability scanning
+
+## 📊 Performance Optimizations
+
+### Nginx
+- ✅ Gzip compression enabled
+- ✅ CORS headers configured
+- ✅ Proxy buffering disabled for HLS
+- ✅ WebSocket upgrade support
+- ✅ RTMP statistics endpoint
+
+### Docker
+- ✅ Multi-stage builds
+- ✅ Non-root user security
+- ✅ Health checks
+- ✅ Volume persistence
+- ✅ Network isolation
+
+### Frontend
+- ✅ HLS.js fallback for browsers
+- ✅ Error handling & loading states
+- ✅ Responsive design
+- ✅ Real-time chat integration
+
+### Backend
+- ✅ CORS enabled
+- ✅ Graceful shutdown
+- ✅ RTMP authentication
+- ✅ HLS file serving
+- ✅ WebSocket support
+
+## 🔍 Monitoring & Debugging
+
+```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service]
+
+# Check RTMP stats
+curl http://localhost:8080/stat
+
+# Test HLS stream
+curl http://localhost:8080/hls/stream
+```
+
+## 🛡️ Security Features
+
+- ✅ Non-root containers
+- ✅ Network isolation
+- ✅ CORS configuration
+- ✅ Input validation
+- ✅ Rate limiting (nginx)
+- ✅ Health checks
+- ✅ SSH Hardening - Secure server access
+- ✅ JWT Authentication - Secure API access
+- ✅ Password-less SSH - Key-based authentication
+- ✅ Firewall Rules - UFW configuration
+- ✅ Docker Isolation - Container security
+
+## 📈 Scalability
+
+- ✅ Horizontal scaling ready
+- ✅ Load balancer compatible
+- ✅ Database clustering support
+- ✅ Redis clustering support
+- ✅ CDN integration ready
 
 ## 🐛 Troubleshooting
 
@@ -291,7 +492,7 @@ The project includes GitHub Actions for:
 
 3. **Database connection**: Ensure MongoDB is running
    ```bash
-   ./scripts/livestream.sh status
+   ./scripts/app.sh status
    ```
 
 4. **Docker startup issues**: 
@@ -303,7 +504,7 @@ The project includes GitHub Actions for:
    docker system prune -f
    
    # Try again
-   ./scripts/livestream.sh start
+   ./scripts/app.sh start
    ```
 
 ### Testing
@@ -311,10 +512,10 @@ The project includes GitHub Actions for:
 Test your environment:
 ```bash
 # Test local environment
-./scripts/livestream.sh test
+./scripts/app.sh test
 
 # Test production environment  
-./scripts/livestream.sh test-production
+./scripts/app.sh test-production
 ```
 
 ### Logs
@@ -323,17 +524,51 @@ View service logs:
 ```bash
 make logs
 # or
-docker-compose -f deployments/docker/docker-compose.single.yml logs -f
+docker-compose logs -f
 ```
 
 ### Reset Everything
 
 Complete reset:
 ```bash
-./scripts/livestream.sh uninstall
-./scripts/livestream.sh install
-./scripts/livestream.sh start
+./scripts/app.sh uninstall
+./scripts/app.sh install
+./scripts/app.sh start
 ```
+
+## 🔧 Key Technologies
+
+### **Backend Stack**
+- **NestJS** - Node.js framework
+- **MongoDB** - NoSQL database
+- **Mongoose** - ODM for MongoDB
+- **JWT** - Authentication
+- **Socket.io** - Real-time communication
+- **Passport** - Authentication strategies
+
+### **Frontend Stack**
+- **Next.js 14** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **Socket.io Client** - Real-time communication
+- **HLS.js** - Video streaming
+
+### **Infrastructure**
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **Nginx** - Reverse proxy + RTMP server
+- **Redis** - Caching
+- **GitHub Actions** - CI/CD
+
+## 🎯 Project Goals
+
+1. **Live Streaming** - RTMP to HLS conversion
+2. **Real-time Chat** - WebSocket-based messaging
+3. **User Management** - Registration and authentication
+4. **Stream Management** - Create and manage streams
+5. **Responsive Design** - Mobile and desktop support
+6. **Easy Deployment** - One-command setup
+7. **Security** - Hardened SSH and authentication
 
 ## 📄 License
 
