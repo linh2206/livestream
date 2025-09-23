@@ -46,9 +46,9 @@ Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → F
 - **RTMP Stats**: `http://localhost:8080/stat`
 
 ### Backend API (Port 9000)
-- **Health Check**: `http://localhost:9000/health`
-- **RTMP Auth**: `http://localhost:9000/rtmp/publish`
-- **HLS Serve**: `http://localhost:9000/hls/{streamName}`
+- **Health Check**: `http://183.182.104.226:24190/health`
+- **RTMP Auth**: `http://183.182.104.226:24190/rtmp/publish`
+- **HLS Serve**: `http://183.182.104.226:24190/hls/{streamName}`
 
 ### RTMP (Port 1935)
 - **Stream URL**: `rtmp://localhost:1935/live`
@@ -83,8 +83,8 @@ Streamer (OBS) → RTMP:1935 → Nginx RTMP → HLS Segments → Port 8080 → F
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:9000` | Backend API URL |
-| `NEXT_PUBLIC_WS_URL` | `ws://localhost:9000` | WebSocket URL |
+| `NEXT_PUBLIC_API_URL` | `http://183.182.104.226:24190` | Backend API URL |
+| `NEXT_PUBLIC_WS_URL` | `ws://183.182.104.226:24190` | WebSocket URL |
 | `NEXT_PUBLIC_HLS_URL` | `http://localhost:8080/hls` | HLS Streaming URL |
 | `MONGODB_URI` | `mongodb://admin:password@mongodb:27017/livestream` | Database URL |
 | `REDIS_URL` | `redis://redis:6379` | Redis URL |

@@ -31,7 +31,7 @@ help:
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend: http://localhost:3000"
-	@echo "  Backend:  http://localhost:9000"
+	@echo "  Backend:  http://183.182.104.226:24190"
 	@echo "  Web UI:   http://localhost:8080"
 	@echo ""
 

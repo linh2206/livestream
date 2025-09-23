@@ -101,7 +101,7 @@ docker-compose up -d
 
 4. **Access the application:**
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:9000
+- **Backend API**: http://183.182.104.226:24190
 - **Web Interface**: http://localhost:8080
 
 ### Available Commands
@@ -236,8 +236,8 @@ JWT_SECRET=your-super-secret-jwt-key
 FRONTEND_URL=http://localhost:3000
 
 # API URLs
-NEXT_PUBLIC_API_URL=http://localhost:9000
-NEXT_PUBLIC_WS_URL=ws://localhost:9000
+NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
+NEXT_PUBLIC_WS_URL=ws://183.182.104.226:24190
 
 # Database
 MONGODB_URI=mongodb://admin:password@mongodb:27017/livestream?authSource=admin

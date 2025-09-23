@@ -29,7 +29,7 @@ jobs:
       run: |
         echo "Checking service health..."
         docker compose ps
-        curl -f http://localhost:9000/health || echo "API health check failed"
+        curl -f http://183.182.104.226:24190/health || echo "API health check failed"
         curl -f http://localhost:3000 || echo "Frontend check failed"
         curl -f http://localhost:8080 || echo "Nginx check failed"
     - name: Show logs on failure

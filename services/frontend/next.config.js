@@ -42,7 +42,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190'}/:path*`,
       },
     ];
   },

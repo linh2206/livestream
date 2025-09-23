@@ -13,7 +13,7 @@ export default function VideoPlayer() {
     if (!video) return;
 
     // Use backend API for HLS URL
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190';
     const streamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
     const hlsUrl = `${apiBaseUrl}/rtmp/hls/${streamName}/index.m3u8`;
 

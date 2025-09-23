@@ -127,7 +127,7 @@ export default function Home() {
             </div>
             <div className="bg-glass-black rounded-lg p-4">
               <h3 className="text-white font-semibold mb-2">Web Interface</h3>
-              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}</p>
+              <p className="text-gray-300 text-sm">{process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190'}</p>
               <p className="text-gray-400 text-xs mt-1">This page</p>
             </div>
           </div>
