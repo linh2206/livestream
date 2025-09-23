@@ -83,8 +83,7 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
             // Add timeout for individual requests
             xhr.timeout = 10000;
           },
-          // Skip corrupted fragments
-          skipFragments: true,
+          // Skip corrupted fragments - removed as not supported in HLS.js
           // Better fragment handling
           maxFragLookUpTolerance: 0.25,
           // Disable some problematic features for live streams
@@ -107,6 +106,17 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           // Handle non-fatal errors (like fragParsingError)
           if (!data.fatal) {
             console.log('⚠️ Non-fatal HLS error, continuing...');
+            
+            // Track fragment errors
+            if (data.details === 'fragParsingError' || data.details === 'fragLoadError') {
+              setFragmentErrorCount(prev => prev + 1);
+              console.log('⚠️ Fragment error, skipping fragment:', data.frag?.url);
+              
+              // If too many fragment errors, show warning
+              if (fragmentErrorCount > 10) {
+                console.log('⚠️ Many fragment errors detected, stream may be unstable');
+              }
+            }
             return;
           }
           
@@ -141,24 +151,11 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
           setFragmentErrorCount(0);
         });
 
-        // Handle fragment parsing errors gracefully
-        hls.on(Hls.Events.FRAG_PARSING_ERROR, (event, data) => {
-          console.log('⚠️ Fragment parsing error, skipping fragment:', data.frag?.url);
-          setFragmentErrorCount(prev => prev + 1);
-          
-          // If too many fragment errors, show warning but don't stop playback
-          if (fragmentErrorCount > 10) {
-            console.log('⚠️ Many fragment errors detected, stream may be unstable');
-          }
-          
-          // HLS.js will automatically skip to the next fragment
-        });
+        // Handle fragment parsing errors gracefully - using ERROR event instead
+        // FRAG_PARSING_ERROR is not available in this HLS.js version
 
-        // Handle fragment loading errors
-        hls.on(Hls.Events.FRAG_LOAD_ERROR, (event, data) => {
-          console.log('⚠️ Fragment load error, will retry:', data.frag?.url);
-          // HLS.js will handle retry automatically
-        });
+        // Handle fragment loading errors - using ERROR event instead
+        // FRAG_LOAD_ERROR is not available in this HLS.js version
 
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari native HLS support
