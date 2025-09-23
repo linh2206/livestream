@@ -8,6 +8,7 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ streamName }: VideoPlayerProps) {
+  console.log("🚀 ~ VideoPlayer ~ streamName:", streamName)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,9 @@ export default function VideoPlayer({ streamName }: VideoPlayerProps) {
     // Use backend API for HLS URL
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
     const defaultStreamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
+    console.log("🚀 ~ VideoPlayer ~ defaultStreamName:", defaultStreamName)
     const currentStreamName = streamName || defaultStreamName;
+    console.log("🚀 ~ VideoPlayer ~ currentStreamName:", currentStreamName)
     
     if (!apiBaseUrl) {
       console.error('Missing environment variable: NEXT_PUBLIC_API_URL');
