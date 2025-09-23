@@ -264,8 +264,8 @@ check_docker_build() {
         log_success "Created services/api/src directory"
     fi
     
-    # Create basic API files if missing
-    create_basic_api_files
+    # Check essential API files exist
+    check_api_files
     
     # Check frontend configuration
     check_frontend_config
@@ -274,95 +274,30 @@ check_docker_build() {
     return 0
 }
 
-# Create basic API files if missing
-create_basic_api_files() {
-    # Create main.ts if missing
+# Check essential API files exist
+check_api_files() {
+    # Check if essential API files exist
     if [ ! -f "services/api/src/main.ts" ]; then
-        log_warning "main.ts not found, creating basic one..."
-        cat > services/api/src/main.ts << 'EOF'
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS
-  app.enableCors({
-    origin: ['http://localhost:80', 'http://localhost:8080'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  });
-  
-  // Enable graceful shutdown
-  app.enableShutdownHooks();
-  
-  await app.listen(9000);
-  console.log('API server running on port 9000');
-}
-bootstrap();
-EOF
-        log_success "Created main.ts"
+        log_error "main.ts not found - API cannot start without this file"
+        return 1
     fi
     
-    # Create app.module.ts if missing
     if [ ! -f "services/api/src/app.module.ts" ]; then
-        log_warning "app.module.ts not found, creating basic one..."
-        cat > services/api/src/app.module.ts << 'EOF'
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-@Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-EOF
-        log_success "Created app.module.ts"
+        log_error "app.module.ts not found - API cannot start without this file"
+        return 1
     fi
     
-    # Create app.controller.ts if missing
     if [ ! -f "services/api/src/app.controller.ts" ]; then
-        log_warning "app.controller.ts not found, creating basic one..."
-        cat > services/api/src/app.controller.ts << 'EOF'
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  @Get('health')
-  getHealth(): object {
-    return { status: 'ok', timestamp: new Date().toISOString() };
-  }
-}
-EOF
-        log_success "Created app.controller.ts"
+        log_error "app.controller.ts not found - API cannot start without this file"
+        return 1
     fi
     
-    # Create app.service.ts if missing
     if [ ! -f "services/api/src/app.service.ts" ]; then
-        log_warning "app.service.ts not found, creating basic one..."
-        cat > services/api/src/app.service.ts << 'EOF'
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class AppService {
-  getHello(): string {
-    return 'Hello World!';
-  }
-}
-EOF
-        log_success "Created app.service.ts"
+        log_error "app.service.ts not found - API cannot start without this file"
+        return 1
     fi
+    
+    log_success "All essential API files are present"
 }
 
 # Check frontend configuration
@@ -379,294 +314,74 @@ check_frontend_config() {
         return 1
     fi
     
-    # Create missing configuration files
-    create_frontend_config_files
+    # Check configuration files exist
+    check_frontend_config_files
     
-    # Create missing components
-    create_frontend_components
+    # Check components exist
+    check_frontend_components
 }
 
-# Create frontend configuration files
-create_frontend_config_files() {
-    # Create tsconfig.json if missing
+# Check frontend configuration files exist
+check_frontend_config_files() {
+    # Check if essential frontend files exist
     if [ ! -f "services/frontend/tsconfig.json" ]; then
-        log_warning "tsconfig.json not found, creating basic one..."
-        cat > services/frontend/tsconfig.json << 'EOF'
-{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "es6"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-EOF
-        log_success "Created tsconfig.json with @/* path mapping"
+        log_error "tsconfig.json not found - Frontend cannot build without this file"
+        return 1
     fi
     
-    # Create next.config.js if missing
     if [ ! -f "services/frontend/next.config.js" ]; then
-        log_warning "next.config.js not found, creating..."
-        cat > services/frontend/next.config.js << 'EOF'
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'standalone',
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-    return config;
-  },
-}
-
-module.exports = nextConfig
-EOF
-        log_success "Created next.config.js"
+        log_error "next.config.js not found - Frontend cannot build without this file"
+        return 1
     fi
     
-    # Create postcss.config.js if missing
     if [ ! -f "services/frontend/postcss.config.js" ]; then
-        log_warning "postcss.config.js not found, creating..."
-        cat > services/frontend/postcss.config.js << 'EOF'
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-EOF
-        log_success "Created postcss.config.js"
+        log_error "postcss.config.js not found - Frontend cannot build without this file"
+        return 1
     fi
     
-    # Create tailwind.config.js if missing
     if [ ! -f "services/frontend/tailwind.config.js" ]; then
-        log_warning "tailwind.config.js not found, creating..."
-        cat > services/frontend/tailwind.config.js << 'EOF'
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-EOF
-        log_success "Created tailwind.config.js"
+        log_error "tailwind.config.js not found - Frontend cannot build without this file"
+        return 1
     fi
+    
+    log_success "All essential frontend config files are present"
 }
 
-# Create frontend components
-create_frontend_components() {
-    # Create hooks directory if missing
+# Check frontend components exist
+check_frontend_components() {
+    # Check if essential frontend components exist
     if [ ! -d "services/frontend/hooks" ]; then
-        log_warning "hooks directory not found, creating..."
-        mkdir -p services/frontend/hooks
+        log_error "hooks directory not found - Frontend cannot work without this directory"
+        return 1
     fi
     
-    # Create useSocket.ts if missing
     if [ ! -f "services/frontend/hooks/useSocket.ts" ]; then
-        log_warning "useSocket.ts not found, creating basic one..."
-        cat > services/frontend/hooks/useSocket.ts << 'EOF'
-'use client';
-
-import { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
-
-export function useSocket() {
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const socketInstance = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://183.182.104.226:24190', {
-      transports: ['websocket'],
-      autoConnect: true,
-    });
-
-    socketInstance.on('connect', () => {
-      console.log('Connected to server');
-      setIsConnected(true);
-    });
-
-    socketInstance.on('disconnect', () => {
-      console.log('Disconnected from server');
-      setIsConnected(false);
-    });
-
-    socketInstance.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      setIsConnected(false);
-    });
-
-    setSocket(socketInstance);
-
-    return () => {
-      socketInstance.close();
-    };
-  }, []);
-
-  return { socket, isConnected };
-}
-EOF
-        log_success "Created useSocket.ts"
+        log_error "useSocket.ts not found - Frontend cannot work without this file"
+        return 1
     fi
     
-    # Create VideoPlayer component if missing
     if [ ! -f "services/frontend/components/VideoPlayer.tsx" ]; then
-        log_warning "VideoPlayer.tsx not found, creating..."
-        cat > services/frontend/components/VideoPlayer.tsx << 'EOF'
-'use client';
-
-import { useEffect, useRef, useState } from 'react';
-
-interface VideoPlayerProps {
-  streamName?: string;
-}
-
-export default function VideoPlayer({ streamName = 'stream' }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const hlsUrl = `${process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080'}/hls/${streamName}`;
-    
-    // Check if browser supports HLS
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari)
-      video.src = hlsUrl;
-      video.addEventListener('loadstart', () => setIsLoading(false));
-      video.addEventListener('error', () => setError('Failed to load stream'));
-    } else if (typeof window !== 'undefined' && (window as any).Hls) {
-      // HLS.js for other browsers
-      const hls = new (window as any).Hls();
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false);
-        setError(null);
-      });
-      
-      hls.on(Hls.Events.ERROR, (event: any, data: any) => {
-        console.error('HLS error:', data);
-        setError('Stream error: ' + data.details);
-      });
-    } else {
-      setError('HLS not supported in this browser');
-    }
-
-    return () => {
-      if (video && (video as any).hls) {
-        (video as any).hls.destroy();
-      }
-    };
-  }, [streamName]);
-
-  return (
-    <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-white">Loading stream...</div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-500 text-center">
-            <p>{error}</p>
-            <p className="text-sm mt-2">Make sure the stream is active</p>
-          </div>
-        </div>
-      )}
-      
-      <video
-        ref={videoRef}
-        className="w-full h-full object-cover"
-        controls
-        autoPlay
-        muted
-        playsInline
-      />
-    </div>
-  );
-}
-EOF
-        log_success "Created VideoPlayer.tsx"
+        log_error "VideoPlayer.tsx not found - Frontend cannot work without this file"
+        return 1
     fi
+    
+    log_success "All essential frontend components are present"
 }
 
-# Create .env file
+# Create .env file from env.example
 create_env_file() {
     log_info "Creating .env file..."
     
     # Remove old .env
     rm -f .env
     
-    # Create new .env
+    # Create new .env from env.example
     if [ -f env.example ]; then
         cp env.example .env
         log_success ".env file created from env.example"
     else
-        cat > .env << EOF
-# Database
-MONGODB_URI=mongodb://mongodb:27017/livestream
-REDIS_URL=redis://redis:6379
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# API
-API_PORT=9000
-API_URL=http://api:9000
-
-# Frontend
-FRONTEND_PORT=3000
-FRONTEND_URL=http://frontend:3000
-NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_WS_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
-NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
-NEXT_PUBLIC_STREAM_NAME=stream
-
-# Nginx
-BACKEND_URL=http://api:9000
-WS_URL=http://api:9000
-HLS_URL=http://localhost:8080/hls
-RTMP_URL=rtmp://localhost:1935/live
-EOF
-        log_success ".env file created with default values"
+        log_error "env.example not found - cannot create .env file"
+        return 1
     fi
 }
 
@@ -841,23 +556,6 @@ docker_service() {
                 log_warning "Docker not running, nothing to stop"
             fi
             ;;
-        status)
-            log_info "Service Status:"
-            if check_docker; then
-                $compose_cmd ps
-            else
-                log_warning "Docker not running, cannot show status"
-            fi
-            ;;
-        logs)
-            log_info "Showing service logs..."
-            if check_docker; then
-                $compose_cmd logs -f
-            else
-                log_error "Cannot show logs without Docker. Please start Docker first."
-                exit 1
-            fi
-            ;;
         clean)
             log_info "Cleaning up..."
             if check_docker; then
@@ -868,218 +566,17 @@ docker_service() {
                 log_warning "Docker not running, nothing to clean"
             fi
             ;;
-        build)
-            log_info "Building services..."
-            if check_docker; then
-                $compose_cmd build
-                log_success "Build complete"
-            else
-                log_error "Cannot build without Docker. Please start Docker first."
-                exit 1
-            fi
-            ;;
     esac
 }
 
 # Wrapper functions
 start() { docker_service start; }
 stop() { docker_service stop; }
-status() { docker_service status; }
-logs() { docker_service logs; }
 clean() { docker_service clean; }
-build() { docker_service build; }
 
-# Test all services
-test_services() {
-    log_info "Testing all services..."
-    
-    # Test MongoDB
-    if docker exec livestream-mongodb mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
-        log_success "✅ MongoDB is running"
-    else
-        log_error "❌ MongoDB is not responding"
-    fi
-    
-    # Test Redis
-    if docker exec livestream-redis redis-cli ping >/dev/null 2>&1; then
-        log_success "✅ Redis is running"
-    else
-        log_error "❌ Redis is not responding"
-    fi
-    
-    # Test Frontend (direct)
-    if curl -s http://localhost:3000 >/dev/null 2>&1; then
-        log_success "✅ Frontend is running (direct)"
-    else
-        log_error "❌ Frontend is not responding (direct)"
-    fi
-    
-    # Test API direct
-    if curl -s http://183.182.104.226:24190/health >/dev/null 2>&1; then
-        log_success "✅ API is running (direct)"
-    else
-        log_error "❌ API is not responding (direct)"
-    fi
-    
-    # Test Nginx proxy
-    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
-        log_success "✅ Nginx proxy is working"
-    else
-        log_error "❌ Nginx proxy is not responding"
-    fi
-    
-    # Test HLS
-    if curl -s http://localhost:8080/hls/stream.m3u8 >/dev/null 2>&1; then
-        log_success "✅ HLS streaming is working"
-    else
-        log_warning "⚠️ HLS streaming not available (no active stream)"
-    fi
-    
-    # Test RTMP stats
-    if curl -s http://localhost:8080/stat >/dev/null 2>&1; then
-        log_success "✅ RTMP stats are available"
-    else
-        log_error "❌ RTMP stats are not responding"
-    fi
-}
 
-# Test streaming functionality
-test_stream() {
-    log_info "Testing streaming functionality..."
-    
-    # Check if FFmpeg is available
-    if ! command -v ffmpeg >/dev/null 2>&1; then
-        log_warning "FFmpeg not found. Installing..."
-        SUDO_CMD=$(get_sudo_cmd)
-        $SUDO_CMD apt update
-        $SUDO_CMD apt install -y ffmpeg
-    fi
-    
-    # Start a test pattern stream
-    log_info "Starting test pattern stream..."
-    log_info "This will run for 30 seconds, then stop automatically"
-    log_info "Check http://localhost:3000 to see the stream"
-    
-    # Run FFmpeg in background with timeout
-    timeout 30s ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=30 \
-           -f lavfi -i sine=frequency=1000:sample_rate=44100 \
-           -c:v libx264 -preset ultrafast -tune zerolatency \
-           -c:a aac -b:a 128k \
-           -f flv rtmp://localhost:1935/live/stream \
-           -y 2>/dev/null &
-    
-    FFMPEG_PID=$!
-    
-    # Wait a moment for stream to start
-    sleep 5
-    
-    # Check if stream is working
-    log_info "Checking stream status..."
-    if curl -s http://localhost:8080/hls/stream/index.m3u8 >/dev/null 2>&1; then
-        log_success "✅ Test stream is working!"
-        log_info "🎬 Stream URL: http://localhost:8080/hls/stream/index.m3u8"
-        log_info "🌐 Web interface: http://localhost:3000"
-    else
-        log_warning "⚠️  Stream not ready yet, waiting..."
-        sleep 5
-        if curl -s http://localhost:8080/hls/stream/index.m3u8 >/dev/null 2>&1; then
-            log_success "✅ Test stream is working!"
-        else
-            log_error "❌ Stream failed to start"
-        fi
-    fi
-    
-    # Wait for FFmpeg to finish or kill it
-    wait $FFMPEG_PID 2>/dev/null || true
-    
-    log_info "Test stream completed"
-}
 
-# Sync code to server
-sync_to_server() {
-    # Default server config
-    SERVER_HOST=${SERVER_HOST:-183.182.104.226}
-    SERVER_PORT=${SERVER_PORT:-24122}
-    SERVER_USER=${SERVER_USER:-ubuntu}
-    
-    log_info "Syncing to $SERVER_USER@$SERVER_HOST:$SERVER_PORT"
-    
-    # Create directory structure in user's home
-    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "mkdir -p ~/livestream/services/{api,frontend}"
-    
-    # Sync API code
-    log_info "Syncing API source code..."
-    scp -P $SERVER_PORT -r services/api/src $SERVER_USER@$SERVER_HOST:~/livestream/services/api/
-    
-    # Sync frontend code
-    log_info "Syncing frontend source code..."
-    for dir in app components hooks; do
-        [ -d "services/frontend/$dir" ] && {
-            scp -P $SERVER_PORT -r services/frontend/$dir $SERVER_USER@$SERVER_HOST:~/livestream/services/frontend/
-        }
-    done
-    
-    # Sync config files
-    log_info "Syncing configuration files..."
-    for file in docker-compose.yml Makefile env.example; do
-        [ -f "$file" ] && {
-            scp -P $SERVER_PORT $file $SERVER_USER@$SERVER_HOST:~/livestream/
-        }
-    done
-    
-    # Sync scripts
-    scp -P $SERVER_PORT -r scripts $SERVER_USER@$SERVER_HOST:~/livestream/
-    ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST "chmod +x ~/livestream/scripts/*.sh"
-    
-    log_success "Code sync completed to ~/livestream!"
-    log_info "Run 'cd ~/livestream && make install' on the server to continue"
-}
 
-# System optimization functions
-optimize_docker() {
-    log_info "🐳 Optimizing Docker system..."
-    
-    # Clean up Docker
-    docker system prune -f
-    docker builder prune -af
-    docker volume prune -f
-    docker image prune -af
-    
-    log_success "✅ Docker system optimized"
-}
-
-clean_temp_files() {
-    log_info "🧹 Cleaning temporary files..."
-    
-    # Remove temporary files
-    find . -name "*.log" -delete 2>/dev/null || true
-    find . -name "*.tmp" -delete 2>/dev/null || true
-    find . -name ".DS_Store" -delete 2>/dev/null || true
-    find . -name "Thumbs.db" -delete 2>/dev/null || true
-    
-    # Clean HLS files
-    if [ -d "hls" ]; then
-        rm -rf hls/*
-        log_info "Cleared HLS files"
-    fi
-    
-    log_success "✅ Temporary files cleaned"
-}
-
-optimize_all() {
-    log_info "🚀 Starting full system optimization..."
-    
-    # Stop services first
-    log_info "🛑 Stopping services..."
-    docker-compose down 2>/dev/null || true
-    
-    # Run optimizations
-    clean_temp_files
-    create_env_file
-    optimize_docker
-    
-    log_success "🎉 System optimization complete!"
-}
 
 # Main function
 main() {
@@ -1088,18 +585,11 @@ main() {
         setup) setup ;;
         start) start ;;
         stop) stop ;;
-        status) status ;;
-        logs) logs ;;
         clean) clean ;;
-        build) build ;;
-        test) test_services ;;
-        test-stream) test_stream ;;
-        sync) sync_to_server ;;
         install-docker) install_docker ;;
         create-env) create_env_file ;;
-        optimize) optimize_all ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|sync|install-docker|create-env|optimize}"
+            echo "Usage: $0 {install|setup|start|stop|clean|install-docker|create-env}"
             exit 1
             ;;
     esac

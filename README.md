@@ -267,15 +267,12 @@ docker-compose up -d
 
 **Commands:**
 - `install` - Install dependencies and setup
+- `setup` - Quick setup (install + start)
 - `start` - Start all services
 - `stop` - Stop all services
-- `status` - Show service status
-- `stream` - Start streaming
-- `test` - Test local environment
-- `test-production` - Test production environment
-- `clean` - Clean up (keep code)
-- `uninstall` - Complete removal
-- `help` - Show help
+- `clean` - Clean up containers and images
+- `install-docker` - Install Docker on Ubuntu
+- `create-env` - Create .env file from env.example
 
 ### Make Commands
 
@@ -285,19 +282,12 @@ make [command]
 
 **Development:**
 - `make install` - Install dependencies and setup
+- `make setup` - Quick setup (install + start)
 - `make start` - Start all services
 - `make stop` - Stop all services
-- `make status` - Show service status
-- `make build` - Build all services
-- `make test` - Run tests
-
-**Deployment:**
-- `make deploy` - Deploy to single server
-- `make deploy-multi` - Deploy to multiple servers
 
 **Maintenance:**
 - `make clean` - Clean up containers and images
-- `make logs` - Show service logs
 
 ## 🔧 Development
 
