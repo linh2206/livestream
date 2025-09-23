@@ -114,7 +114,7 @@ export default function Home() {
           {/* Video Player */}
           <div className="lg:col-span-3">
             <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6">
-              <VideoPlayer streamName="stream" />
+              <VideoPlayer  />
               
               {/* Stream Controls */}
               <div className="mt-4 flex items-center justify-between">
