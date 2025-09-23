@@ -15,7 +15,7 @@ export default function VideoPlayer() {
     // Use environment variables for HLS URL
     const hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_URL || 'http://localhost:8080/hls';
     const streamName = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
-    const hlsUrl = `${hlsBaseUrl}/${streamName}/index.m3u8`;
+    const hlsUrl = `${hlsBaseUrl}/${streamName}.m3u8`;
 
     let hls: Hls | null = null;
 
@@ -47,8 +47,13 @@ export default function VideoPlayer() {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('🔄 Fatal network error, trying to recover...');
-              hls?.startLoad();
+              if (data.details === 'manifestLoadError') {
+                console.log('📺 No stream available yet');
+                setError('No stream available. Start streaming to see content.');
+              } else {
+                console.log('🔄 Fatal network error, trying to recover...');
+                hls?.startLoad();
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               console.log('🔄 Fatal media error, trying to recover...');

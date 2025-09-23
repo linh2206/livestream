@@ -57,9 +57,6 @@ export class RtmpController {
   }
 
   @Get('hls/:streamKey')
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
   async getHlsStream(@Param('streamKey') streamKey: string, @Res() res: Response) {
     // Remove .m3u8 extension if present
     const cleanStreamKey = streamKey.replace('.m3u8', '');
@@ -67,18 +64,11 @@ export class RtmpController {
   }
 
   @Options('hls/:streamKey')
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
-  @Header('Access-Control-Max-Age', '86400')
   async optionsHlsStream() {
     return { status: 'ok' };
   }
 
   @Get('hls')
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-  @Header('Access-Control-Allow-Headers', 'Range, Origin, X-Requested-With, Accept')
   async getHlsStreams(@Res() res: Response) {
     return this.rtmpService.serveHlsDirectory(res);
   }

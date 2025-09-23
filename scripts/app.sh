@@ -45,6 +45,76 @@ check_docker() {
     return 0
 }
 
+# Install Docker if not present
+install_docker() {
+    # Check if Docker is already installed but not running
+    if command -v docker >/dev/null 2>&1; then
+        log_info "Docker is installed but not running. Starting Docker service..."
+        $(get_sudo_cmd) systemctl start docker
+        $(get_sudo_cmd) systemctl enable docker
+        
+        # Wait a moment for Docker to start
+        sleep 3
+        
+        # Test if Docker is now working
+        if docker info >/dev/null 2>&1; then
+            log_success "Docker service started successfully!"
+            return 0
+        elif $(get_sudo_cmd) docker info >/dev/null 2>&1; then
+            log_success "Docker service started successfully!"
+            log_warning "You may need to logout and login again to use Docker without sudo"
+            return 0
+        fi
+    fi
+    
+    log_info "Installing Docker..."
+    
+    # Update package index
+    log_info "Updating package index..."
+    $(get_sudo_cmd) apt update
+    
+    # Install required packages
+    log_info "Installing required packages..."
+    $(get_sudo_cmd) apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    
+    # Add Docker GPG key
+    log_info "Adding Docker GPG key..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $(get_sudo_cmd) gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    
+    # Add Docker repository
+    log_info "Adding Docker repository..."
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | $(get_sudo_cmd) tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    # Update package index again
+    $(get_sudo_cmd) apt update
+    
+    # Install Docker Engine
+    log_info "Installing Docker Engine..."
+    $(get_sudo_cmd) apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # Start and enable Docker
+    log_info "Starting Docker service..."
+    $(get_sudo_cmd) systemctl start docker
+    $(get_sudo_cmd) systemctl enable docker
+    
+    # Add current user to docker group
+    log_info "Adding user to docker group..."
+    $(get_sudo_cmd) usermod -aG docker $USER
+    
+    log_success "Docker installed successfully!"
+    log_warning "Please logout and login again to use Docker without sudo"
+    
+    # Test Docker installation
+    log_info "Testing Docker installation..."
+    if $(get_sudo_cmd) docker --version >/dev/null 2>&1; then
+        log_success "Docker is working!"
+        return 0
+    else
+        log_error "Docker installation failed"
+        return 1
+    fi
+}
+
 # Check if Node.js is installed
 check_nodejs() {
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -1012,6 +1082,45 @@ docker_service() {
     local action=$1
     local compose_cmd=$(get_compose_cmd)
     
+    # Create .env file if it doesn't exist
+    if [ ! -f .env ]; then
+        log_info "Creating .env file..."
+        if [ -f env.example ]; then
+            cp env.example .env
+            log_success ".env file created from env.example"
+        else
+            cat > .env << EOF
+# Database
+MONGODB_URI=mongodb://mongodb:27017/livestream
+REDIS_URL=redis://redis:6379
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# API
+API_PORT=9000
+API_URL=http://api:9000
+
+# Frontend
+FRONTEND_PORT=3000
+FRONTEND_URL=http://frontend:3000
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:9000
+NEXT_PUBLIC_WS_URL=http://localhost:9000
+NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
+NEXT_PUBLIC_RTMP_URL=rtmp://localhost:1935/live
+NEXT_PUBLIC_STREAM_NAME=stream
+
+# Nginx
+BACKEND_URL=http://api:9000
+WS_URL=http://api:9000
+HLS_URL=http://localhost:8080/hls
+RTMP_URL=rtmp://localhost:1935/live
+EOF
+            log_success ".env file created with default values"
+        fi
+    fi
+    
     case $action in
         start)
             log_info "Starting LiveStream App..."
@@ -1027,8 +1136,23 @@ docker_service() {
                 log_info "HLS Streaming: http://localhost:8080/hls"
                 log_info "RTMP: rtmp://localhost:1935/live"
             else
-                log_error "Cannot start without Docker. Please start Docker first."
-                exit 1
+                log_warning "Docker not found or not running. Attempting to install/start Docker..."
+                if install_docker; then
+                    log_info "Docker installed successfully. Starting services..."
+                    $compose_cmd up -d
+                    wait_for_health "livestream-mongodb" 30 || log_warning "MongoDB health check timeout"
+                    wait_for_health "livestream-redis" 20 || log_warning "Redis health check timeout"
+                    wait_for_health "livestream-api" 40 || log_warning "API health check timeout"
+                    wait_for_health "livestream-frontend" 30 || log_warning "Frontend health check timeout"
+                    log_success "Services started"
+                    log_info "Frontend: http://localhost:80"
+                    log_info "Backend: http://localhost:9000"
+                    log_info "HLS Streaming: http://localhost:8080/hls"
+                    log_info "RTMP: rtmp://localhost:1935/live"
+                else
+                    log_error "Failed to install Docker. Please install Docker manually."
+                    exit 1
+                fi
             fi
             ;;
         stop)
@@ -1106,6 +1230,58 @@ status() { docker_service status; }
 logs() { docker_service logs; }
 clean() { docker_service clean; }
 build() { docker_service build; }
+
+# Test streaming functionality
+test_stream() {
+    log_info "Testing streaming functionality..."
+    
+    # Check if FFmpeg is available
+    if ! command -v ffmpeg >/dev/null 2>&1; then
+        log_warning "FFmpeg not found. Installing..."
+        $(get_sudo_cmd) apt update
+        $(get_sudo_cmd) apt install -y ffmpeg
+    fi
+    
+    # Start a test pattern stream
+    log_info "Starting test pattern stream..."
+    log_info "This will run for 30 seconds, then stop automatically"
+    log_info "Check http://localhost:3000 to see the stream"
+    
+    # Run FFmpeg in background with timeout
+    timeout 30s ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=30 \
+           -f lavfi -i sine=frequency=1000:sample_rate=44100 \
+           -c:v libx264 -preset ultrafast -tune zerolatency \
+           -c:a aac -b:a 128k \
+           -f flv rtmp://localhost:1935/live/stream \
+           -y 2>/dev/null &
+    
+    FFMPEG_PID=$!
+    
+    # Wait a moment for stream to start
+    sleep 5
+    
+    # Check if stream is working
+    log_info "Checking stream status..."
+    if curl -s http://localhost:8080/hls/stream/index.m3u8 >/dev/null 2>&1; then
+        log_success "✅ Test stream is working!"
+        log_info "🎬 Stream URL: http://localhost:8080/hls/stream/index.m3u8"
+        log_info "🌐 Web interface: http://localhost:3000"
+    else
+        log_warning "⚠️  Stream not ready yet, waiting..."
+        sleep 5
+        if curl -s http://localhost:8080/hls/stream/index.m3u8 >/dev/null 2>&1; then
+            log_success "✅ Test stream is working!"
+        else
+            log_error "❌ Stream failed to start"
+        fi
+    fi
+    
+    # Wait for FFmpeg to finish or kill it
+    wait $FFMPEG_PID 2>/dev/null || true
+    
+    log_info "Test stream completed"
+    log_info "Use './scripts/test-stream.sh pattern' to start a longer test"
+}
 
 # Reset everything (keep SSH and code) - Ubuntu only
 reset_all() {
@@ -1324,10 +1500,11 @@ main() {
         clean) clean ;;
         build) build ;;
         test) test_services ;;
+        test-stream) test_stream ;;
         reset-all) reset_all ;;
         sync) sync_to_server ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|reset-all|sync}"
+            echo "Usage: $0 {install|setup|start|stop|status|logs|clean|build|test|test-stream|reset-all|sync}"
             exit 1
             ;;
     esac
