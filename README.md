@@ -139,7 +139,7 @@ livestream/
 ├── docker-compose.yml        # Docker Compose configuration
 ├── docker-compose.yml.bak    # Backup configuration
 ├── Makefile                  # Build automation
-├── env.example               # Environment variables template
+├── .env.example              # Environment variables template
 ├── LICENSE                   # License file
 └── README.md                 # Project documentation
 ```
@@ -234,7 +234,7 @@ cd livestream
 
 2. **Environment setup:**
 ```bash
-cp env.example .env
+cp .env.example .env
 # Edit .env with your configuration
 ```
 
@@ -273,7 +273,7 @@ docker-compose up -d
 - `stop` - Stop all services
 - `clean` - Clean up containers and images
 - `install-docker` - Install Docker on Ubuntu
-- `create-env` - Create .env file from env.example
+- `create-env` - Create .env file from .env.example
 
 ### Make Commands
 
@@ -358,7 +358,7 @@ Environment files are automatically created during installation from `.env.examp
 ```
 
 **Environment Files:**
-- `env.example` - Root environment template  
+- `.env.example` - Root environment template  
 - `services/frontend/.env.example` - Frontend environment template
 
 The `.env` files are automatically created from these templates. You can customize them if needed:

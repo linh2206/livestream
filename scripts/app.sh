@@ -373,11 +373,11 @@ create_env_file() {
     log_info "Creating .env files..."
     
     # Create root .env file
-    if [ -f env.example ]; then
-        cp env.example .env
-        log_success "Root .env file created from env.example"
+    if [ -f .env.example ]; then
+        cp .env.example .env
+        log_success "Root .env file created from .env.example"
     else
-        log_error "env.example not found - cannot create root .env file"
+        log_error ".env.example not found - cannot create root .env file"
         return 1
     fi
     
