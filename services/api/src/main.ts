@@ -25,7 +25,21 @@ async function bootstrap() {
   }));
   
   // WebSocket adapter with CORS support
-  app.useWebSocketAdapter(new IoAdapter(app));
+  class SocketIOAdapter extends IoAdapter {
+    createIOServer(port: number, options?: any): any {
+      const server = super.createIOServer(port, {
+        ...options,
+        cors: {
+          origin: true,
+          methods: ['GET', 'POST'],
+          credentials: true,
+        },
+      });
+      return server;
+    }
+  }
+  
+  app.useWebSocketAdapter(new SocketIOAdapter(app));
   
   // Enable graceful shutdown
   app.enableShutdownHooks();

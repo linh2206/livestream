@@ -11,11 +11,15 @@ export const useStreams = () => {
 };
 
 export const useActiveStreams = () => {
-  return usePolling<Stream[]>('/streams/active', 5000, {
+  const result = usePolling<Stream[]>('/streams/active', 5000, {
     revalidateOnFocus: false,
     errorRetryCount: 3,
     errorRetryInterval: 5000,
   });
+  
+  console.log('🔍 useActiveStreams result:', result);
+  
+  return result;
 };
 
 export const useStream = (id: string) => {

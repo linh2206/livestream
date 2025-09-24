@@ -23,6 +23,14 @@ export default function Chat() {
   // Get stream key from environment variables
   const streamKey = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
   const { messages, mutate } = useChatMessages(streamKey, 50);
+  
+  console.log('🔍 Chat component state:', { 
+    streamKey, 
+    messages, 
+    messagesCount: messages?.length || 0,
+    user: user?.username,
+    socket: !!socket
+  });
 
   // Auto-join chat when user is authenticated
   useEffect(() => {

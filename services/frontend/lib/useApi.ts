@@ -4,7 +4,15 @@ import { apiClient } from '../lib/api';
 // Generic fetcher function for SWR with axios
 const fetcher = async (url: string) => {
   if (!url) return null;
-  return await apiClient.get(url);
+  console.log('🔍 Fetcher called with URL:', url);
+  try {
+    const result = await apiClient.get(url);
+    console.log('✅ Fetcher success for URL:', url, result.data);
+    return result;
+  } catch (error) {
+    console.error('❌ Fetcher error for URL:', url, error);
+    throw error;
+  }
 };
 
 // SWR configuration options
@@ -26,6 +34,8 @@ export const useSWRData = <T = any>(
   endpoint: string | null,
   options?: SWROptions<T>
 ) => {
+  console.log('🔍 useSWRData called with:', { endpoint, options });
+  
   const {
     revalidateOnFocus = true,
     revalidateOnReconnect = true,
@@ -55,7 +65,7 @@ export const useSWRData = <T = any>(
     }
   );
 
-  return {
+  const result = {
     data,
     error,
     isLoading,
@@ -63,6 +73,10 @@ export const useSWRData = <T = any>(
     mutate,
     isError: !!error,
   };
+  
+  console.log('🔍 useSWRData result:', { endpoint, result });
+  
+  return result;
 };
 
 // Utility hooks for common patterns
