@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false); // Set to false by default
 
-  const isAuthenticated = !!user && !!token;
+  const isAuthenticated = !!user; // Only check user, not token since we use cookie
   const isAdmin = user?.role === 'admin';
   
   console.log('🔍 AuthProvider state:', { user, token, loading, isAuthenticated, isAdmin });
@@ -81,15 +81,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Load auth state from server on mount
   useEffect(() => {
     console.log('🚀 AuthContext useEffect triggered');
-    console.log('🔍 About to call initializeAuth');
     
-    // Simple test - just set loading to false after 1 second
+    const initializeAuth = async () => {
+      try {
+        console.log('🔍 Checking authentication via cookie...');
+        
+        // Try to get profile from server (cookie will be sent automatically)
+        const userData = await authService.getProfile();
+        console.log('✅ User authenticated via cookie:', userData);
+        setToken('cookie'); // Dummy token since we use cookie
+        setUser(userData);
+      } catch (error: any) {
+        console.log('❌ No valid session found:', error?.response?.status);
+        // If 401, clear any stale cookies by calling logout
+        if (error?.response?.status === 401) {
+          console.log('🧹 Clearing stale session');
+          try {
+            await authService.logout();
+          } catch (logoutError) {
+            console.log('Logout error (expected):', logoutError);
+          }
+        }
+        setToken(null);
+        setUser(null);
+      } finally {
+        console.log('✅ Auth initialization complete');
+        setLoading(false);
+      }
+    };
+
+    // Add timeout to prevent infinite loading
     const timeout = setTimeout(() => {
-      console.log('Simple timeout test - setting loading to false');
+      console.log('⏰ Auth initialization timeout');
       setLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timeout);
+    }, 3000);
+
+    initializeAuth().finally(() => {
+      clearTimeout(timeout);
+    });
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -118,10 +147,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const googleLogin = async (data: any): Promise<boolean> => {
     try {
-      setToken(data.access_token);
+      setToken('cookie'); // Cookie is set by server
       setUser(data.user);
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
       return true;
     } catch (error) {
       console.error('Google login error:', error);
