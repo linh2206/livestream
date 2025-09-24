@@ -23,6 +23,7 @@ export default function Chat() {
   // Auto-join chat when user is authenticated
   useEffect(() => {
     if (user && socket && !isJoined) {
+      console.log('💬 Joining chat as:', user.username);
       setIsJoined(true);
       socket.emit('join', {
         room: 'main',
@@ -85,6 +86,7 @@ export default function Chat() {
 
   const sendMessage = () => {
     if (newMessage.trim() && socket && isJoined && user) {
+      console.log('📤 Sending message:', newMessage.trim());
       socket.emit('chat_message', {
         room: 'main',
         streamId: 'main',
@@ -93,6 +95,13 @@ export default function Chat() {
         message: newMessage.trim(),
       });
       setNewMessage('');
+    } else {
+      console.log('❌ Cannot send message:', { 
+        hasMessage: !!newMessage.trim(), 
+        hasSocket: !!socket, 
+        isJoined, 
+        hasUser: !!user 
+      });
     }
   };
 

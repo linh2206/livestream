@@ -20,11 +20,28 @@ export class AuthService {
       
       const isPasswordValid = await this.usersService.validatePassword(password, user.password);
       if (isPasswordValid) {
-        const { password: _, ...result } = user;
-        return result;
+        console.log('✅ User validated:', { 
+          id: (user as any)._id, 
+          username: user.username, 
+          email: user.email,
+          role: user.role 
+        });
+        return {
+          _id: (user as any)._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          fullName: user.fullName,
+          provider: user.provider,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
       }
     } catch (error) {
-      // User not found or other error
+      console.error('❌ Validate user error:', error);
     }
     return null;
   }
@@ -35,17 +52,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { username: user.username, sub: user._id, role: user.role };
+    console.log('🔐 Login user data:', user);
+
+    const payload = { username: user.username, sub: (user as any)._id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user._id,
+        id: (user as any)._id,
         username: user.username,
         email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-        fullName: user.fullName,
-        provider: user.provider,
+        avatar: user.avatar || '',
+        role: user.role || 'user',
+        fullName: user.fullName || '',
+        provider: user.provider || 'local',
+        isActive: user.isActive || true,
       },
     };
   }

@@ -16,6 +16,8 @@ export function useSocket(): UseSocketReturn {
 
   const connectSocket = useCallback(() => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    
     if (!wsUrl) {
       setError('NEXT_PUBLIC_WS_URL environment variable is not set');
       return;
