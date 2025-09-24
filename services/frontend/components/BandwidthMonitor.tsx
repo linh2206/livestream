@@ -161,17 +161,6 @@ const BandwidthMonitor: React.FC = () => {
         </div>
       </div>
 
-      {/* RTMP Stats */}
-      {bandwidthData.rtmp_stats && (
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-3">RTMP Server Stats</h3>
-          <div className="bg-glass-black rounded-lg p-4">
-            <pre className="text-sm text-gray-300 whitespace-pre-wrap">
-              {JSON.stringify(bandwidthData.rtmp_stats, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
 
       {/* Last Updated */}
       <div className="mt-4 text-sm text-gray-400">

@@ -17,6 +17,21 @@ export class User {
   @Prop({ default: '' })
   avatar: string;
 
+  @Prop({ default: '' })
+  fullName: string;
+
+  @Prop({ default: 'local' })
+  provider: string;
+
+  @Prop({ default: null })
+  googleId: string;
+
+  @Prop({ default: false })
+  isEmailVerified: boolean;
+
+  @Prop({ default: 'user', enum: ['admin', 'user'] })
+  role: string;
+
   @Prop({ default: true })
   isActive: boolean;
 

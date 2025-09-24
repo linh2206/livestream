@@ -20,17 +20,29 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const { id, name, emails, photos } = profile;
-    
-    const user = {
-      googleId: id,
-      email: emails[0].value,
-      username: name.givenName + '_' + name.familyName,
-      avatar: photos[0].value,
-      accessToken,
-      refreshToken,
-    };
+    try {
+      const { id, name, emails, photos } = profile;
+      
+      // Generate unique username from Google profile
+      const baseUsername = `${name.givenName}_${name.familyName}`.toLowerCase().replace(/\s+/g, '_');
+      const timestamp = Date.now();
+      const username = `${baseUsername}_${timestamp}`;
+      
+      const user = {
+        googleId: id,
+        email: emails[0].value,
+        username: username,
+        fullName: `${name.givenName} ${name.familyName}`,
+        avatar: photos[0]?.value || '',
+        accessToken,
+        refreshToken,
+        provider: 'google',
+        isEmailVerified: emails[0].verified || false,
+      };
 
-    done(null, user);
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
   }
 }

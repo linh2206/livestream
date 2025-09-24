@@ -7,6 +7,7 @@ A complete live streaming application with real-time chat, built with modern tec
 - **Live Streaming**: RTMP input with HLS output
 - **Real-time Chat**: WebSocket-based chat system
 - **User Management**: Registration, authentication, and profiles
+- **Google OAuth**: Login with Google account
 - **Stream Management**: Create, manage, and monitor streams
 - **Responsive Design**: Works on desktop and mobile devices
 
@@ -385,6 +386,48 @@ NODE_ENV=production
 ```
 
 **Note**: The `.env` file is automatically created when you run `./scripts/app.sh install`. No manual setup required!
+
+### Google OAuth Setup
+
+Để sử dụng Google Login, bạn cần cấu hình Google OAuth credentials:
+
+#### Bước 1: Tạo Google OAuth Credentials
+
+1. Truy cập [Google Cloud Console](https://console.cloud.google.com/)
+2. Tạo project mới hoặc chọn project hiện có
+3. Bật Google+ API:
+   - Vào "APIs & Services" > "Library"
+   - Tìm "Google+ API" và bật
+4. Tạo OAuth 2.0 credentials:
+   - Vào "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth 2.0 Client IDs"
+   - Chọn "Web application"
+   - Đặt tên: "LiveStream App"
+   - Authorized redirect URIs:
+     - `http://localhost:9000/auth/google/callback`
+     - `http://183.182.104.226:24190/auth/google/callback`
+
+#### Bước 2: Cập nhật Environment Variables
+
+Sau khi tạo credentials, cập nhật file `.env`:
+
+```bash
+# Google OAuth
+GOOGLE_CLIENT_ID=your-actual-google-client-id
+GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:9000/auth/google/callback
+```
+
+#### Bước 3: Test Google Login
+
+1. Restart API: `docker-compose restart api`
+2. Truy cập: `http://localhost:9000/auth/google`
+3. Hoặc từ frontend: `http://localhost:3000`
+
+**Lưu ý:**
+- Thay thế `your-actual-google-client-id` và `your-actual-google-client-secret` bằng credentials thực tế
+- Đảm bảo redirect URI khớp với cấu hình trong Google Console
+- Trong production, sử dụng HTTPS URLs
 
 ## 🚀 Deployment
 

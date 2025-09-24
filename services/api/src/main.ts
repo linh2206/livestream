@@ -21,7 +21,7 @@ async function bootstrap() {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
-    disableErrorMessages: false, // Enable error messages for debugging
+    disableErrorMessages: false,
   }));
   
   // WebSocket adapter with CORS support

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -14,28 +15,21 @@ interface Message {
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [username, setUsername] = useState('');
   const [isJoined, setIsJoined] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
+  const { user } = useAuth();
 
-  // Load saved username and join status from localStorage
+  // Auto-join chat when user is authenticated
   useEffect(() => {
-    const savedUsername = localStorage.getItem('chat_username');
-    const savedIsJoined = localStorage.getItem('chat_isJoined') === 'true';
-    
-    if (savedUsername) {
-      setUsername(savedUsername);
-    }
-    if (savedIsJoined && savedUsername && socket) {
+    if (user && socket && !isJoined) {
       setIsJoined(true);
-      // Auto-rejoin if we have saved state
       socket.emit('join', {
         room: 'main',
-        username: savedUsername,
+        username: user.username,
       });
     }
-  }, [socket]);
+  }, [user, socket, isJoined]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,27 +73,14 @@ export default function Chat() {
     }
   }, [socket, isJoined]);
 
-  const joinChat = () => {
-    if (username.trim() && socket) {
-      socket.emit('join', {
-        room: 'main',
-        username: username.trim(),
-      });
-      setIsJoined(true);
-      
-      // Save to localStorage
-      localStorage.setItem('chat_username', username.trim());
-      localStorage.setItem('chat_isJoined', 'true');
-    }
-  };
 
   const sendMessage = () => {
-    if (newMessage.trim() && socket && isJoined) {
+    if (newMessage.trim() && socket && isJoined && user) {
       socket.emit('chat_message', {
         room: 'main',
         streamId: 'main',
-        userId: '1', // In real app, get from auth
-        username: username,
+        userId: user.id,
+        username: user.username,
         message: newMessage.trim(),
       });
       setNewMessage('');
@@ -117,7 +98,6 @@ export default function Chat() {
     
     // Reset state
     setIsJoined(false);
-    setUsername('');
     setMessages([]);
   };
 
@@ -130,45 +110,13 @@ export default function Chat() {
 
   // Remove duplicate function
 
+  // Show loading if not joined yet
   if (!isJoined) {
     return (
-      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 h-[500px] border border-white/20 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            <MessageCircle className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Join Live Chat</h2>
-          <p className="text-gray-300 text-sm">Connect with other viewers in real-time</p>
-        </div>
-        
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-white text-sm font-semibold">
-              Choose your username
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && joinChat()}
-                className="w-full px-6 py-4 bg-black/30 backdrop-blur-sm rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border border-white/10 transition-all duration-300"
-                placeholder="Enter your username"
-              />
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-600/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-            </div>
-          </div>
-          
-          <button
-            onClick={joinChat}
-            disabled={!username.trim()}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:transform-none"
-          >
-            <span className="flex items-center justify-center space-x-2">
-              <MessageCircle className="w-5 h-5" />
-              <span>Join Chat</span>
-            </span>
-          </button>
+      <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6 h-96 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Connecting to chat...</p>
         </div>
       </div>
     );
@@ -183,7 +131,7 @@ export default function Chat() {
         </div>
         <div className="flex items-center space-x-3">
           <div className="text-sm text-gray-300">
-            as {username}
+            as {user?.username}
           </div>
           <button
             onClick={leaveChat}

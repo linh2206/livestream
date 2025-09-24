@@ -3,10 +3,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
-  _id: string;
+  id: string;
   username: string;
   email: string;
   avatar?: string;
+  fullName?: string;
+  role: string;
+  provider?: string;
   isActive: boolean;
 }
 
@@ -14,9 +17,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
-  googleLogin: () => Promise<boolean>;
+  googleLogin: (data: any) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
 }
@@ -41,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!user && !!token;
+  const isAdmin = user?.role === 'admin';
 
   // Load auth state from localStorage on mount
   useEffect(() => {
@@ -115,43 +120,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleLogin = async (): Promise<boolean> => {
+  const googleLogin = async (data: any): Promise<boolean> => {
     try {
-      // For now, we'll simulate Google OAuth with a simple registration
-      // In production, you'd use Google OAuth 2.0
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-
-      // Simulate Google user data
-      const googleUser = {
-        username: 'google_user_' + Math.random().toString(36).substring(7),
-        email: 'google_' + Math.random().toString(36).substring(7) + '@gmail.com',
-        password: 'google_oauth_' + Math.random().toString(36).substring(7),
-        avatar: 'https://via.placeholder.com/150'
-      };
-
-      // Try to register the Google user
-      const response = await fetch(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(googleUser),
-      });
-
-      if (!response.ok) {
-        // If registration fails, try to login with existing user
-        return await login(googleUser.username, googleUser.password);
-      }
-
-      const data = await response.json();
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
-      
       return true;
     } catch (error) {
       console.error('Google login error:', error);
@@ -170,6 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     token,
     isAuthenticated,
+    isAdmin,
     login,
     register,
     googleLogin,

@@ -14,10 +14,13 @@ export class AuthService {
   async validateUser(username: string, password: string): Promise<any> {
     try {
       const user = await this.usersService.findByUsername(username);
-      const isPasswordValid = await this.usersService.validatePassword(password, user.password);
+      if (!user) {
+        return null;
+      }
       
+      const isPasswordValid = await this.usersService.validatePassword(password, user.password);
       if (isPasswordValid) {
-        const { password, ...result } = user;
+        const { password: _, ...result } = user;
         return result;
       }
     } catch (error) {
@@ -32,7 +35,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { username: user.username, sub: user._id };
+    const payload = { username: user.username, sub: user._id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -40,6 +43,9 @@ export class AuthService {
         username: user.username,
         email: user.email,
         avatar: user.avatar,
+        role: user.role,
+        fullName: user.fullName,
+        provider: user.provider,
       },
     };
   }
