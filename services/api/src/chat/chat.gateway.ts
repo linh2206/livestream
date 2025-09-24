@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Types } from 'mongoose';
 import { ChatService } from './chat.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { StreamsService } from '../streams/streams.service';
 
 @WebSocketGateway({
   cors: {
@@ -27,7 +28,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private onlineUsers = new Map<string, { username: string; socketId: string }>();
   private streamViewers = new Map<string, Set<string>>();
 
-  constructor(private chatService: ChatService) {}
+  constructor(
+    private chatService: ChatService,
+    private streamsService: StreamsService,
+  ) {}
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -113,14 +117,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
     console.log('👍 Like event received:', { streamId, room, liked, userId });
     
-    // TODO: Update like count in database
-    // For now, just emit the like event with count
-    this.server.to(room).emit('like_update', {
-      streamId,
-      liked,
-      count: liked ? 1 : 0, // Simple count for now
-      timestamp: new Date(),
-    });
+    try {
+      // Update like count in database
+      const result = await this.streamsService.updateLikeCountByStreamKey(streamId, liked);
+      
+      console.log('👍 Like count updated:', result);
+      
+      // Emit like update to room
+      this.server.to(room).emit('like_update', {
+        streamId,
+        liked,
+        count: result.likeCount,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error('❌ Error updating like count:', error);
+      // Still emit the event even if database update fails
+      this.server.to(room).emit('like_update', {
+        streamId,
+        liked,
+        count: 0,
+        timestamp: new Date(),
+        error: 'Failed to update like count',
+      });
+    }
   }
 
   @SubscribeMessage('leave')
@@ -138,5 +158,72 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room).emit('online_count', { count: viewerCount });
     
     console.log(`Client left room ${room}`);
+  }
+
+  @SubscribeMessage('get_viewer_count')
+  async handleGetViewerCount(
+    @MessageBody() data: { streamKey: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { streamKey } = data;
+    
+    try {
+      const result = await this.streamsService.getViewerCount(streamKey);
+      client.emit('viewer_count_response', result);
+    } catch (error) {
+      console.error('❌ Error getting viewer count:', error);
+      client.emit('viewer_count_response', {
+        streamKey,
+        viewerCount: 0,
+        isLive: false,
+        error: 'Failed to get viewer count',
+      });
+    }
+  }
+
+  @SubscribeMessage('get_like_count')
+  async handleGetLikeCount(
+    @MessageBody() data: { streamKey: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { streamKey } = data;
+    
+    try {
+      const result = await this.streamsService.getLikeCount(streamKey);
+      client.emit('like_count_response', result);
+    } catch (error) {
+      console.error('❌ Error getting like count:', error);
+      client.emit('like_count_response', {
+        streamKey,
+        likeCount: 0,
+        isLive: false,
+        error: 'Failed to get like count',
+      });
+    }
+  }
+
+  @SubscribeMessage('get_stream_status')
+  async handleGetStreamStatus(
+    @MessageBody() data: { streamKey: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { streamKey } = data;
+    
+    try {
+      const result = await this.streamsService.getViewerCount(streamKey);
+      client.emit('stream_status_response', {
+        streamKey,
+        isLive: result.isLive,
+        viewerCount: result.viewerCount,
+      });
+    } catch (error) {
+      console.error('❌ Error getting stream status:', error);
+      client.emit('stream_status_response', {
+        streamKey,
+        isLive: false,
+        viewerCount: 0,
+        error: 'Failed to get stream status',
+      });
+    }
   }
 }

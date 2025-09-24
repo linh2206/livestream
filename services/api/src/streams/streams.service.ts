@@ -60,6 +60,67 @@ export class StreamsService {
     return stream;
   }
 
+  async getViewerCount(streamKey: string): Promise<{ streamKey: string; viewerCount: number; isLive: boolean }> {
+    const stream = await this.streamModel
+      .findOne({ streamKey })
+      .select('streamKey viewerCount isLive')
+      .exec();
+    
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+    
+    return {
+      streamKey: stream.streamKey,
+      viewerCount: stream.viewerCount,
+      isLive: stream.isLive,
+    };
+  }
+
+  async getLikeCount(streamKey: string): Promise<{ streamKey: string; likeCount: number; isLive: boolean }> {
+    const stream = await this.streamModel
+      .findOne({ streamKey })
+      .select('streamKey likeCount isLive')
+      .exec();
+    
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+    
+    return {
+      streamKey: stream.streamKey,
+      likeCount: stream.likeCount,
+      isLive: stream.isLive,
+    };
+  }
+
+  async updateLikeCountByStreamKey(streamKey: string, liked: boolean): Promise<{ streamKey: string; likeCount: number; isLive: boolean }> {
+    const stream = await this.streamModel
+      .findOne({ streamKey })
+      .exec();
+    
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+    
+    const newLikeCount = liked ? stream.likeCount + 1 : Math.max(0, stream.likeCount - 1);
+    
+    const updatedStream = await this.streamModel
+      .findOneAndUpdate(
+        { streamKey },
+        { likeCount: newLikeCount },
+        { new: true }
+      )
+      .select('streamKey likeCount isLive')
+      .exec();
+    
+    return {
+      streamKey: updatedStream.streamKey,
+      likeCount: updatedStream.likeCount,
+      isLive: updatedStream.isLive,
+    };
+  }
+
   async update(id: string, updateStreamDto: UpdateStreamDto): Promise<Stream> {
     const updatedStream = await this.streamModel
       .findByIdAndUpdate(id, updateStreamDto, { new: true })

@@ -37,6 +37,21 @@ export class StreamsController {
     return this.streamsService.findActive();
   }
 
+  @Get('viewer-count/:streamKey')
+  getViewerCount(@Param('streamKey') streamKey: string) {
+    return this.streamsService.getViewerCount(streamKey);
+  }
+
+  @Get('like-count/:streamKey')
+  getLikeCount(@Param('streamKey') streamKey: string) {
+    return this.streamsService.getLikeCount(streamKey);
+  }
+
+  @Post('like/:streamKey')
+  updateLikeCount(@Param('streamKey') streamKey: string, @Body() body: { liked: boolean }) {
+    return this.streamsService.updateLikeCountByStreamKey(streamKey, body.liked);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.streamsService.findOne(id);
