@@ -21,6 +21,8 @@ export default function Home() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { socket, isConnected } = useSocket();
   
+  // Get stream key from environment variables
+  const streamKey = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
   const isLive = activeStreams && activeStreams.length > 0;
 
   useEffect(() => {
@@ -53,8 +55,8 @@ export default function Home() {
     if (socket && user) {
       console.log('👍 Sending like:', { liked: !isLiked, userId: user.id });
       socket.emit('like', {
-        streamId: 'main',
-        room: 'main',
+        streamId: streamKey,
+        room: streamKey,
         liked: !isLiked,
         userId: user.id,
       });

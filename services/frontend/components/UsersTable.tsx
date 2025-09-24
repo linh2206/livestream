@@ -18,7 +18,7 @@ export default function UsersTable() {
 
   const handleLogin = async () => {
     try {
-      await login({ username: loginForm.username, password: loginForm.password });
+      await login(loginForm.username, loginForm.password);
       setError(null);
       // Refresh users data after login
       mutate();
@@ -63,7 +63,7 @@ export default function UsersTable() {
   };
 
   const updateUser = async (userId: string) => {
-    if (!isLoggedIn || !token) {
+    if (!isAuthenticated) {
       setError('Please login first to update users');
       return;
     }
@@ -86,7 +86,7 @@ export default function UsersTable() {
   };
 
   const deleteUser = async (userId: string) => {
-    if (!isLoggedIn || !token) {
+    if (!isAuthenticated) {
       setError('Please login first to delete users');
       return;
     }
@@ -157,7 +157,7 @@ export default function UsersTable() {
           <div className="text-gray-400 text-sm">
             Total: {users.length} users
           </div>
-          {!isLoggedIn ? (
+          {!isAuthenticated ? (
             <div className="flex items-center space-x-2">
               <input
                 type="text"
@@ -174,7 +174,7 @@ export default function UsersTable() {
                 className="px-3 py-1 bg-black/30 text-white rounded text-sm"
               />
               <button
-                onClick={login}
+                onClick={handleLogin}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
               >
                 Login
@@ -184,10 +184,7 @@ export default function UsersTable() {
             <div className="flex items-center space-x-2">
               <span className="text-green-400 text-sm">Logged in</span>
               <button
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setToken(null);
-                }}
+                onClick={logout}
                 className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
               >
                 Logout

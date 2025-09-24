@@ -19,7 +19,10 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
   const { user } = useAuth();
-  const { messages, mutate } = useChatMessages('main', 50);
+  
+  // Get stream key from environment variables
+  const streamKey = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
+  const { messages, mutate } = useChatMessages(streamKey, 50);
 
   // Auto-join chat when user is authenticated
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function Chat() {
       console.log('💬 Joining chat as:', user.username);
       setIsJoined(true);
       socket.emit('join', {
-        room: 'main',
+        room: streamKey,
         username: user.username,
       });
     }
@@ -36,7 +39,7 @@ export default function Chat() {
   // Auto-leave chat when user logs out
   useEffect(() => {
     if (!user && socket && isJoined) {
-      socket.emit('leave', { room: 'main' });
+      socket.emit('leave', { room: streamKey });
       setIsJoined(false);
     }
   }, [user, socket, isJoined]);
@@ -52,7 +55,7 @@ export default function Chat() {
   useEffect(() => {
     if (socket) {
       socket.on('chat_message', (data: Message) => {
-        console.log('Received message:', data);
+        console.log('💬 Received real-time message:', data);
         // Refresh messages from SWR when new message arrives
         mutate();
       });
@@ -68,15 +71,14 @@ export default function Chat() {
     if (newMessage.trim() && socket && isJoined && user) {
       console.log('📤 Sending message:', newMessage.trim());
       socket.emit('chat_message', {
-        room: 'main',
-        streamId: 'main',
+        room: streamKey,
+        streamId: streamKey,
         userId: user.id,
         username: user.username,
-        message: newMessage.trim(),
+        content: newMessage.trim(),
       });
       setNewMessage('');
-      // Refresh messages after sending
-      setTimeout(() => mutate(), 100);
+      // Real-time update will be handled by socket listener
     } else {
       console.log('❌ Cannot send message:', { 
         hasMessage: !!newMessage.trim(), 
