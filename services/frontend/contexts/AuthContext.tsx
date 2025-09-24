@@ -41,12 +41,15 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  console.log('🎯 AuthProvider component rendered');
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false by default
 
   const isAuthenticated = !!user && !!token;
   const isAdmin = user?.role === 'admin';
+  
+  console.log('🔍 AuthProvider state:', { user, token, loading, isAuthenticated, isAdmin });
 
   // Check if token is expired
   const isTokenExpired = (token: string): boolean => {
@@ -77,49 +80,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Load auth state from server on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        console.log('🔍 Initializing auth from server...');
-        
-        // Try to get profile from server (cookie will be sent automatically)
-        try {
-          const userData = await authService.getProfile();
-          console.log('User authenticated via cookie:', userData);
-          setToken('cookie'); // Dummy token since we use cookie
-          setUser(userData);
-        } catch (error: any) {
-          console.log('No valid session found, error:', error);
-          // If 401, clear any stale cookies by calling logout
-          if (error?.response?.status === 401) {
-            console.log('401 error, clearing stale session');
-            try {
-              await authService.logout();
-            } catch (logoutError) {
-              console.log('Logout error (expected):', logoutError);
-            }
-          }
-          setToken(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        setToken(null);
-        setUser(null);
-      } finally {
-        console.log('Auth initialization complete, setting loading to false');
-        setLoading(false);
-      }
-    };
-
-    // Add timeout to prevent infinite loading
+    console.log('🚀 AuthContext useEffect triggered');
+    console.log('🔍 About to call initializeAuth');
+    
+    // Simple test - just set loading to false after 1 second
     const timeout = setTimeout(() => {
-      console.log('Auth initialization timeout, setting loading to false');
+      console.log('Simple timeout test - setting loading to false');
       setLoading(false);
-    }, 5000);
-
-    initializeAuth().finally(() => {
-      clearTimeout(timeout);
-    });
+    }, 1000);
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {

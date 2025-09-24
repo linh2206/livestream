@@ -39,16 +39,10 @@ const nextConfig = {
   
   // API rewrites for development
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      console.warn('NEXT_PUBLIC_API_URL not set, skipping API rewrites');
-      return [];
-    }
-    
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/:path*`,
+        destination: 'http://api:9000/:path*',
       },
     ];
   },

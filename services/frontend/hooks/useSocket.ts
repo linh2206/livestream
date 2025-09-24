@@ -15,13 +15,8 @@ export function useSocket(): UseSocketReturn {
   const [error, setError] = useState<string | null>(null);
 
   const connectSocket = useCallback(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    const wsUrl = 'ws://localhost:9000';
     console.log('🔌 Connecting to WebSocket:', wsUrl);
-    
-    if (!wsUrl) {
-      setError('NEXT_PUBLIC_WS_URL environment variable is not set');
-      return;
-    }
     
     const socketInstance = io(wsUrl, {
       transports: ['websocket', 'polling'],

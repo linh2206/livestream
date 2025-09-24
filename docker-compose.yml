@@ -101,7 +101,7 @@ services:
       # Public URLs for client-side access
       NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:3000}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9000}
-      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://api:9000}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:9000}
       NEXT_PUBLIC_HLS_URL: ${NEXT_PUBLIC_HLS_URL:-http://localhost:8080/hls}
       NEXT_PUBLIC_STREAM_NAME: ${NEXT_PUBLIC_STREAM_NAME:-stream}
       NEXT_PUBLIC_RTMP_URL: ${NEXT_PUBLIC_RTMP_URL:-rtmp://localhost:1935/live}
