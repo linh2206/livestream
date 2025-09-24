@@ -1,8 +1,11 @@
 import { useSWRData, ChatMessage } from '../lib/api';
 
 export const useChatMessages = (room: string = 'main', limit: number = 50) => {
+  const endpoint = `/chat/messages?room=${room}&limit=${limit}`;
+  console.log('🔍 useChatMessages fetching:', endpoint);
+  
   const { data, error, isLoading, mutate } = useSWRData<ChatMessage[]>(
-    `/chat/messages?room=${room}&limit=${limit}`,
+    endpoint,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -11,6 +14,8 @@ export const useChatMessages = (room: string = 'main', limit: number = 50) => {
       errorRetryInterval: 5000,
     }
   );
+
+  console.log('🔍 useChatMessages result:', { data, error, isLoading, messagesCount: data?.length || 0 });
 
   return {
     messages: data || [],

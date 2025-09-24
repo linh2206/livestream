@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, MaxLength, MinLength, IsOptional } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateMessageDto {
   @IsString()
@@ -7,11 +8,11 @@ export class CreateMessageDto {
 
   @IsString()
   @IsNotEmpty()
-  streamId: string;
+  streamId: string | Types.ObjectId;
 
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  userId: string | Types.ObjectId;
 
   @IsString()
   @IsNotEmpty()

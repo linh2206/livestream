@@ -24,28 +24,45 @@ export default function Home() {
   // Get stream key from environment variables
   const streamKey = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
   const isLive = activeStreams && activeStreams.length > 0;
+  
+  console.log('🔍 Stream status:', { 
+    streamKey, 
+    activeStreams, 
+    isLive, 
+    activeStreamsLength: activeStreams?.length || 0 
+  });
+  
+  // Ensure isLive is always a boolean - default to false if no active streams
+  const streamIsLive = Boolean(activeStreams && activeStreams.length > 0);
 
   useEffect(() => {
     if (socket) {
+      console.log('🔌 Setting up socket listeners in page.tsx');
+      
       socket.on('online_count', (data: { count: number }) => {
         console.log('👥 Online count update:', data.count);
         setViewerCount(data.count);
       });
 
       socket.on('like', (data: { count: number }) => {
+        console.log('👍 Like count update:', data.count);
         setLikeCount(data.count);
       });
 
       socket.on('like_update', (data: { count: number, liked: boolean }) => {
+        console.log('👍 Like update:', data);
         setLikeCount(data.count);
         setIsLiked(data.liked);
       });
 
       return () => {
+        console.log('🔌 Cleaning up socket listeners in page.tsx');
         socket.off('online_count');
         socket.off('like');
         socket.off('like_update');
       };
+    } else {
+      console.log('❌ No socket available in page.tsx');
     }
   }, [socket]);
 
@@ -53,7 +70,7 @@ export default function Home() {
 
   const handleLike = () => {
     if (socket && user) {
-      console.log('👍 Sending like:', { liked: !isLiked, userId: user.id });
+      console.log('👍 Sending like:', { liked: !isLiked, userId: user.id, streamKey });
       socket.emit('like', {
         streamId: streamKey,
         room: streamKey,
@@ -61,6 +78,8 @@ export default function Home() {
         userId: user.id,
       });
       setIsLiked(!isLiked);
+    } else {
+      console.log('❌ Cannot send like:', { hasSocket: !!socket, hasUser: !!user });
     }
   };
 
@@ -184,9 +203,9 @@ export default function Home() {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                  <span className={`text-sm font-medium ${isLive ? 'text-red-400' : 'text-gray-400'}`}>
-                    {isLive ? 'LIVE' : 'OFFLINE'}
+                  <div className={`w-3 h-3 rounded-full ${streamIsLive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                  <span className={`text-sm font-medium ${streamIsLive ? 'text-red-400' : 'text-gray-400'}`}>
+                    {streamIsLive ? 'LIVE' : 'OFFLINE'}
                   </span>
                 </div>
               </div>

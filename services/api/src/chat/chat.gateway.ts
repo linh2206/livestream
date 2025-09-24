@@ -8,6 +8,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Types } from 'mongoose';
 import { ChatService } from './chat.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 
@@ -83,8 +84,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Create message in database
     const savedMessage = await this.chatService.create({
       room,
-      streamId,
-      userId,
+      streamId: new Types.ObjectId(streamId),
+      userId: new Types.ObjectId(userId),
       username,
       content,
       avatar: '',

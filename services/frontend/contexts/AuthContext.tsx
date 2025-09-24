@@ -62,9 +62,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Validate token with server
   const validateToken = async (token: string): Promise<boolean> => {
     try {
-      await authService.getProfile();
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+      
+      await Promise.race([authService.getProfile(), timeoutPromise]);
       return true;
     } catch (error) {
+      console.log('Token validation failed:', error);
       return false;
     }
   };
