@@ -1,22 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Users, Mail, Calendar, UserCheck, UserX, Plus, Edit, Trash2, Save, X } from 'lucide-react';
-
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  avatar: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { userService, authService, User, CreateUserRequest, UpdateUserRequest } from '../lib/api';
+import { useUsers } from '../hooks/useUsers';
 
 export default function UsersTable() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { users, isLoading: loading, isError: swrError, mutate } = useUsers();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({ username: '', email: '' });
@@ -24,61 +14,19 @@ export default function UsersTable() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
   const login = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-      
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginForm),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Login failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await authService.login({ username: loginForm.username, password: loginForm.password });
       setToken(data.access_token);
       setIsLoggedIn(true);
       setError(null);
+      // Refresh users data after login
+      mutate();
     } catch (err) {
       console.error('Error logging in:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-      const response = await fetch(`${apiUrl}/users`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setUsers(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch users');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -99,28 +47,17 @@ export default function UsersTable() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
+      const userData: CreateUserRequest = {
+        username: newUser.username,
+        email: newUser.email,
+        password: 'defaultPassword123', // You might want to add a password field
+      };
       
-      const response = await fetch(`${apiUrl}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(newUser),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const createdUser = await response.json();
-      setUsers(prev => [...prev, createdUser]);
+      await userService.createUser(userData);
       setNewUser({ username: '', email: '' });
       setShowAddForm(false);
+      // Refresh users data
+      mutate();
     } catch (err) {
       console.error('Error creating user:', err);
       setError(err instanceof Error ? err.message : 'Failed to create user');
@@ -134,28 +71,16 @@ export default function UsersTable() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
+      const userData: UpdateUserRequest = {
+        username: editUser.username,
+        email: editUser.email,
+      };
       
-      const response = await fetch(`${apiUrl}/users/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(editUser),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const updatedUser = await response.json();
-      setUsers(prev => prev.map(user => user._id === userId ? updatedUser : user));
+      await userService.updateUser(userId, userData);
       setEditingUser(null);
       setEditUser({ username: '', email: '' });
+      // Refresh users data
+      mutate();
     } catch (err) {
       console.error('Error updating user:', err);
       setError(err instanceof Error ? err.message : 'Failed to update user');
@@ -173,23 +98,9 @@ export default function UsersTable() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-      
-      const response = await fetch(`${apiUrl}/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setUsers(prev => prev.filter(user => user._id !== userId));
+      await userService.deleteUser(userId);
+      // Refresh users data
+      mutate();
     } catch (err) {
       console.error('Error deleting user:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete user');
@@ -217,7 +128,7 @@ export default function UsersTable() {
     );
   }
 
-  if (error) {
+  if (swrError || error) {
     return (
       <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6">
         <div className="text-center">
@@ -225,9 +136,9 @@ export default function UsersTable() {
             <UserX className="w-16 h-16 mx-auto" />
           </div>
           <p className="text-white text-lg mb-2">Error Loading Users</p>
-          <p className="text-gray-400 text-sm mb-4">{error}</p>
+          <p className="text-gray-400 text-sm mb-4">{error || swrError?.message}</p>
           <button
-            onClick={fetchUsers}
+            onClick={() => mutate()}
             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             Retry
@@ -376,7 +287,7 @@ export default function UsersTable() {
           Showing {users.length} of {users.length} users
         </div>
         <button
-          onClick={fetchUsers}
+          onClick={() => mutate()}
           className="text-primary-400 hover:text-primary-300 transition-colors"
         >
           Refresh

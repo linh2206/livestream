@@ -7,18 +7,21 @@ import Chat from '@/components/Chat';
 import UsersTable from '@/components/UsersTable';
 import BandwidthMonitor from '@/components/BandwidthMonitor';
 import LoginForm from '@/components/LoginForm';
+import { useActiveStreams } from '../hooks/useStreams';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin, loading, logout } = useAuth();
-  const [isLive, setIsLive] = useState(false);
+  const { data: activeStreams } = useActiveStreams();
   const [viewerCount, setViewerCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { socket, isConnected } = useSocket();
+  
+  const isLive = activeStreams && activeStreams.length > 0;
 
   useEffect(() => {
     if (socket) {
@@ -44,38 +47,7 @@ export default function Home() {
     }
   }, [socket]);
 
-  // Check stream status periodically
-  useEffect(() => {
-    const checkStreamStatus = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) {
-          console.error('NEXT_PUBLIC_API_URL environment variable is not set');
-          return;
-        }
-        
-        // Check stream status from API
-        const response = await fetch(`${apiUrl}/streams/active`);
-        if (response.ok) {
-          const activeStreams = await response.json();
-          setIsLive(activeStreams && activeStreams.length > 0);
-        } else {
-          setIsLive(false);
-        }
-      } catch (error) {
-        console.error('Error checking stream status:', error);
-        setIsLive(false);
-      }
-    };
-
-    // Check immediately
-    checkStreamStatus();
-
-    // Check every 5 seconds
-    const interval = setInterval(checkStreamStatus, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Stream status is now handled by useActiveStreams hook
 
   const handleLike = () => {
     if (socket && user) {

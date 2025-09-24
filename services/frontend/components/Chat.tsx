@@ -4,21 +4,22 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChatMessages } from '../hooks/useChatMessages';
 
 interface Message {
-  id: string;
+  _id: string;
   username: string;
   message: string;
-  timestamp: string;
+  createdAt: string;
 }
 
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isJoined, setIsJoined] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
   const { user } = useAuth();
+  const { messages, mutate } = useChatMessages('main', 50);
 
   // Auto-join chat when user is authenticated
   useEffect(() => {
@@ -37,7 +38,6 @@ export default function Chat() {
     if (!user && socket && isJoined) {
       socket.emit('leave', { room: 'main' });
       setIsJoined(false);
-      setMessages([]);
     }
   }, [user, socket, isJoined]);
 
@@ -53,35 +53,15 @@ export default function Chat() {
     if (socket) {
       socket.on('chat_message', (data: Message) => {
         console.log('Received message:', data);
-        setMessages(prev => [...prev, data]);
+        // Refresh messages from SWR when new message arrives
+        mutate();
       });
-
-      // Load recent messages when joining
-      const loadRecentMessages = async () => {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-          if (apiUrl) {
-            const response = await fetch(`${apiUrl}/chat/messages?room=main&limit=50`);
-            if (response.ok) {
-              const recentMessages = await response.json();
-              setMessages(recentMessages.reverse()); // Reverse to show oldest first
-            }
-          }
-        } catch (error) {
-          console.error('Error loading recent messages:', error);
-        }
-      };
-
-      // Load messages when socket connects and user is joined
-      if (isJoined) {
-        loadRecentMessages();
-      }
 
       return () => {
         socket.off('chat_message');
       };
     }
-  }, [socket, isJoined]);
+  }, [socket, mutate]);
 
 
   const sendMessage = () => {
@@ -95,6 +75,8 @@ export default function Chat() {
         message: newMessage.trim(),
       });
       setNewMessage('');
+      // Refresh messages after sending
+      setTimeout(() => mutate(), 100);
     } else {
       console.log('❌ Cannot send message:', { 
         hasMessage: !!newMessage.trim(), 
@@ -150,13 +132,13 @@ export default function Chat() {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className="bg-glass-black rounded-lg p-3">
+            <div key={msg._id} className="bg-glass-black rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-1">
                 <span className="text-primary-400 font-medium text-sm">
                   {msg.username}
                 </span>
                 <span className="text-gray-400 text-xs">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                  {new Date(msg.createdAt).toLocaleTimeString()}
                 </span>
               </div>
               <p className="text-white text-sm">{msg.message}</p>

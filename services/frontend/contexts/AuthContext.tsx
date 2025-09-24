@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authService } from '../lib/api';
 
 interface User {
   id: string;
@@ -61,15 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Validate token with server
   const validateToken = async (token: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) return false;
-
-      const response = await fetch(`${apiUrl}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      return response.ok;
+      await authService.getProfile();
+      return true;
     } catch (error) {
       return false;
     }
@@ -112,24 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const data = await response.json();
+      const data = await authService.login({ username, password });
       setToken(data.access_token);
       setUser(data.user);
       
@@ -146,23 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
-      }
-
-      const response = await fetch(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
+      await authService.register({ username, email, password });
       // Auto login after successful registration
       return await login(username, password);
     } catch (error) {
