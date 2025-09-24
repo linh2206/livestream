@@ -574,6 +574,33 @@ docker_service() {
     esac
 }
 
+# Reset admin user function
+reset_admin() {
+    log_info "Resetting admin user..."
+    
+    # Check if Docker is running
+    if ! check_docker; then
+        log_error "Docker is not running. Please start Docker first."
+        exit 1
+    fi
+    
+    # Check if MongoDB container is running
+    if ! docker ps --filter "name=livestream-mongodb" --filter "status=running" | grep -q "livestream-mongodb"; then
+        log_error "MongoDB container is not running. Please start the services first with 'make start'."
+        exit 1
+    fi
+    
+    # Execute the reset admin script
+    if [ -f "scripts/reset-admin.sh" ]; then
+        chmod +x scripts/reset-admin.sh
+        ./scripts/reset-admin.sh
+        log_success "Admin user reset completed!"
+    else
+        log_error "reset-admin.sh script not found"
+        exit 1
+    fi
+}
+
 # Wrapper functions
 start() { docker_service start; }
 stop() { docker_service stop; }
@@ -593,8 +620,9 @@ main() {
         clean) clean ;;
         install-docker) install_docker ;;
         create-env) create_env_file ;;
+        reset-admin) reset_admin ;;
         *) 
-            echo "Usage: $0 {install|setup|start|stop|clean|install-docker|create-env}"
+            echo "Usage: $0 {install|setup|start|stop|clean|install-docker|create-env|reset-admin}"
             exit 1
             ;;
     esac

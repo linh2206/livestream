@@ -144,9 +144,12 @@ db.messages.createIndex({ streamId: 1, createdAt: -1 });
 db.messages.createIndex({ userId: 1 });
 db.messages.createIndex({ createdAt: -1 });
 
-// Create a default admin user (password: admin123)
+// Clear all existing users
+db.users.deleteMany({});
+
+// Create a default admin user (password: admin)
 // Note: bcrypt is not available in MongoDB shell, using a pre-hashed password
-const adminPassword = '$2b$10$rQZ8kL9vXJ8kL9vXJ8kL9uXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9vXJ8kL9'; // admin123
+const adminPassword = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // admin
 
 db.users.insertOne({
   username: 'admin',
@@ -185,4 +188,4 @@ if (adminUser) {
 print('✅ MongoDB initialization completed successfully!');
 print('📊 Created collections: users, streams, messages');
 print('🔑 Created indexes for optimal performance');
-print('👤 Created default admin user (username: admin, password: admin123)');
+print('👤 Created default admin user (username: admin, password: admin)');

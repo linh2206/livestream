@@ -1,7 +1,7 @@
 # LiveStream App Makefile
 # Optimized version with duplicates removed
 
-.PHONY: help install start stop clean setup
+.PHONY: help install start stop clean setup reset-admin
 
 # Default target
 .DEFAULT_GOAL := help
@@ -17,6 +17,7 @@ help:
 	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
+	@echo "  make reset-admin - Reset admin user to default credentials"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend: http://localhost:3000"
@@ -43,6 +44,10 @@ stop:
 clean:
 	@echo "Cleaning up containers and images..."
 	./scripts/app.sh clean
+
+reset-admin:
+	@echo "Resetting admin user..."
+	./scripts/reset-admin.sh
 
 
 # Quick setup
