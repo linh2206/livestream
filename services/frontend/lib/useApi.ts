@@ -4,13 +4,10 @@ import { apiClient } from '../lib/api';
 // Generic fetcher function for SWR with axios
 const fetcher = async (url: string) => {
   if (!url) return null;
-  console.log('🔍 Fetcher called with URL:', url);
   try {
     const result = await apiClient.get(url);
-    console.log('✅ Fetcher success for URL:', url, result.data);
     return result;
   } catch (error) {
-    console.error('❌ Fetcher error for URL:', url, error);
     throw error;
   }
 };
@@ -24,8 +21,6 @@ export interface SWROptions<T> {
   errorRetryInterval?: number;
   dedupingInterval?: number;
   fallbackData?: T;
-  onSuccess?: (data: T) => void;
-  onError?: (error: any) => void;
   shouldRetryOnError?: boolean;
 }
 
@@ -34,8 +29,6 @@ export const useSWRData = <T = any>(
   endpoint: string | null,
   options?: SWROptions<T>
 ) => {
-  console.log('🔍 useSWRData called with:', { endpoint, options });
-  
   const {
     revalidateOnFocus = true,
     revalidateOnReconnect = true,
@@ -44,8 +37,6 @@ export const useSWRData = <T = any>(
     errorRetryInterval = 5000,
     dedupingInterval = 2000,
     fallbackData,
-    onSuccess,
-    onError,
     shouldRetryOnError = true,
   } = options || {};
 
@@ -60,12 +51,10 @@ export const useSWRData = <T = any>(
       errorRetryInterval,
       dedupingInterval,
       fallbackData,
-      onSuccess,
-      onError,
     }
   );
 
-  const result = {
+  return {
     data,
     error,
     isLoading,
@@ -73,10 +62,6 @@ export const useSWRData = <T = any>(
     mutate,
     isError: !!error,
   };
-  
-  console.log('🔍 useSWRData result:', { endpoint, result });
-  
-  return result;
 };
 
 // Utility hooks for common patterns

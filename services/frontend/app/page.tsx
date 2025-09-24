@@ -5,6 +5,7 @@ import { Play, Users, Heart, MessageCircle } from 'lucide-react';
 import VideoPlayer from '@/components/VideoPlayer';
 import Chat from '@/components/Chat';
 import UsersTable from '@/components/UsersTable';
+import OnlineUsersTable from '@/components/OnlineUsersTable';
 import BandwidthMonitor from '@/components/BandwidthMonitor';
 import LoginForm from '@/components/LoginForm';
 import { useActiveStreams } from '../hooks/useStreams';
@@ -19,58 +20,78 @@ export default function Home() {
   const [isLiked, setIsLiked] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<{ isLive: boolean; viewerCount: number }>({ isLive: false, viewerCount: 0 });
   const { socket, isConnected } = useSocket();
   
   // Get stream key from environment variables
   const streamKey = process.env.NEXT_PUBLIC_STREAM_NAME || 'stream';
-  const isLive = activeStreams && activeStreams.length > 0;
   
-  console.log('🔍 Stream status:', { 
-    streamKey, 
-    activeStreams, 
-    isLive, 
-    activeStreamsLength: activeStreams?.length || 0 
-  });
+  // Check stream status from both API and socket
+  const isLiveFromAPI = activeStreams && activeStreams.length > 0;
+  const isLiveFromSocket = streamStatus.isLive;
+  const streamIsLive = isLiveFromAPI || isLiveFromSocket;
   
-  // Ensure isLive is always a boolean - default to false if no active streams
-  const streamIsLive = Boolean(activeStreams && activeStreams.length > 0);
 
   useEffect(() => {
     if (socket) {
-      console.log('🔌 Setting up socket listeners in page.tsx');
-      
       socket.on('online_count', (data: { count: number }) => {
-        console.log('👥 Online count update:', data.count);
         setViewerCount(data.count);
       });
 
-      socket.on('like', (data: { count: number }) => {
-        console.log('👍 Like count update:', data.count);
-        setLikeCount(data.count);
-      });
-
       socket.on('like_update', (data: { count: number, liked: boolean }) => {
-        console.log('👍 Like update:', data);
         setLikeCount(data.count);
         setIsLiked(data.liked);
       });
 
+      socket.on('viewer_count_response', (data: { viewerCount: number, isLive: boolean }) => {
+        setViewerCount(data.viewerCount);
+      });
+
+      socket.on('like_count_response', (data: { likeCount: number, isLive: boolean }) => {
+        setLikeCount(data.likeCount);
+      });
+
+      socket.on('stream_status_response', (data: { isLive: boolean, viewerCount: number }) => {
+        setStreamStatus({ isLive: data.isLive, viewerCount: data.viewerCount });
+        setViewerCount(data.viewerCount);
+      });
+
+      // Request initial data
+      socket.emit('get_viewer_count', { streamKey });
+      socket.emit('get_like_count', { streamKey });
+      socket.emit('get_stream_status', { streamKey });
+
       return () => {
-        console.log('🔌 Cleaning up socket listeners in page.tsx');
         socket.off('online_count');
-        socket.off('like');
         socket.off('like_update');
+        socket.off('viewer_count_response');
+        socket.off('like_count_response');
+        socket.off('stream_status_response');
       };
-    } else {
-      console.log('❌ No socket available in page.tsx');
     }
-  }, [socket]);
+  }, [socket, streamKey]);
+
+  // Auto-join room when user is authenticated and socket is connected
+  useEffect(() => {
+    if (socket && user && isConnected) {
+      socket.emit('join', {
+        room: streamKey,
+        username: user.username,
+      });
+    }
+    
+    // Cleanup: leave room when component unmounts or user logs out
+    return () => {
+      if (socket && user) {
+        socket.emit('leave', { room: streamKey });
+      }
+    };
+  }, [socket, user, isConnected, streamKey]);
 
   // Stream status is now handled by useActiveStreams hook
 
   const handleLike = () => {
     if (socket && user) {
-      console.log('👍 Sending like:', { liked: !isLiked, userId: user.id, streamKey });
       socket.emit('like', {
         streamId: streamKey,
         room: streamKey,
@@ -78,8 +99,6 @@ export default function Home() {
         userId: user.id,
       });
       setIsLiked(!isLiked);
-    } else {
-      console.log('❌ Cannot send like:', { hasSocket: !!socket, hasUser: !!user });
     }
   };
 
@@ -144,20 +163,9 @@ export default function Home() {
               
               {/* User Info */}
               <div className="flex items-center space-x-2 bg-glass-white backdrop-blur-md rounded-lg px-4 py-2">
-                {user?.avatar && (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.username}
-                    className="w-6 h-6 rounded-full"
-                  />
-                )}
                 <div className="text-sm">
                   <div className="text-white font-medium">
-                    {user?.fullName || user?.username}
-                  </div>
-                  <div className="text-gray-300 text-xs flex items-center space-x-1">
-                    <span className={`inline-block w-2 h-2 rounded-full ${isAdmin ? 'bg-red-500' : 'bg-green-500'}`}></span>
-                    <span>{isAdmin ? 'Admin' : 'User'}</span>
+                    {user?.username}
                   </div>
                 </div>
               </div>
@@ -172,10 +180,10 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Video Player */}
-          <div className="lg:col-span-3">
-            <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6">
+          <div className="lg:col-span-2">
+            <div className="bg-glass-white backdrop-blur-md rounded-2xl p-6 h-[600px]">
               <VideoPlayer isAuthenticated={isAuthenticated} />
               
               {/* Stream Controls */}
@@ -245,10 +253,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Users Table - Admin Only */}
+        {/* Users Tables - Admin Only */}
         {isAdmin && (
-          <div className="mt-6">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             <UsersTable />
+            <OnlineUsersTable />
           </div>
         )}
 

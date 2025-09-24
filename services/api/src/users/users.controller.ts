@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -28,8 +29,14 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search: string = '',
+  ) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    return this.usersService.findAll(pageNum, limitNum, search);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -74,4 +81,11 @@ export class UsersController {
     }
     return this.usersService.remove(id);
   }
+
+  // Get online users (admin only) - Temporarily disabled
+  // @UseGuards(JwtAuthGuard, AdminGuard)
+  // @Get('online')
+  // getOnlineUsers() {
+  //   return this.usersService.getOnlineUsers();
+  // }
 }

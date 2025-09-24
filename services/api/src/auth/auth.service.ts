@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -52,9 +53,27 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if user is already logged in elsewhere
+    if (user.isOnline && user.currentSessionId) {
+      throw new ConflictException('User is already logged in on another device');
+    }
+
+    // Generate new session ID and update user status
+    const sessionId = randomUUID();
+    await this.usersService.updateUserStatus((user as any)._id, {
+      isOnline: true,
+      currentSessionId: sessionId,
+      lastSeen: new Date(),
+    });
+
     console.log('🔐 Login user data:', user);
 
-    const payload = { username: user.username, sub: (user as any)._id, role: user.role };
+    const payload = { 
+      username: user.username, 
+      sub: (user as any)._id, 
+      role: user.role,
+      sessionId: sessionId 
+    };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -66,6 +85,7 @@ export class AuthService {
         fullName: user.fullName || '',
         provider: user.provider || 'local',
         isActive: user.isActive || true,
+        sessionId: sessionId,
       },
     };
   }
@@ -126,5 +146,9 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Google authentication failed');
     }
+  }
+
+  async logout(userId: string): Promise<void> {
+    await this.usersService.logout(userId);
   }
 }

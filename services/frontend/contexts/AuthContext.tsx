@@ -75,47 +75,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Load auth state from localStorage on mount
+  // Load auth state from server on mount
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('auth_user');
+        console.log('🔍 Initializing auth from server...');
         
-        console.log('🔍 Initializing auth:', { hasToken: !!savedToken, hasUser: !!savedUser });
-        
-        if (savedToken && savedUser) {
-          // Check if token is expired locally first
-          if (isTokenExpired(savedToken)) {
-            console.log('Token expired locally, clearing auth state');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
-            setToken(null);
-            setUser(null);
-          } else {
-            // Validate token with server
-            console.log('Validating token with server...');
-            const isValid = await validateToken(savedToken);
-            if (isValid) {
-              console.log('Token valid, setting user');
-              setToken(savedToken);
-              setUser(JSON.parse(savedUser));
-            } else {
-              console.log('Token invalid on server, clearing auth state');
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('auth_user');
-              setToken(null);
-              setUser(null);
-            }
-          }
-        } else {
-          console.log('No saved auth state found');
+        // Try to get profile from server (cookie will be sent automatically)
+        try {
+          const userData = await authService.getProfile();
+          console.log('User authenticated via cookie:', userData);
+          setToken('cookie'); // Dummy token since we use cookie
+          setUser(userData);
+        } catch (error) {
+          console.log('No valid session found');
+          setToken(null);
+          setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        // Clear any corrupted auth state
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
         setToken(null);
         setUser(null);
       } finally {
@@ -130,12 +108,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const data = await authService.login({ username, password });
-      setToken(data.access_token);
+      setToken('cookie'); // Cookie is set by server
       setUser(data.user);
-      
-      // Save to localStorage
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
       
       return true;
     } catch (error) {
@@ -168,11 +142,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setToken(null);
+      setUser(null);
+    }
   };
 
   // Auto logout when token expires

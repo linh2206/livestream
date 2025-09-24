@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
+import { Cron } from '@nestjs/schedule';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -35,8 +36,44 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userModel.find({ isActive: true }).select('-password').exec();
+  async findAll(page: number = 1, limit: number = 10, search: string = ''): Promise<{
+    users: User[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+    
+    // Build search query
+    const searchQuery = search 
+      ? {
+          isActive: true,
+          $or: [
+            { username: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+          ]
+        }
+      : { isActive: true };
+
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(searchQuery)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.userModel.countDocuments(searchQuery)
+    ]);
+
+    return {
+      users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   async findOne(id: string): Promise<User> {
@@ -90,5 +127,73 @@ export class UsersService {
 
   async validatePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(plainPassword, hashedPassword);
+  }
+
+  async updateUserStatus(userId: string, statusData: { isOnline?: boolean; currentSessionId?: string; lastSeen?: Date }): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { 
+        ...statusData,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  async logout(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(
+      userId,
+      { 
+        isOnline: false,
+        currentSessionId: null,
+        lastSeen: new Date(),
+        updatedAt: new Date()
+      }
+    );
+  }
+
+  // Check user activity every 2 minutes
+  @Cron('0 */2 * * * *') // Every 2 minutes
+  async checkUserActivity() {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    
+    // Mark users as offline if they haven't been active in the last 2 minutes
+    const result = await this.userModel.updateMany(
+      {
+        isOnline: true,
+        lastSeen: { $lt: twoMinutesAgo }
+      },
+      {
+        isOnline: false,
+        currentSessionId: null,
+        updatedAt: new Date()
+      }
+    );
+
+    console.log(`[UserActivity] Marked ${result.modifiedCount} users as offline due to inactivity`);
+  }
+
+  // Get online users (users who have been active in the last 2 minutes)
+  async getOnlineUsers(): Promise<User[]> {
+    try {
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      
+      const users = await this.userModel.find({
+        isActive: true,
+        isOnline: true,
+        lastSeen: { $gte: twoMinutesAgo }
+      }).select('-password').lean().exec();
+      
+      return users as User[];
+    } catch (error) {
+      console.error('Error getting online users:', error);
+      return [];
+    }
   }
 }

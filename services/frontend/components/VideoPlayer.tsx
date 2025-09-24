@@ -42,13 +42,13 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('✅ HLS manifest parsed, ready for playback');
         setError(null);
-        // Auto-play when manifest is ready
-        video.play().catch(err => {
-          console.log('Auto-play failed:', err);
-          // Auto-play might be blocked by browser, that's okay
-        });
+        // Auto-play when manifest is ready and user is authenticated
+        if (isAuthenticated && video.paused) {
+          video.play().catch(err => {
+            // Auto-play might be blocked by browser, that's okay
+          });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -86,13 +86,13 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
       // Safari native HLS support
       video.src = hlsUrl;
       video.addEventListener('loadedmetadata', () => {
-        console.log('✅ HLS manifest loaded, ready for playback');
         setError(null);
-        // Auto-play when metadata is loaded (Safari)
-        video.play().catch(err => {
-          console.log('Auto-play failed:', err);
-          // Auto-play might be blocked by browser, that's okay
-        });
+        // Auto-play when metadata is loaded (Safari) and user is authenticated
+        if (isAuthenticated && video.paused) {
+          video.play().catch(err => {
+            // Auto-play might be blocked by browser, that's okay
+          });
+        }
       });
       video.addEventListener('error', () => {
         setError('Failed to load stream');
@@ -108,6 +108,26 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
     };
   }, []);
 
+  // Auto-play when user becomes authenticated
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && isAuthenticated && video.paused) {
+      video.play().catch(err => {
+        // Auto-play might be blocked by browser, that's okay
+      });
+    }
+  }, [isAuthenticated]);
+
+  // Auto-play when video is ready and user is authenticated
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && isAuthenticated && video.readyState >= 2 && video.paused) {
+      video.play().catch(err => {
+        // Auto-play might be blocked by browser, that's okay
+      });
+    }
+  }, [isAuthenticated]);
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -120,6 +140,7 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
       setIsPlaying(false);
     }
   };
+
 
   if (error) {
     return (
@@ -162,6 +183,7 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
           </button>
         </div>
       )}
+
     </div>
   );
 }

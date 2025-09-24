@@ -40,6 +40,15 @@ export class User {
 
   @Prop({ default: Date.now })
   updatedAt: Date;
+
+  @Prop({ default: null })
+  lastSeen: Date;
+
+  @Prop({ default: null })
+  currentSessionId: string;
+
+  @Prop({ default: false })
+  isOnline: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

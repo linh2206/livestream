@@ -20,14 +20,36 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(loginDto);
+    
+    // Set HTTP-only cookie
+    res.cookie('auth_token', result.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
+    });
+    
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('profile')
   getProfile(@Request() req: any) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(req.user.sub);
+    
+    // Clear cookie
+    res.clearCookie('auth_token', { path: '/' });
+    
+    return { message: 'Logged out successfully' };
   }
 
   @Get('google')
