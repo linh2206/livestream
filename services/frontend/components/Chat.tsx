@@ -31,6 +31,15 @@ export default function Chat() {
     }
   }, [user, socket, isJoined]);
 
+  // Auto-leave chat when user logs out
+  useEffect(() => {
+    if (!user && socket && isJoined) {
+      socket.emit('leave', { room: 'main' });
+      setIsJoined(false);
+      setMessages([]);
+    }
+  }, [user, socket, isJoined]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -87,19 +96,6 @@ export default function Chat() {
     }
   };
 
-  const leaveChat = () => {
-    if (socket && isJoined) {
-      socket.emit('leave', { room: 'main' });
-    }
-    
-    // Clear localStorage
-    localStorage.removeItem('chat_username');
-    localStorage.removeItem('chat_isJoined');
-    
-    // Reset state
-    setIsJoined(false);
-    setMessages([]);
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -133,12 +129,6 @@ export default function Chat() {
           <div className="text-sm text-gray-300">
             as {user?.username}
           </div>
-          <button
-            onClick={leaveChat}
-            className="text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded border border-red-400/30 hover:border-red-300/50"
-          >
-            Leave
-          </button>
         </div>
       </div>
       

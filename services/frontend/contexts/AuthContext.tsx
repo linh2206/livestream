@@ -47,16 +47,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = !!user && !!token;
   const isAdmin = user?.role === 'admin';
 
+  // Check if token is expired
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      return payload.exp < currentTime;
+    } catch (error) {
+      return true; // If can't parse, consider expired
+    }
+  };
+
+  // Validate token with server
+  const validateToken = async (token: string): Promise<boolean> => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) return false;
+
+      const response = await fetch(`${apiUrl}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  };
+
   // Load auth state from localStorage on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('auth_user');
-    
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const initializeAuth = async () => {
+      const savedToken = localStorage.getItem('auth_token');
+      const savedUser = localStorage.getItem('auth_user');
+      
+      if (savedToken && savedUser) {
+        // Check if token is expired locally first
+        if (isTokenExpired(savedToken)) {
+          console.log('Token expired locally, clearing auth state');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          setToken(null);
+          setUser(null);
+        } else {
+          // Validate token with server
+          const isValid = await validateToken(savedToken);
+          if (isValid) {
+            setToken(savedToken);
+            setUser(JSON.parse(savedUser));
+          } else {
+            console.log('Token invalid on server, clearing auth state');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            setToken(null);
+            setUser(null);
+          }
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -139,6 +190,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
   };
+
+  // Auto logout when token expires
+  useEffect(() => {
+    if (!token) return;
+
+    const checkTokenExpiry = () => {
+      if (isTokenExpired(token)) {
+        console.log('Token expired during session, logging out');
+        logout();
+      }
+    };
+
+    // Check every 30 seconds
+    const interval = setInterval(checkTokenExpiry, 30000);
+    
+    return () => clearInterval(interval);
+  }, [token]);
 
   const value: AuthContextType = {
     user,
