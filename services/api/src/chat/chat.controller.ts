@@ -15,10 +15,10 @@ export class ChatController {
     
     // Format messages for frontend
     return messages.map(msg => ({
-      id: (msg as any)._id,
+      _id: (msg as any)._id,
       username: msg.username,
       message: msg.content,
-      timestamp: msg.createdAt,
+      createdAt: msg.createdAt,
     }));
   }
 }

@@ -76,9 +76,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: CreateMessageDto,
     @ConnectedSocket() client: Socket,
   ) {
-    const { room, streamId, userId, username, message } = data;
+    const { room, streamId, userId, username, content } = data;
     
-    console.log('💬 Chat message received:', { room, streamId, userId, username, message });
+    console.log('💬 Chat message received:', { room, streamId, userId, username, content });
     
     // Create message in database
     const savedMessage = await this.chatService.create({
@@ -86,7 +86,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       streamId,
       userId,
       username,
-      message,
+      content,
       avatar: '',
     });
 
@@ -94,10 +94,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Emit message to room
     this.server.to(room).emit('chat_message', {
-      id: (savedMessage as any)._id,
+      _id: (savedMessage as any)._id,
       username,
-      message,
-      timestamp: savedMessage.createdAt,
+      message: content,
+      createdAt: savedMessage.createdAt,
     });
     
     console.log('💬 Message emitted to room:', room);

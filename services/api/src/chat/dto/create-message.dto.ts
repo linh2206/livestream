@@ -20,7 +20,7 @@ export class CreateMessageDto {
   @IsString()
   @MinLength(1)
   @MaxLength(500)
-  message: string;
+  content: string;
 
   @IsString()
   @IsOptional()

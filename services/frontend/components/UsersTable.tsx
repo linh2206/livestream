@@ -2,25 +2,23 @@
 
 import { useState } from 'react';
 import { Users, Mail, Calendar, UserCheck, UserX, Plus, Edit, Trash2, Save, X } from 'lucide-react';
-import { userService, authService, User, CreateUserRequest, UpdateUserRequest } from '../lib/api';
+import { userService, User, CreateUserRequest, UpdateUserRequest } from '../lib/api';
 import { useUsers } from '../hooks/useUsers';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function UsersTable() {
   const { users, isLoading: loading, isError: swrError, mutate } = useUsers();
+  const { user, isAuthenticated, isAdmin, login, logout } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({ username: '', email: '' });
   const [editUser, setEditUser] = useState({ username: '', email: '' });
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const login = async () => {
+  const handleLogin = async () => {
     try {
-      const data = await authService.login({ username: loginForm.username, password: loginForm.password });
-      setToken(data.access_token);
-      setIsLoggedIn(true);
+      await login({ username: loginForm.username, password: loginForm.password });
       setError(null);
       // Refresh users data after login
       mutate();
@@ -41,7 +39,7 @@ export default function UsersTable() {
   };
 
   const createUser = async () => {
-    if (!isLoggedIn || !token) {
+    if (!isAuthenticated) {
       setError('Please login first to create users');
       return;
     }

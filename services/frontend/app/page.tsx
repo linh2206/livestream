@@ -183,7 +183,7 @@ export default function Home() {
                 
                 <div className="flex items-center space-x-2">
                   <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                  <span className="text-white text-sm">
+                  <span className={`text-sm font-medium ${isLive ? 'text-red-400' : 'text-gray-400'}`}>
                     {isLive ? 'LIVE' : 'OFFLINE'}
                   </span>
                 </div>
