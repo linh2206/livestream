@@ -23,6 +23,7 @@ export default function Home() {
   useEffect(() => {
     if (socket) {
       socket.on('online_count', (data: { count: number }) => {
+        console.log('👥 Online count update:', data.count);
         setViewerCount(data.count);
       });
 
@@ -77,15 +78,18 @@ export default function Home() {
   }, []);
 
   const handleLike = () => {
-    if (socket) {
+    if (socket && user) {
+      console.log('👍 Sending like:', { liked: !isLiked, userId: user.id });
       socket.emit('like', {
         streamId: 'main',
         room: 'main',
         liked: !isLiked,
+        userId: user.id,
       });
       setIsLiked(!isLiked);
     }
   };
+
 
   // Show loading spinner while checking auth
   if (loading) {

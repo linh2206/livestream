@@ -52,6 +52,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { room, username } = data;
     
+    console.log(`👤 ${username} joining room ${room}`);
+    
     client.join(room);
     this.onlineUsers.set(client.id, { username, socketId: client.id });
     
@@ -63,6 +65,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     
     // Emit online count
     const viewerCount = this.streamViewers.get(room)?.size || 0;
+    console.log(`👥 Emitting online count: ${viewerCount} for room ${room}`);
     this.server.to(room).emit('online_count', { count: viewerCount });
     
     console.log(`${username} joined room ${room}`);
@@ -75,6 +78,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { room, streamId, userId, username, message } = data;
     
+    console.log('💬 Chat message received:', { room, streamId, userId, username, message });
+    
     // Create message in database
     const savedMessage = await this.chatService.create({
       room,
@@ -85,6 +90,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       avatar: '',
     });
 
+    console.log('💬 Message saved to database:', (savedMessage as any)._id);
+
     // Emit message to room
     this.server.to(room).emit('chat_message', {
       id: (savedMessage as any)._id,
@@ -92,20 +99,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       message,
       timestamp: savedMessage.createdAt,
     });
+    
+    console.log('💬 Message emitted to room:', room);
   }
 
   @SubscribeMessage('like')
   async handleLike(
-    @MessageBody() data: { streamId: string; room: string; liked: boolean },
+    @MessageBody() data: { streamId: string; room: string; liked: boolean; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { streamId, room, liked } = data;
+    const { streamId, room, liked, userId } = data;
     
-    // Here you would update the like count in the database
-    // For now, just emit the like event
-    this.server.to(room).emit('like', {
+    console.log('👍 Like event received:', { streamId, room, liked, userId });
+    
+    // TODO: Update like count in database
+    // For now, just emit the like event with count
+    this.server.to(room).emit('like_update', {
       streamId,
       liked,
+      count: liked ? 1 : 0, // Simple count for now
       timestamp: new Date(),
     });
   }
