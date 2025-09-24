@@ -77,11 +77,18 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).select('-password').exec();
-    if (!user) {
-      throw new NotFoundException('User not found');
+    try {
+      const user = await this.userModel.findById(id).select('-password').exec();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      return user;
+    } catch (error) {
+      if (error.name === 'CastError') {
+        throw new NotFoundException('Invalid user ID');
+      }
+      throw error;
     }
-    return user;
   }
 
   async findByUsername(username: string): Promise<User> {
@@ -182,15 +189,18 @@ export class UsersService {
   // Get online users (users who have been active in the last 2 minutes)
   async getOnlineUsers(): Promise<User[]> {
     try {
+      console.log('Getting online users...');
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      console.log('Two minutes ago:', twoMinutesAgo);
       
       const users = await this.userModel.find({
         isActive: true,
         isOnline: true,
         lastSeen: { $gte: twoMinutesAgo }
-      }).select('-password').lean().exec();
+      }).select('-password').exec();
       
-      return users as User[];
+      console.log('Found online users:', users.length);
+      return users;
     } catch (error) {
       console.error('Error getting online users:', error);
       return [];

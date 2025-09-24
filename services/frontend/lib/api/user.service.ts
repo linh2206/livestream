@@ -10,6 +10,9 @@ export interface User {
   role: string;
   isEmailVerified: boolean;
   isActive: boolean;
+  isOnline?: boolean;
+  lastSeen?: string;
+  currentSessionId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +83,13 @@ export class UserService {
    */
   async updateUserRole(id: string, role: string): Promise<User> {
     return apiClient.patch<User>(`/users/${id}`, { role });
+  }
+
+  /**
+   * Get online users (Admin only)
+   */
+  async getOnlineUsers(): Promise<User[]> {
+    return apiClient.get<User[]>('/users/online');
   }
 }
 

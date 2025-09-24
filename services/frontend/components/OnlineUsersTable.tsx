@@ -1,42 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { Users, Wifi, WifiOff, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface OnlineUser {
-  _id: string;
-  username: string;
-  email: string;
-  isOnline: boolean;
-  lastSeen: string;
-  currentSessionId: string;
-}
+import { useOnlineUsers } from '../hooks/useOnlineUsers';
 
 export default function OnlineUsersTable() {
   const { user, isAuthenticated, isAdmin } = useAuth();
-  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { onlineUsers, isLoading, isError } = useOnlineUsers();
 
-  // Mock data for now - will be replaced with real API call
-  const mockOnlineUsers: OnlineUser[] = [
-    {
-      _id: '1',
-      username: 'admin',
-      email: 'admin@example.com',
-      isOnline: true,
-      lastSeen: new Date().toISOString(),
-      currentSessionId: 'session-123'
-    },
-    {
-      _id: '2',
-      username: 'user1',
-      email: 'user1@example.com',
-      isOnline: true,
-      lastSeen: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-      currentSessionId: 'session-456'
-    }
-  ];
+  // Use real API data
+  const displayUsers = onlineUsers;
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -70,7 +43,7 @@ export default function OnlineUsersTable() {
         <div className="flex items-center space-x-2 bg-green-500/20 px-3 py-1 rounded-full">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           <span className="text-green-400 text-sm font-medium">
-            {mockOnlineUsers.length} Online
+            {displayUsers.length} Online
           </span>
         </div>
       </div>
@@ -87,7 +60,25 @@ export default function OnlineUsersTable() {
             </tr>
           </thead>
           <tbody>
-            {mockOnlineUsers.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="text-center py-8 text-gray-400">
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                    <span>Loading online users...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : isError ? (
+              <tr>
+                <td colSpan={4} className="text-center py-8 text-gray-400">
+                  <div className="flex flex-col items-center space-y-2">
+                    <WifiOff className="w-8 h-8" />
+                    <span>Error loading users</span>
+                  </div>
+                </td>
+              </tr>
+            ) : displayUsers.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-8 text-gray-400">
                   <div className="flex flex-col items-center space-y-2">
@@ -97,7 +88,7 @@ export default function OnlineUsersTable() {
                 </td>
               </tr>
             ) : (
-              mockOnlineUsers.map((user) => (
+              displayUsers.map((user) => (
                 <tr key={user._id} className="border-b border-gray-700 hover:bg-glass-black transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
@@ -124,17 +115,17 @@ export default function OnlineUsersTable() {
                     <div className="flex items-center space-x-2 text-gray-400 text-sm">
                       <Clock className="w-4 h-4" />
                       <span>
-                        {new Date(user.lastSeen).toLocaleTimeString('vi-VN', { 
+                        {user.lastSeen ? new Date(user.lastSeen).toLocaleTimeString('vi-VN', { 
                           hour12: false, 
                           hour: '2-digit', 
                           minute: '2-digit' 
-                        })}
+                        }) : 'N/A'}
                       </span>
                     </div>
                   </td>
                   <td className="py-3 px-4">
                     <div className="text-gray-400 text-sm font-mono">
-                      {user.currentSessionId.substring(0, 8)}...
+                      {user.currentSessionId ? user.currentSessionId.substring(0, 8) + '...' : 'N/A'}
                     </div>
                   </td>
                 </tr>
@@ -147,7 +138,7 @@ export default function OnlineUsersTable() {
       {/* Footer */}
       <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
         <div>
-          Showing {mockOnlineUsers.length} online users
+          Showing {displayUsers.length} online users
         </div>
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>

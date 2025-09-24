@@ -47,9 +47,8 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           // Token expired or invalid, clear auth state
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-          window.location.href = '/';
+          // Don't redirect here, let components handle it
+          console.log('401 error detected, clearing auth state');
         }
         return Promise.reject(error);
       }

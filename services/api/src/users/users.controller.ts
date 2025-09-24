@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -37,6 +38,19 @@ export class UsersController {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
     return this.usersService.findAll(pageNum, limitNum, search);
+  }
+
+  // Get online users (admin only) - MUST be before @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @Get('online')
+  getOnlineUsers(@Request() req: any) {
+    console.log('getOnlineUsers called, user:', req.user);
+    // Check admin role manually
+    if (req.user?.role !== 'admin') {
+      throw new ForbiddenException('Admin access required');
+    }
+    console.log('Calling usersService.getOnlineUsers()');
+    return this.usersService.getOnlineUsers();
   }
 
   @UseGuards(JwtAuthGuard)
@@ -82,10 +96,4 @@ export class UsersController {
     return this.usersService.remove(id);
   }
 
-  // Get online users (admin only) - Temporarily disabled
-  // @UseGuards(JwtAuthGuard, AdminGuard)
-  // @Get('online')
-  // getOnlineUsers() {
-  //   return this.usersService.getOnlineUsers();
-  // }
 }

@@ -11,6 +11,25 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoPlayBlocked, setAutoPlayBlocked] = useState(false);
+
+  // Retry auto-play when authentication status changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isAuthenticated) return;
+
+    // If video is ready and paused, try to play
+    if (video.readyState >= 2 && video.paused) {
+      console.log('🎬 Retrying auto-play on auth change...');
+      video.play().then(() => {
+        console.log('✅ Auto-play successful on retry');
+        setIsPlaying(true);
+      }).catch(err => {
+        console.log('❌ Auto-play still blocked:', err);
+        setAutoPlayBlocked(true);
+      });
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -45,8 +64,13 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
         setError(null);
         // Auto-play when manifest is ready and user is authenticated
         if (isAuthenticated && video.paused) {
-          video.play().catch(err => {
-            // Auto-play might be blocked by browser, that's okay
+          console.log('🎬 Attempting auto-play...');
+          video.play().then(() => {
+            console.log('✅ Auto-play successful');
+            setIsPlaying(true);
+          }).catch(err => {
+            console.log('❌ Auto-play blocked by browser:', err);
+            setAutoPlayBlocked(true);
           });
         }
       });
@@ -89,8 +113,13 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
         setError(null);
         // Auto-play when metadata is loaded (Safari) and user is authenticated
         if (isAuthenticated && video.paused) {
-          video.play().catch(err => {
-            // Auto-play might be blocked by browser, that's okay
+          console.log('🎬 Attempting auto-play (Safari)...');
+          video.play().then(() => {
+            console.log('✅ Auto-play successful (Safari)');
+            setIsPlaying(true);
+          }).catch(err => {
+            console.log('❌ Auto-play blocked by browser (Safari):', err);
+            setAutoPlayBlocked(true);
           });
         }
       });
@@ -171,7 +200,7 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
       />
       
       {/* Play/Pause overlay */}
-      {!isPlaying && (
+      {(!isPlaying || autoPlayBlocked) && (
         <div className="absolute inset-0 flex items-center justify-center">
           <button
             onClick={togglePlay}
@@ -181,6 +210,13 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
+          {autoPlayBlocked && (
+            <div className="absolute bottom-4 left-4 right-4 text-center">
+              <p className="text-white text-sm bg-black bg-opacity-50 rounded px-3 py-1">
+                Click to start playing
+              </p>
+            </div>
+          )}
         </div>
       )}
 

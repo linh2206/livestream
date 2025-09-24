@@ -87,8 +87,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('User authenticated via cookie:', userData);
           setToken('cookie'); // Dummy token since we use cookie
           setUser(userData);
-        } catch (error) {
-          console.log('No valid session found');
+        } catch (error: any) {
+          console.log('No valid session found, error:', error);
+          // If 401, clear any stale cookies by calling logout
+          if (error?.response?.status === 401) {
+            console.log('401 error, clearing stale session');
+            try {
+              await authService.logout();
+            } catch (logoutError) {
+              console.log('Logout error (expected):', logoutError);
+            }
+          }
           setToken(null);
           setUser(null);
         }
@@ -102,7 +111,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    initializeAuth();
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.log('Auth initialization timeout, setting loading to false');
+      setLoading(false);
+    }, 5000);
+
+    initializeAuth().finally(() => {
+      clearTimeout(timeout);
+    });
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -150,6 +167,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setToken(null);
       setUser(null);
+      // Force reload to clear any cached state
+      window.location.reload();
     }
   };
 
