@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
-export default function VideoPlayer() {
+interface VideoPlayerProps {
+  isAuthenticated?: boolean;
+}
+
+export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +44,11 @@ export default function VideoPlayer() {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('✅ HLS manifest parsed, ready for playback');
         setError(null);
+        // Auto-play when manifest is ready
+        video.play().catch(err => {
+          console.log('Auto-play failed:', err);
+          // Auto-play might be blocked by browser, that's okay
+        });
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -79,6 +88,11 @@ export default function VideoPlayer() {
       video.addEventListener('loadedmetadata', () => {
         console.log('✅ HLS manifest loaded, ready for playback');
         setError(null);
+        // Auto-play when metadata is loaded (Safari)
+        video.play().catch(err => {
+          console.log('Auto-play failed:', err);
+          // Auto-play might be blocked by browser, that's okay
+        });
       });
       video.addEventListener('error', () => {
         setError('Failed to load stream');
@@ -109,7 +123,7 @@ export default function VideoPlayer() {
 
   if (error) {
     return (
-      <div className="relative w-full h-96 bg-gray-900 rounded-lg flex items-center justify-center">
+      <div className="relative w-full aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-400 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +138,7 @@ export default function VideoPlayer() {
   }
 
   return (
-    <div className="relative w-full h-96 bg-gray-900 rounded-lg overflow-hidden">
+    <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
