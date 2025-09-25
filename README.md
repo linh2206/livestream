@@ -208,9 +208,9 @@ docker-compose.yml
 - **RTMP Stats**: `http://localhost:8080/stat`
 
 ### Backend API (Port 9000)
-- **Health Check**: `http://183.182.104.226:24190/health`
-- **RTMP Auth**: `http://183.182.104.226:24190/rtmp/publish`
-- **HLS Serve**: `http://183.182.104.226:24190/hls/{streamName}`
+- **Health Check**: `http://localhost:24190/health`
+- **RTMP Auth**: `http://localhost:24190/rtmp/publish`
+- **HLS Serve**: `http://localhost:24190/hls/{streamName}`
 
 ### RTMP (Port 1935)
 - **Stream URL**: `rtmp://localhost:1935/live`
@@ -247,7 +247,7 @@ docker-compose up -d
 
 4. **Access the application:**
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://183.182.104.226:24190
+- **Backend API**: http://localhost:24190
 - **Web Interface**: http://localhost:8080
 
 ### Streaming
@@ -371,8 +371,8 @@ JWT_SECRET=your-super-secret-jwt-key
 FRONTEND_URL=http://localhost:3000
 
 # API URLs
-NEXT_PUBLIC_API_URL=http://183.182.104.226:24190
-NEXT_PUBLIC_WS_URL=ws://183.182.104.226:24190
+NEXT_PUBLIC_API_URL=http://localhost:24190
+NEXT_PUBLIC_WS_URL=ws://localhost:24190
 NEXT_PUBLIC_HLS_URL=http://localhost:8080/hls
 
 # Database
@@ -405,7 +405,7 @@ NODE_ENV=production
    - Đặt tên: "LiveStream App"
    - Authorized redirect URIs:
      - `http://localhost:9000/auth/google/callback`
-     - `http://183.182.104.226:24190/auth/google/callback`
+     - `http://localhost:24190/auth/google/callback`
 
 #### Bước 2: Cập nhật Environment Variables
 

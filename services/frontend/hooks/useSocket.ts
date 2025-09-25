@@ -15,7 +15,7 @@ export function useSocket(): UseSocketReturn {
   const [error, setError] = useState<string | null>(null);
 
   const connectSocket = useCallback(() => {
-    const wsUrl = 'ws://localhost:9000';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000';
     console.log('🔌 Connecting to WebSocket:', wsUrl);
     
     const socketInstance = io(wsUrl, {

@@ -5,7 +5,7 @@ class ApiClient {
   private client: AxiosInstance;
 
   private constructor() {
-    const baseURL = '/api';
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || '/api';
     
     this.client = axios.create({
       baseURL,

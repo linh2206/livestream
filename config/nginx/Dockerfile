@@ -8,7 +8,9 @@ RUN mkdir -p /var/www/html/hls && \
     chmod -R 777 /var/www/html/hls
 
 # Create script to fix permissions automatically
-RUN echo '#!/bin/sh\nchmod -R 777 /var/www/html/hls\nnginx -g "daemon off;"' > /start.sh && \
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'chmod -R 777 /var/www/html/hls' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
 # Expose ports
