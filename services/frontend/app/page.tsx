@@ -124,6 +124,7 @@ export default function Home() {
             Please login to access the live stream and chat
           </p>
           <button
+            type="button"
             onClick={() => setShowLoginForm(true)}
             className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
           >
@@ -171,6 +172,7 @@ export default function Home() {
               </div>
               
               <button
+                type="button"
                 onClick={logout}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
@@ -190,6 +192,7 @@ export default function Home() {
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <button
+                    type="button"
                     onClick={handleLike}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
                       isLiked
@@ -202,6 +205,7 @@ export default function Home() {
                   </button>
                   
                   <button
+                    type="button"
                     onClick={() => setShowChat(!showChat)}
                     className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-glass-white text-white hover:bg-glass-black transition-all"
                   >

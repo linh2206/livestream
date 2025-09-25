@@ -177,6 +177,7 @@ export default function Chat() {
           </div>
         </div>
         <button
+          type="button"
           onClick={sendMessage}
           disabled={!newMessage.trim()}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white p-3 rounded-2xl transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg"

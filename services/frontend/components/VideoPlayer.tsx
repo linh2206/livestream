@@ -203,6 +203,7 @@ export default function VideoPlayer({ isAuthenticated = false }: VideoPlayerProp
       {(!isPlaying || autoPlayBlocked) && (
         <div className="absolute inset-0 flex items-center justify-center">
           <button
+            type="button"
             onClick={togglePlay}
             className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-4 transition-all"
           >

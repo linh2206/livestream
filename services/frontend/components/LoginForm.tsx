@@ -159,6 +159,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
 
         <div className="mt-6 text-center">
           <button
+            type="button"
             onClick={() => setIsLogin(!isLogin)}
             className="text-primary-400 hover:text-primary-300 text-sm"
           >
@@ -168,6 +169,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
 
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-white"
           >

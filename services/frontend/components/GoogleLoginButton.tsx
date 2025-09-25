@@ -43,12 +43,8 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
           onSuccess(event.data.data);
         }
         
-        // Store token in localStorage
-        localStorage.setItem('token', event.data.data.access_token);
-        localStorage.setItem('user', JSON.stringify(event.data.data.user));
-        
-        // Reload page to update auth state
-        window.location.reload();
+        // Don't store token in localStorage anymore, use cookie-based auth
+        // Don't reload page, let AuthContext handle the state update
       } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
         setIsLoading(false);
         popup?.close();

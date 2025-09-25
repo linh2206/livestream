@@ -29,8 +29,8 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : undefined // Let browser handle domain
+      path: '/'
+      // Remove domain to allow cross-subdomain cookies
     });
     
     return result;
