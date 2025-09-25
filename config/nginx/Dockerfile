@@ -1,4 +1,4 @@
-FROM tiangolo/nginx-rtmp
+FROM alfg/nginx-rtmp
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
