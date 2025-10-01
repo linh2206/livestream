@@ -4,3 +4,5 @@ export { Modal } from './Modal';
 export { Table } from './Table';
 export { Card } from './Card';
 export { Loading } from './Loading';
+export { Toast, ToastContainer } from './Toast';
+

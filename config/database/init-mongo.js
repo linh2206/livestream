@@ -33,3 +33,4 @@ db.users.insertOne({
 });
 
 print('Database initialized successfully!');
+

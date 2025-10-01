@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSocket } from '@/contexts/SocketContext';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useSocketContext } from '@/lib/contexts/SocketContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -12,69 +12,179 @@ interface ChatMessage {
   username: string;
   content: string;
   timestamp: Date;
+  avatar?: string;
+  role?: 'user' | 'moderator' | 'streamer';
 }
 
 interface ChatProps {
   streamId: string;
+  className?: string;
 }
 
-export const Chat: React.FC<ChatProps> = ({ streamId }) => {
+export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
   const { user } = useAuth();
-  const { socket } = useSocket();
+  const { socket, isConnected, sendMessage: sendMessageViaSocket } = useSocketContext();
+  
+  // Debug chat connection
+  useEffect(() => {
+    console.log('💬 [Chat] Component mounted:', {
+      streamId,
+      hasUser: !!user,
+      hasSocket: !!socket,
+      isConnected,
+      userId: user?._id
+    });
+  }, [streamId, user, socket, isConnected]);
+
+  // Show loading if no user (auth still loading)
+  if (!user) {
+    return (
+      <div className={`h-[600px] flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-gray-400">
+            <div className="w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading chat...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Handle typing indicators
+  const handleTyping = useCallback(() => {
+    if (!isTyping && newMessage.trim()) {
+      setIsTyping(true);
+      socket?.emit('typing', { streamId, userId: user?._id, username: user?.username });
+    }
+  }, [isTyping, newMessage, socket, streamId, user?._id, user?.username]);
+
+  const handleStopTyping = useCallback(() => {
+    if (isTyping) {
+      setIsTyping(false);
+      socket?.emit('stop_typing', { streamId, userId: user?._id });
+    }
+  }, [isTyping, socket, streamId, user?._id]);
 
   useEffect(() => {
-    if (socket) {
+    if (socket && isConnected && user) {
+      // Connection events
       socket.on('connect', () => {
-        setIsConnected(true);
+        console.log('🔌 Socket connected');
       });
 
       socket.on('disconnect', () => {
-        setIsConnected(false);
+        console.log('🔌 Socket disconnected');
       });
 
-      socket.on('new_message', (message: ChatMessage) => {
+      // Message events
+      socket.on('chat:new_message', (message: ChatMessage) => {
         setMessages(prev => [...prev, message]);
+        scrollToBottom();
+      });
+
+      // Typing events
+      socket.on('chat:typing', (data: { userId: string; username: string }) => {
+        setTypingUsers(prev => [...prev.filter(u => u !== data.username), data.username]);
+      });
+
+      socket.on('chat:stop_typing', (data: { userId: string; username: string }) => {
+        setTypingUsers(prev => prev.filter(u => u !== data.username));
+      });
+
+      // System messages
+      socket.on('chat:user_join', (data: { username: string }) => {
+        const systemMessage: ChatMessage = {
+          id: `system-${Date.now()}`,
+          userId: 'system',
+          username: 'System',
+          content: `${data.username} joined the chat`,
+          timestamp: new Date(),
+          role: 'moderator'
+        };
+        setMessages(prev => [...prev, systemMessage]);
+        scrollToBottom();
+      });
+
+      socket.on('chat:user_leave', (data: { username: string }) => {
+        const systemMessage: ChatMessage = {
+          id: `system-${Date.now()}`,
+          userId: 'system',
+          username: 'System',
+          content: `${data.username} left the chat`,
+          timestamp: new Date(),
+          role: 'moderator'
+        };
+        setMessages(prev => [...prev, systemMessage]);
+        scrollToBottom();
+      });
+
+      // Recent messages
+      socket.on('chat:recent_messages', (messages: ChatMessage[]) => {
+        setMessages(messages);
+        scrollToBottom();
       });
 
       return () => {
         socket.off('connect');
         socket.off('disconnect');
-        socket.off('new_message');
+        socket.off('chat:new_message');
+        socket.off('chat:typing');
+        socket.off('chat:stop_typing');
+        socket.off('chat:user_join');
+        socket.off('chat:user_leave');
+        socket.off('chat:recent_messages');
       };
     }
-  }, [socket]);
+  }, [socket, isConnected, user, scrollToBottom]);
 
+  // Auto-scroll when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Handle typing timeout
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      handleStopTyping();
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [newMessage, handleStopTyping]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !isConnected) return;
 
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      userId: user.id,
-      username: user.username,
-      content: newMessage.trim(),
-      timestamp: new Date(),
-    };
+    console.log('💬 [Chat] Sending message:', { streamId, content: newMessage.trim(), user: user.username });
 
-    setMessages(prev => [...prev, message]);
+    // Send message via SocketContext - backend will broadcast to all including sender
+    sendMessageViaSocket(streamId, newMessage.trim());
+    
     setNewMessage('');
+    handleStopTyping();
+  };
 
-    if (socket) {
-      socket.emit('send_message', {
-        streamId,
-        content: message.content,
-        userId: user.id,
-        username: user.username,
-      });
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    handleTyping();
   };
 
   const formatTime = (date: Date) => {
@@ -84,77 +194,193 @@ export const Chat: React.FC<ChatProps> = ({ streamId }) => {
     });
   };
 
+  const getRoleColor = (role?: string) => {
+    switch (role) {
+      case 'streamer': return 'text-purple-400';
+      case 'moderator': return 'text-green-400';
+      default: return 'text-gray-400';
+    }
+  };
+
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case 'streamer': return '👑';
+      case 'moderator': return '🛡️';
+      default: return '';
+    }
+  };
+
+  const getAvatarColor = (username: string) => {
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-yellow-500'];
+    const index = username.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
   return (
-    <Card className="h-[600px] flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        <h3 className="text-lg font-semibold text-white">Chat</h3>
+    <div className={`h-full flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 rounded-t-xl">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 w-3 h-3 bg-blue-400 rounded-full animate-ping opacity-75"></div>
+          </div>
+          <h3 className="text-lg font-bold text-white tracking-wide">Live Chat</h3>
+          <div className="flex items-center space-x-2">
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <span className="text-xs text-gray-300 bg-gray-600/50 px-2 py-1 rounded-full font-medium">
+              {messages.length} messages
+            </span>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-sm text-gray-400">
+          <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+            isConnected ? 'bg-green-400 shadow-green-400/50 shadow-lg' : 'bg-red-400 shadow-red-400/50 shadow-lg'
+          }`} />
+          <span className={`text-sm font-medium transition-colors duration-300 ${
+            isConnected ? 'text-green-300' : 'text-red-300'
+          }`}>
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-900/40 via-gray-800/20 to-gray-900/40">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
-            <p>No messages yet. Be the first to chat!</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <div className="relative mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-gray-600/30">
+                <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-200 mb-2">Welcome to Live Chat!</h4>
+            <p className="text-sm text-gray-400 text-center max-w-xs leading-relaxed">
+              Be the first to start the conversation and connect with other viewers
+            </p>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.userId === user?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs px-3 py-2 rounded-lg ${
-                  message.userId === user?.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-200'
-                }`}
-              >
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-xs font-medium opacity-75">
-                    {message.username}
-                  </span>
-                  <span className="text-xs opacity-50">
-                    {formatTime(message.timestamp)}
-                  </span>
+          messages.map((message) => {
+            const isOwnMessage = message.userId === user?._id;
+            const isSystemMessage = message.userId === 'system';
+            
+            if (isSystemMessage) {
+              return (
+                <div key={message.id} className="flex justify-center my-2">
+                  <div className="bg-gray-700/60 border border-gray-600/40 px-4 py-2 rounded-full backdrop-blur-sm">
+                    <span className="text-xs text-gray-300 font-medium">{message.content}</span>
+                  </div>
                 </div>
-                <p className="text-sm">{message.content}</p>
+              );
+            }
+
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 duration-300`}
+              >
+                <div className={`flex max-w-[75%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end space-x-3`}>
+                  {/* Avatar */}
+                  {!isOwnMessage && (
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg ${getAvatarColor(message.username)}`}>
+                      {message.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  
+                  {/* Message Content */}
+                  <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} space-y-1`}>
+                    {/* Username and timestamp for all messages */}
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs font-semibold ${getRoleColor(message.role)}`}>
+                        {getRoleBadge(message.role)} {message.username}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    </div>
+                    
+                    <div
+                      className={`px-4 py-3 rounded-2xl shadow-lg transition-all duration-200 group-hover:shadow-xl ${
+                        isOwnMessage
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-br-lg'
+                          : 'bg-gray-700/90 text-gray-100 rounded-bl-lg backdrop-blur-sm border border-gray-600/30'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
+        
+        {/* Typing Indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center space-x-3 text-gray-400 animate-in slide-in-from-bottom-2 duration-300">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+            <span className="text-sm font-medium">
+              {typingUsers.length === 1 
+                ? `${typingUsers[0]} is typing...`
+                : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` and ${typingUsers.length - 2} others` : ''} are typing...`
+              }
+            </span>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input Area */}
       {user ? (
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={!isConnected}
-            />
-            <Button
+        <div className="p-4 border-t border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 rounded-b-xl">
+          <form onSubmit={handleSendMessage} className="flex space-x-3">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={newMessage}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={isConnected ? "Type your message..." : "Connecting..."}
+                className="w-full px-4 py-3 bg-gray-700/80 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 text-sm backdrop-blur-sm"
+                disabled={!isConnected}
+                maxLength={500}
+              />
+              {newMessage.length > 0 && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <span className="text-xs text-gray-500">{newMessage.length}/500</span>
+                </div>
+              )}
+            </div>
+            <button
               type="submit"
-              disabled={!newMessage.trim() || !isConnected}
-              size="sm"
+              disabled={!newMessage.trim() || !isConnected || newMessage.length > 500}
+              className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
             >
-              Send
-            </Button>
-          </div>
-        </form>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </form>
+        </div>
       ) : (
-        <div className="p-4 border-t border-gray-700 text-center text-gray-400">
-          <p>Please log in to chat</p>
+        <div className="p-4 border-t border-gray-700/50 text-center bg-gradient-to-r from-gray-800/80 to-gray-700/80 rounded-b-xl">
+          <div className="flex items-center justify-center space-x-2 text-gray-400">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm font-medium">Please log in to participate in the chat</p>
+          </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 };

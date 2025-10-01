@@ -1,6 +1,6 @@
-FROM nginx:alpine
+FROM alfg/nginx-rtmp
 
-# Install FFmpeg and nginx-rtmp-module
+# Install FFmpeg
 RUN apk add --no-cache ffmpeg
 
 # Copy nginx configuration

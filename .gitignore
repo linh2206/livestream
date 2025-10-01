@@ -82,8 +82,9 @@ jspm_packages/
 # Docker
 .dockerignore
 
-# HLS files
-hls/
+# HLS files (actual stream files, not source code)
+**/hls/streams/
+apps/backend/hls/
 apps/api/hls/
 
 # Database
@@ -109,3 +110,4 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+

@@ -30,3 +30,4 @@ export const Loading: React.FC<LoadingProps> = ({ size = 'md', text, fullScreen 
 
   return content;
 };
+

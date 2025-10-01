@@ -1,47 +1,73 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
-import { Stream } from '@/types/stream';
-import { streamService } from '@/services/stream.service';
+import { useStreamsList } from '@/lib/hooks/useStreamsList';
+import { Stream } from '@/lib/api/types';
+import { useSocketContext } from '@/lib/contexts/SocketContext';
 
 export const StreamList: React.FC = () => {
-  const [streams, setStreams] = useState<Stream[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { streams, isLoading, error, syncStreamStatus, mutate } = useStreamsList();
+  const { socket } = useSocketContext();
 
+  // Listen to WebSocket events for real-time updates
   useEffect(() => {
-    fetchStreams();
-  }, []);
+    if (socket) {
+      // Listen for stream start events
+      socket.on('stream:started', (streamData: any) => {
+        console.log('Stream started via WebSocket:', streamData);
+        // Refresh stream list to show new live stream
+        mutate();
+      });
 
-  const fetchStreams = async () => {
-    try {
-      setLoading(true);
-      const data = await streamService.getStreams();
-      setStreams(data.streams);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch streams');
-    } finally {
-      setLoading(false);
+      // Listen for stream end events
+      socket.on('stream:ended', (data: any) => {
+        console.log('Stream ended via WebSocket:', data);
+        // Refresh stream list to update status
+        mutate();
+      });
+
+      // Listen for stream stop events
+      socket.on('stream:stop', (data: any) => {
+        console.log('Stream stopped via WebSocket:', data);
+        // Refresh stream list to update status
+        mutate();
+      });
+
+      // Listen for viewer count updates
+      socket.on('stream:viewer_count_update', (data: any) => {
+        console.log('Viewer count updated via WebSocket:', data);
+        // Refresh stream list to update viewer counts
+        mutate();
+      });
+
+      // Cleanup event listeners
+      return () => {
+        socket.off('stream:started');
+        socket.off('stream:ended');
+        socket.off('stream:stop');
+        socket.off('stream:viewer_count_update');
+      };
     }
-  };
+  }, [socket, mutate]);
 
-  if (loading) {
-    return <Loading text="Loading streams..." />;
+  if (isLoading) {
+    return (
+      <Card>
+        <div className="text-center text-gray-400">
+          <Loading text="Loading streams..." />
+        </div>
+      </Card>
+    );
   }
 
   if (error) {
     return (
       <Card>
         <div className="text-center text-red-400">
-          <p>{error}</p>
-          <button
-            onClick={fetchStreams}
-            className="mt-2 text-blue-400 hover:text-blue-300"
-          >
-            Try again
-          </button>
+          <p>Error loading streams: {error.message}</p>
         </div>
       </Card>
     );
@@ -60,35 +86,38 @@ export const StreamList: React.FC = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {streams.map((stream) => (
-        <StreamCard key={stream.id} stream={stream} />
+        <StreamCard 
+          key={stream._id} 
+          stream={stream} 
+          onSyncStatus={syncStreamStatus}
+        />
       ))}
     </div>
   );
 };
 
-const StreamCard: React.FC<{ stream: Stream }> = ({ stream }) => {
+const StreamCard: React.FC<{ stream: Stream; onSyncStatus?: (streamKey: string) => void }> = ({ stream, onSyncStatus }) => {
+  const router = useRouter();
+  
   const handleClick = () => {
-    window.location.href = `/stream/${stream.id}`;
+    router.push(`/streams/${stream._id}`);
+  };
+
+  const handleSyncStatus = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation when clicking sync button
+    if (onSyncStatus) {
+      onSyncStatus(stream.streamKey);
+    }
   };
 
   return (
     <Card className="cursor-pointer hover:border-blue-500 transition-colors" onClick={handleClick}>
       <div className="space-y-4">
         <div className="aspect-video bg-gray-700 rounded-lg flex items-center justify-center">
-          {stream.thumbnail ? (
-            <img
-              src={stream.thumbnail}
-              alt={stream.title}
-              className="w-full h-full object-cover rounded-lg"
-            />
-          ) : (
-            <div className="text-gray-400">
-              <svg className="w-12 h-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 12l-4-4h8l-4 4z" />
-              </svg>
-              <p>No thumbnail</p>
-            </div>
-          )}
+          <div className="text-gray-400 text-center">
+            <div className="text-4xl mb-2">📺</div>
+            <div className="text-sm">Stream Preview</div>
+          </div>
         </div>
         
         <div>
@@ -116,13 +145,27 @@ const StreamCard: React.FC<{ stream: Stream }> = ({ stream }) => {
               </span>
             </div>
             
-            <div className="flex items-center">
-              {stream.isLive && (
+            <div className="flex items-center space-x-2">
+              {stream.isLive ? (
                 <span className="flex items-center text-red-400">
                   <div className="w-2 h-2 bg-red-400 rounded-full mr-2 animate-pulse" />
                   Live
                 </span>
+              ) : (
+                <span className="flex items-center text-gray-500">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full mr-2" />
+                  Offline
+                </span>
               )}
+              <button
+                onClick={handleSyncStatus}
+                className="text-gray-400 hover:text-blue-400 transition-colors"
+                title="Sync stream status"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
             </div>
           </div>
           
