@@ -23,7 +23,6 @@ help:
 	@echo ""
 	@echo "🔧 System Setup:"
 	@echo "  make setup-ssh  - Setup SSH server configuration"
-	@echo "  make fix-apt    - Fix APT package manager issues"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -67,9 +66,6 @@ setup-ssh:
 	@echo "Setting up SSH server..."
 	./scripts/setup-ssh-server.sh
 
-fix-apt:
-	@echo "Fixing APT package manager issues (NUCLEAR OPTION)..."
-	sudo ./scripts/fix-apt-issues.sh
 
 # Quick setup
 setup:
