@@ -294,21 +294,8 @@ echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
 EOF
     sudo chmod +x /etc/update-motd.d/99-livestream
     
-    # Create simple SSH banner with solid lines
-    sudo tee /etc/ssh/banner > /dev/null << 'EOF'
-┌──────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│ LIVESTREAM SERVER                                                    │
-│                                                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│ Welcome to the LiveStream Platform Server!                          │
-│                                                                      │
-│ WARNING: Authorized access only. All activities are logged.         │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-EOF
-    sudo chmod 644 /etc/ssh/banner
+    # Remove SSH banner
+    sudo rm -f /etc/ssh/banner
 fi
 
 echo "Configuring SSH server..."
