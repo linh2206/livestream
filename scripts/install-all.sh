@@ -123,34 +123,6 @@ fix_dns_issues() {
     fi
 }
 
-# Function to handle Docker Hub rate limit issues
-fix_docker_rate_limit() {
-    log_info "Checking Docker Hub connectivity..."
-    
-    # Test if we can pull a small image
-    if docker pull hello-world &>/dev/null; then
-        log_success "Docker Hub accessible"
-        docker rmi hello-world &>/dev/null || true
-        return 0
-    fi
-    
-    log_warning "Docker Hub rate limit reached, trying alternatives..."
-    
-    # Try to login with anonymous access
-    log_info "Attempting anonymous Docker Hub access..."
-    if echo "" | docker login &>/dev/null; then
-        log_success "Anonymous Docker access configured"
-        return 0
-    fi
-    
-    # Use alternative registry or cached images
-    log_warning "Docker Hub not accessible, you may need to:"
-    log_info "1. Login to Docker Hub: docker login"
-    log_info "2. Or wait for rate limit to reset (usually 6 hours)"
-    log_info "3. Or use alternative registry"
-    
-    return 1
-}
 
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="

@@ -9,11 +9,14 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    command: mongod --wiredTigerCacheSizeGB 1 --maxConns 1000
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+    command: mongod --wiredTigerCacheSizeGB 1 --maxConns 1000 --setParameter disableLogicalSessionCacheRefresh=true --setParameter enableFreeMonitoring=false
     networks:
       - livestream-network
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "nc", "-z", "localhost", "27017"]
       interval: 30s
       timeout: 10s
       retries: 5

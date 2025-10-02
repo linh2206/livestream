@@ -86,25 +86,6 @@ echo "✅ Environment files setup completed!"
 echo "🛑 Stopping existing containers..."
 docker compose down
 
-# Check Docker Hub connectivity
-echo "🔍 Checking Docker Hub connectivity..."
-if ! docker pull hello-world &>/dev/null; then
-    echo "⚠️  Docker Hub rate limit reached or network issue"
-    echo ""
-    echo "💡 To fix this issue:"
-    echo "  1. Create Docker Hub account at: https://hub.docker.com"
-    echo "  2. Run: docker login"
-    echo "  3. Enter your Docker Hub username and password"
-    echo "  4. Or use anonymous: docker login --username anonymous --password anonymous"
-    echo ""
-    echo "⏳ Waiting 10 seconds before continuing..."
-    sleep 10
-    echo "🔄 Continuing with existing images..."
-    docker rmi hello-world &>/dev/null || true
-else
-    echo "✅ Docker Hub accessible"
-    docker rmi hello-world &>/dev/null || true
-fi
 
 # Build and start services
 echo "🔨 Building and starting all services..."
