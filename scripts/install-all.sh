@@ -127,6 +127,7 @@ fix_dns_issues() {
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="
 echo "This script will install system dependencies and prepare environment:"
+echo "  • Fix DNS connectivity issues"
 echo "  • System dependencies (Docker, Node.js, Git)"
 echo "  • Development tools and libraries"
 echo "  • Create necessary directories and structure"
@@ -139,6 +140,10 @@ echo ""
 echo "⚠️  This script does NOT build or start services!"
 echo "    Use 'make build' or './scripts/build-start.sh' after this script."
 echo "=========================================================="
+
+# Fix DNS issues first
+echo "🔧 Fixing DNS connectivity issues first..."
+fix_dns_issues
 
 # Check if running on Ubuntu/Debian or macOS
 if ! command -v apt &> /dev/null && [[ "$OSTYPE" != "darwin"* ]]; then

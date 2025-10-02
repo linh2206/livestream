@@ -82,17 +82,6 @@ fi
 
 echo "✅ Environment files setup completed!"
 
-# Fix DNS issues if needed
-echo "🔍 Checking DNS connectivity..."
-if ! nslookup registry-1.docker.io &>/dev/null; then
-    echo "⚠️  DNS issues detected, attempting to fix..."
-    echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
-    echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null
-    echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf >/dev/null
-    echo "✅ DNS servers updated"
-else
-    echo "✅ DNS working"
-fi
 
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
