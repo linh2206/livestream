@@ -75,9 +75,10 @@ EOF
     
     # Create the banner file that calls the script
     tee /etc/ssh/banner > /dev/null << 'EOF'
+#!/bin/bash
 /usr/local/bin/ssh-banner
 EOF
-    chmod 644 /etc/ssh/banner
+    chmod 755 /etc/ssh/banner
 else
     sudo tee /usr/local/bin/ssh-banner > /dev/null << 'EOF'
 #!/bin/bash
@@ -111,9 +112,10 @@ EOF
     
     # Create the banner file that calls the script
     sudo tee /etc/ssh/banner > /dev/null << 'EOF'
+#!/bin/bash
 /usr/local/bin/ssh-banner
 EOF
-    sudo chmod 644 /etc/ssh/banner
+    sudo chmod 755 /etc/ssh/banner
 fi
 
 echo "Configuring SSH server..."
@@ -329,15 +331,27 @@ else
 fi
 
 echo ""
+echo "Testing banner display..."
+if [ -f "/usr/local/bin/ssh-banner" ]; then
+    echo "✅ Banner script exists and is executable"
+    echo "Banner preview:"
+    /usr/local/bin/ssh-banner
+else
+    echo "❌ Warning: Banner script not found"
+fi
+
+echo ""
 echo "SSH Server Configuration Complete"
 echo "SSH server is running with enhanced security settings."
 echo ""
 echo "Important:"
 echo "1. SSH key has been added to ~/.ssh/authorized_keys"
-echo "2. Test SSH connection before closing this session"
-echo "3. After testing, disable password auth for security"
+echo "2. Banner is configured and should display on SSH login"
+echo "3. Test SSH connection before closing this session"
+echo "4. After testing, disable password auth for security"
 echo ""
 echo "Commands:"
 echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
+echo "Test banner: /usr/local/bin/ssh-banner"
 echo "Disable password auth: sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart ssh"
 echo "Restore config: sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config && sudo systemctl restart ssh"
