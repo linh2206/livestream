@@ -99,6 +99,7 @@ services:
     restart: unless-stopped
     ports:
       - "${RTMP_PORT:-1935}:1935"
+      - "${NGINX_HTTP_PORT:-80}:80"
     volumes:
       - hls_data:/app/hls
     environment:

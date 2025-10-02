@@ -22,8 +22,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
+# Install ALL dependencies (need dev deps for dev mode)
+RUN npm install --no-audit --no-fund && npm cache clean --force
 
 # Copy source code (no build for now)
 COPY --from=builder /app ./
