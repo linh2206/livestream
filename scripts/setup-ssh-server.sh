@@ -25,7 +25,7 @@ fi
 
 # Install SSH server and dependencies
 log_info "Installing SSH server and dependencies..."
-apt update && apt install -y openssh-server openssh-client ssh-import-id
+apt update && apt install -y openssh-server openssh-client ssh-import-id || log_error "SSH installation failed"
 
 # Create SSH directory structure
 log_info "Creating SSH directory structure..."

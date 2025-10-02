@@ -82,6 +82,8 @@ install_docker_compose() {
                 log_success "Docker Compose V1 working via apt installation"
                 return 0
             fi
+        else
+            log_warning "Docker Compose V1 installation via apt failed"
         fi
         
         log_error "All Docker Compose  installation methods failed"
@@ -177,8 +179,12 @@ fi
 # Update system based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Updating system packages..."
-    sudo apt update && sudo apt upgrade -y
-    log_success "✅ System packages updated!"
+    if sudo apt update; then
+        sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
+        log_success "✅ System packages updated!"
+    else
+        log_warning "APT update failed, but continuing with installation..."
+    fi
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
     if command -v brew &> /dev/null; then
@@ -194,7 +200,7 @@ fi
 # Install Docker based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Docker..."
-    sudo apt install -y docker.io
+    sudo apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER
@@ -220,7 +226,7 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
     curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt install -y nodejs
+    sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..."
 
     # Verify installation
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -228,7 +234,7 @@ if [ "$OS" = "ubuntu" ]; then
     else
         log_error "Failed to install Node.js or npm"
         log_info "Trying alternative installation method..."
-        sudo apt install -y nodejs npm
+        sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..." npm
         if command -v node &> /dev/null && command -v npm &> /dev/null; then
             log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
         else
@@ -251,12 +257,12 @@ log_info "MongoDB and Nginx will be installed via Docker containers"
 # Install Git based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Git..."
-    sudo apt install -y git
+    sudo apt install -y git || log_warning "Git installation failed, but continuing..."
     log_success "Git installed"
 
     # Install additional tools
     log_info "Installing additional tools..."
-    sudo apt install -y curl wget unzip build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release
+    sudo apt install -y curl wget unzip build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release || log_warning "Some tools installation failed, but continuing..."
 elif [ "$OS" = "macos" ]; then
     log_info "Checking Git installation..."
     if command -v git &> /dev/null; then
@@ -274,23 +280,23 @@ log_info "FFmpeg can be installed via scripts/install-ffmpeg-quick.sh or scripts
 if [ "$OS" = "ubuntu" ]; then
     # Install monitoring tools
     log_info "Installing monitoring tools..."
-    sudo apt install -y htop iotop nethogs
+    sudo apt install -y htop iotop nethogs || log_warning "System monitoring tools installation failed, but continuing..."
 
     # Install development tools
     log_info "Installing development tools..."
-    sudo apt install -y vim nano tree jq
+    sudo apt install -y vim nano tree jq || log_warning "Development tools installation failed, but continuing..."
 
     # Install Python and pip (for some tools)
     log_info "Installing Python and pip..."
-    sudo apt install -y python3 python3-pip python3-venv
+    sudo apt install -y python3 python3-pip python3-venv || log_warning "Python installation failed, but continuing..."
 
     # Install additional system libraries
     log_info "Installing system libraries..."
-    sudo apt install -y libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev
+    sudo apt install -y libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev || log_warning "System libraries installation failed, but continuing..."
 
     # Install additional build tools for Node.js native modules
     log_info "Installing Node.js build tools..."
-    sudo apt install -y build-essential python3-dev python3-setuptools
+    sudo apt install -y build-essential python3-dev python3-setuptools || log_warning "Build tools installation failed, but continuing..."
 
     log_success "All system dependencies installed"
 elif [ "$OS" = "macos" ]; then
