@@ -60,16 +60,41 @@ DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 # Get top 8 processes by CPU usage
 PROCESSES=$(ps aux --sort=-%cpu | head -9 | tail -8 | awk '{printf "%-12s %-6s %-6s %-8s %s\n", $1, $2, $3"%", $4"%", $11}')
 
-# Create banner
-echo "                          WELLCOM                       "
-echo ""
-echo "┌─────────────┬─────────────────────────────────────────────┐"
-echo "│ Resource    │ Usage                                        │"
-echo "├─────────────┼─────────────────────────────────────────────┤"
-echo "│ CPU Load    │ $LOAD                                         │"
-echo "│ Memory      │ $MEMORY_USED / $MEMORY_TOTAL                           │"
-echo "│ Disk        │ $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)                           │"
-echo "└─────────────┴─────────────────────────────────────────────┘"
+# Function to pad string to fixed width
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Get terminal width, default to 80 if not available
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+
+# Calculate box width (leave some margin)
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Create responsive banner
+echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
+echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     chmod +x /usr/local/bin/ssh-banner
     
@@ -97,16 +122,41 @@ DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 # Get top 8 processes by CPU usage
 PROCESSES=$(ps aux --sort=-%cpu | head -9 | tail -8 | awk '{printf "%-12s %-6s %-6s %-8s %s\n", $1, $2, $3"%", $4"%", $11}')
 
-# Create banner
-echo "                          WELLCOM                       "
-echo ""
-echo "┌─────────────┬─────────────────────────────────────────────┐"
-echo "│ Resource    │ Usage                                        │"
-echo "├─────────────┼─────────────────────────────────────────────┤"
-echo "│ CPU Load    │ $LOAD                                         │"
-echo "│ Memory      │ $MEMORY_USED / $MEMORY_TOTAL                           │"
-echo "│ Disk        │ $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)                           │"
-echo "└─────────────┴─────────────────────────────────────────────┘"
+# Function to pad string to fixed width
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Get terminal width, default to 80 if not available
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+
+# Calculate box width (leave some margin)
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Create responsive banner
+echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
+echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     sudo chmod +x /usr/local/bin/ssh-banner
     

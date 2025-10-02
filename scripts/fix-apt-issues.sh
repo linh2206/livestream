@@ -3,7 +3,8 @@
 # Fix APT Issues Script
 # This script fixes common APT package manager issues
 
-set -e  # Exit on any error
+# Don't exit on error, handle gracefully
+set +e
 
 # Colors for output
 RED='\033[0;31m'
