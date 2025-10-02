@@ -11,7 +11,7 @@ services:
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     command: mongod --wiredTigerCacheSizeGB 1 --maxConns 1000
     networks:
-      - ${DOCKER_NETWORK:-livestream-network}
+      - livestream-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -30,7 +30,7 @@ services:
       - redis_data:/data
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
     networks:
-      - ${DOCKER_NETWORK:-livestream-network}
+      - livestream-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -49,8 +49,8 @@ services:
     ports:
       - "1935:1935"  # RTMP only
     environment:
-      RTMP_PORT: ${RTMP_PORT:-1935}
-      BACKEND_PORT: ${BACKEND_PORT:-9000}
+      RTMP_PORT: 1935
+      BACKEND_PORT: 9000
     volumes:
       - hls_data:/app/hls
     deploy:
@@ -86,9 +86,9 @@ services:
       - "9000:9000"  # API
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${BACKEND_PORT:-9000}
-      MONGODB_URI: mongodb://mongodb:${MONGODB_PORT:-27017}/livestream
-      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+      PORT: 9000
+      MONGODB_URI: mongodb://mongodb:27017/livestream
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -134,7 +134,7 @@ services:
     container_name: livestream-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"  # Frontend
+      - "3000:3000"  # Frontend
     environment:
       NEXT_PUBLIC_API_URL: ${API_BASE_URL}
       NEXT_PUBLIC_WS_URL: ${WS_BASE_URL}
