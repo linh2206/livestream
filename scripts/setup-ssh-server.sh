@@ -83,7 +83,7 @@ BOX_WIDTH=$((TERM_WIDTH - 4))
 
 # Create responsive banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4)))/"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
@@ -137,19 +137,19 @@ pad_string() {
 
 # Create banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "$PROCESSES" | while read line; do
     echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
@@ -210,7 +210,7 @@ BOX_WIDTH=$((TERM_WIDTH - 4))
 
 # Create responsive banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4)))/"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
@@ -264,19 +264,19 @@ pad_string() {
 
 # Create banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "$PROCESSES" | while read line; do
     echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
