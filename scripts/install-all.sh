@@ -67,8 +67,8 @@ if [ -f "apps/backend/.env.example" ]; then
 fi
 
 if [ -f "apps/frontend/.env.example" ]; then
-    cp apps/frontend/.env.example apps/frontend/.env.local
-    echo "✅ Created frontend .env.local file"
+    cp apps/frontend/.env.example apps/frontend/.env
+    echo "✅ Created frontend .env file"
 fi
 
 # Install project dependencies
