@@ -35,8 +35,8 @@ if [ $? -eq 0 ]; then
     echo "   Password: admin123"
     echo ""
     echo "🌐 Access your application at:"
-    echo "   Frontend: http://localhost:3000"
-    echo "   API: http://localhost:9000/api/v1"
+    echo "   Frontend: \${FRONTEND_URL:-http://localhost:3000}"
+    echo "   API: \${API_BASE_URL:-http://localhost:9000/api/v1}"
 else
     echo "❌ Failed to reset admin password"
     echo "Make sure MongoDB is running and accessible"

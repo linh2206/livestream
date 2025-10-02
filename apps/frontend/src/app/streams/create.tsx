@@ -203,7 +203,7 @@ export default function CreateStreamPage() {
                 <div>
                   <h4 className="font-medium text-white mb-2">3. Stream Settings</h4>
                   <p className="text-sm">
-                    <strong>Server:</strong> rtmp://localhost:1935/live<br />
+                    <strong>Server:</strong> {process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935'}/live<br />
                     <strong>Stream Key:</strong> [Your unique stream key]
                   </p>
                 </div>

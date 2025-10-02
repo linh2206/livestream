@@ -102,7 +102,7 @@ Web Browser
 
 ### Step 1: Stream Setup
 1. **OBS Configuration**:
-   - Server: `rtmp://localhost:1935/live`
+   - Server: `${RTMP_BASE_URL:-rtmp://localhost:1935}/live`
    - Stream Key: `{custom_key}` (e.g., "stream")
 
 2. **RTMP Processing**:

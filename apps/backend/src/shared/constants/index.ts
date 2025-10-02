@@ -54,9 +54,9 @@ export const APP_CONSTANTS = {
   
   // HLS Configuration
   HLS: {
-    FRAGMENT_DURATION: 2, // seconds
-    PLAYLIST_LENGTH: 6,
-    CLEANUP_INTERVAL: 300, // 5 minutes
+    FRAGMENT_DURATION: parseInt(process.env.HLS_FRAGMENT_DURATION || '2'), // seconds
+    PLAYLIST_LENGTH: parseInt(process.env.HLS_PLAYLIST_LENGTH || '6'),
+    CLEANUP_INTERVAL: parseInt(process.env.HLS_CLEANUP_INTERVAL || '300'), // 5 minutes
   },
 } as const;
 

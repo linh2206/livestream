@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# LiveStream Platform - Build and Start Script
+# This script builds and starts all Docker services
+
+set -e  # Exit on any error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Logging functions
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
 echo "🔨 Building and Starting Livestream Platform"
 echo "============================================="
 echo "This script will:"
@@ -13,16 +31,16 @@ echo "============================================="
 
 # Check if Docker is running
 if ! docker ps &> /dev/null; then
-    echo "❌ Docker is not running. Please start Docker first."
+    log_error "Docker is not running. Please start Docker first."
     exit 1
 fi
 
 # Copy environment files from example (always fresh copy)
-echo "📋 Setting up fresh environment files from .env.example..."
+log_info "Setting up fresh environment files from .env.example..."
 
 # Check if .env.example exists
 if [ ! -f ".env.example" ]; then
-    echo "❌ .env.example not found. Please create .env.example first."
+    log_error ".env.example not found. Please create .env.example first."
     exit 1
 fi
 
@@ -68,24 +86,45 @@ echo "🛑 Stopping existing containers..."
 docker-compose down
 
 # Build and start services
-echo "🔨 Building and starting services..."
-docker-compose up -d --build
+echo "🔨 Building and starting all services..."
+echo "  • Building Docker images..."
+docker-compose build --no-cache
+
+echo "  • Starting all services..."
+docker-compose up -d
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
+echo "  • Waiting for database services..."
+sleep 10
+
+echo "  • Waiting for application services..."
 sleep 15
 
 # Check service status
 echo "🏥 Checking service status..."
-echo "Frontend: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || echo 'DOWN')"
-echo "Backend: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:9000/api/v1/health || echo 'DOWN')"
+echo "  • MongoDB: $(docker ps --filter 'name=livestream-mongodb' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Redis: $(docker ps --filter 'name=livestream-redis' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Backend: $(docker ps --filter 'name=livestream-backend' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Frontend: $(docker ps --filter 'name=livestream-frontend' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Nginx: $(docker ps --filter 'name=livestream-nginx' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Grafana: $(docker ps --filter 'name=livestream-grafana' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+echo "  • Prometheus: $(docker ps --filter 'name=livestream-prometheus' --format 'table {{.Status}}' | tail -n +2 || echo 'DOWN')"
+
+# Test HTTP endpoints
+echo ""
+echo "🌐 Testing HTTP endpoints..."
+echo "  • Frontend: $(curl -s -o /dev/null -w '%{http_code}' \${FRONTEND_URL:-http://localhost:3000} || echo 'DOWN')"
+echo "  • Backend API: $(curl -s -o /dev/null -w '%{http_code}' \${API_BASE_URL:-http://localhost:9000/api/v1}/health || echo 'DOWN')"
+echo "  • Grafana: $(curl -s -o /dev/null -w '%{http_code}' \${GRAFANA_URL:-http://localhost:8080} || echo 'DOWN')"
+echo "  • Prometheus: $(curl -s -o /dev/null -w '%{http_code}' \${PROMETHEUS_URL:-http://localhost:9090} || echo 'DOWN')"
 
 echo ""
 echo "✅ Build and start completed!"
 echo "============================================="
-echo "🌐 Frontend: http://localhost:3000"
-echo "🔧 Backend: http://localhost:9000/api/v1"
-echo "📊 MongoDB: mongodb://localhost:27017"
+echo "🌐 Frontend: \${FRONTEND_URL:-http://localhost:3000}"
+echo "🔧 Backend: \${API_BASE_URL:-http://localhost:9000/api/v1}"
+echo "📊 MongoDB: mongodb://\${HOST:-localhost}:\${MONGODB_PORT:-27017}"
 echo ""
 echo "👤 Default login:"
 echo "   Username: admin"

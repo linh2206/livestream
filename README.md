@@ -37,11 +37,11 @@ cd livestream
 ```
 
 4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:9000/api/v1
-   - Grafana: http://localhost:8080 (admin/admin123)
-   - Prometheus: http://localhost:9090
-   - RTMP Server: rtmp://localhost:1935
+   - Frontend: ${FRONTEND_URL:-http://localhost:3000}
+   - Backend API: ${API_BASE_URL:-http://localhost:9000/api/v1}
+   - Grafana: ${GRAFANA_URL:-http://localhost:8080} (admin/admin123)
+   - Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}
+   - RTMP Server: ${RTMP_BASE_URL:-rtmp://localhost:1935}
 
 ## 🏗️ Architecture
 
@@ -122,7 +122,7 @@ make clean      # Clean up containers
 make logs       # View service logs
 
 # Admin operations
-make reset-admin # Reset admin credentials
+make reset-password # Reset admin password to default
 ```
 
 ### Environment Configuration
@@ -188,7 +188,7 @@ All services run in Docker containers with:
 ## 📊 Monitoring
 
 ### Grafana Dashboards
-Access Grafana at http://localhost:8080 (admin/admin123)
+Access Grafana at ${GRAFANA_URL:-http://localhost:8080} (admin/admin123)
 
 Available dashboards:
 - **System Health**: Overall system status
@@ -198,7 +198,7 @@ Available dashboards:
 - **Streaming Performance**: RTMP and HLS metrics
 
 ### Prometheus Metrics
-Access Prometheus at http://localhost:9090
+Access Prometheus at ${PROMETHEUS_URL:-http://localhost:9090}
 
 Key metrics:
 - HTTP request rates and latencies
@@ -273,7 +273,7 @@ docker-compose logs mongodb
 
 4. **Reset admin user**
 ```bash
-make reset-admin
+make reset-password
 ```
 
 ### Health Checks

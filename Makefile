@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-admin build logs
+.PHONY: help install start stop clean setup reset-password build logs
 
 # Default target
 .DEFAULT_GOAL := help
@@ -18,14 +18,14 @@ help:
 	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
-	@echo "  make reset-admin - Reset admin user to default credentials"
+	@echo "  make reset-password - Reset admin password to default"
 	@echo "  make logs       - View service logs"
 	@echo ""
 	@echo "📊 Quick Access:"
-	@echo "  Frontend:  http://localhost:3000"
-	@echo "  Backend:   http://localhost:9000/api/v1"
-	@echo "  Grafana:   http://localhost:8080 (admin/admin123)"
-	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Frontend:  \$${FRONTEND_URL:-http://localhost:3000}"
+	@echo "  Backend:   \$${API_BASE_URL:-http://localhost:9000/api/v1}"
+	@echo "  Grafana:   \$${GRAFANA_URL:-http://localhost:8080} (admin/admin123)"
+	@echo "  Prometheus: \$${PROMETHEUS_URL:-http://localhost:9090}"
 	@echo ""
 
 # Development
@@ -50,9 +50,9 @@ clean:
 	@echo "Cleaning up containers and images..."
 	./scripts/clean-all.sh
 
-reset-admin:
-	@echo "Resetting admin user..."
-	./scripts/reset-admin.sh
+reset-password:
+	@echo "Resetting admin password..."
+	./scripts/reset-password.sh
 
 logs:
 	@echo "Viewing service logs..."
@@ -63,4 +63,4 @@ setup:
 	@echo "Setting up LiveStream Platform..."
 	./scripts/install-all.sh
 	./scripts/build-start.sh
-	@echo "Setup complete! Access at http://localhost:3000"
+	@echo "Setup complete! Access at \$${FRONTEND_URL:-http://localhost:3000}"
