@@ -1,0 +1,15 @@
+FROM alfg/nginx-rtmp
+
+# Install FFmpeg
+RUN apk add --no-cache ffmpeg
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# HLS directory will be mounted from host
+
+# Expose ports
+EXPOSE 80 1935
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

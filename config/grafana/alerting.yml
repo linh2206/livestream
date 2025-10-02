@@ -1,0 +1,91 @@
+# Grafana Alerting Configuration
+apiVersion: 1
+
+# Alert notification channels
+notifiers:
+  - name: webhook-alerts
+    type: webhook
+    uid: webhook-alerts
+    settings:
+      url: http://backend:9000/api/v1/alerts/webhook
+      httpMethod: POST
+      title: "Livestream Alert: {{ .GroupLabels.alertname }}"
+      text: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+
+# Alert rules
+alert_rules:
+  - name: System Health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}"
+
+  - name: Application Health
+    rules:
+      - alert: BackendDown
+        expr: up{job="livestream-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend API is down"
+          description: "Backend API is not responding"
+
+      - alert: HighErrorRate
+        expr: rate(livestream_http_requests_total{status=~"5.."}[5m]) / rate(livestream_http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate"
+          description: "HTTP error rate is above 5% for more than 5 minutes"
+
+  - name: Streaming Health
+    rules:
+      - alert: NoActiveStreams
+        expr: livestream_active_streams == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No active streams"
+          description: "No streams have been active for more than 10 minutes"
+
+      - alert: HighStreamCount
+        expr: livestream_active_streams > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active streams"
+          description: "More than 50 streams are currently active"
+
+
+
+
+
+
+
