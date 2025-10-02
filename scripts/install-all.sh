@@ -18,6 +18,65 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# Function to install Docker Compose V2 with version compatibility check
+install_docker_compose_v2() {
+    log_info "Installing Docker Compose V2 plugin..."
+    
+    # Check if docker compose already works
+    if docker compose version &>/dev/null; then
+        log_success "Docker Compose V2 already installed and working"
+        return 0
+    fi
+    
+    # Get system architecture
+    ARCH=$(uname -m)
+    OS_NAME=$(uname -s)
+    
+    # Map architecture names
+    case $ARCH in
+        x86_64) ARCH="x86_64" ;;
+        aarch64|arm64) ARCH="aarch64" ;;
+        armv7l) ARCH="armv7" ;;
+        *) log_error "Unsupported architecture: $ARCH"; return 1 ;;
+    esac
+    
+    # Get latest stable version
+    log_info "Fetching latest Docker Compose V2 version..."
+    LATEST_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        log_warning "Could not fetch latest version, using fallback version"
+        LATEST_VERSION="v2.24.0"
+    fi
+    
+    log_info "Installing Docker Compose V2 ${LATEST_VERSION} for ${OS_NAME}-${ARCH}..."
+    
+    # Create Docker CLI plugins directory
+    sudo mkdir -p /usr/libexec/docker/cli-plugins
+    
+    # Download and install Docker Compose V2
+    DOWNLOAD_URL="https://github.com/docker/compose/releases/download/${LATEST_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
+    
+    if sudo curl -L "$DOWNLOAD_URL" -o /usr/local/bin/docker-compose; then
+        sudo chmod +x /usr/local/bin/docker-compose
+        
+        # Create symlink for docker compose command
+        sudo ln -sf /usr/local/bin/docker-compose /usr/libexec/docker/cli-plugins/docker-compose
+        
+        # Verify installation
+        if docker compose version &>/dev/null; then
+            log_success "Docker Compose V2 ${LATEST_VERSION} installed successfully"
+            docker compose version
+        else
+            log_error "Docker Compose V2 installation failed"
+            return 1
+        fi
+    else
+        log_error "Failed to download Docker Compose V2"
+        return 1
+    fi
+}
+
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="
 echo "This script will install system dependencies and prepare environment:"
@@ -90,11 +149,15 @@ fi
 # Install Docker based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Docker..."
-    sudo apt install -y docker.io docker-compose
+    sudo apt install -y docker.io
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER
-    log_success "Docker installed and configured"
+    
+    # Install Docker Compose V2 plugin
+    install_docker_compose_v2
+    
+    log_success "Docker and Docker Compose V2 installed and configured"
 elif [ "$OS" = "macos" ]; then
     log_info "Checking Docker installation..."
     if command -v docker &> /dev/null; then

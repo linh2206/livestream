@@ -84,15 +84,15 @@ echo "✅ Environment files setup completed!"
 
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
-docker-compose down
+docker compose down
 
 # Build and start services
 echo "🔨 Building and starting all services..."
 echo "  • Building Docker images..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 echo "  • Starting all services..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."

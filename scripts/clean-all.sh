@@ -5,7 +5,7 @@ echo "================================================="
 
 # Stop and remove containers
 echo "🛑 Stopping and removing containers..."
-docker-compose down -v
+docker compose down -v
 
 # Remove all containers
 echo "🗑️ Removing all containers..."
