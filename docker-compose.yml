@@ -1,7 +1,7 @@
 services:
   # MongoDB Database
   mongodb:
-    image: mongo:5.0
+    image: mongo:4.4
     container_name: livestream-mongodb
     restart: unless-stopped
     ports:
