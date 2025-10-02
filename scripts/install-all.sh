@@ -66,13 +66,18 @@ fi
 # Update system based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Updating system packages..."
-        if ! sudo apt update 2>/dev/null; then
+        if ! timeout 60 sudo apt update 2>/dev/null; then
             log_warning "APT update failed. Trying to fix APT issues..."
             if [ -f "scripts/fix-apt-issues.sh" ]; then
                 log_info "Running APT fix script..."
-                sudo ./scripts/fix-apt-issues.sh
+                # Run fix script with timeout and error handling
+                if timeout 300 sudo ./scripts/fix-apt-issues.sh 2>/dev/null; then
+                    log_info "APT fix script completed"
+                else
+                    log_warning "APT fix script timed out or failed"
+                fi
                 log_info "Testing APT after fix..."
-                if sudo apt update 2>/dev/null; then
+                if timeout 60 sudo apt update 2>/dev/null; then
                     log_success "✅ APT update successful after fix!"
                     log_info "APT is now working properly"
                 else

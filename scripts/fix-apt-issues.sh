@@ -6,6 +6,9 @@
 # Don't exit on error, handle gracefully
 set +e
 
+# Trap signals to prevent termination
+trap 'echo "Script interrupted, but continuing..."; exit 0' INT TERM
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -139,13 +142,13 @@ fi
 fix_https_method() {
     log_info "Fixing HTTPS method issues..."
     
-    # Kill any stuck apt processes with timeout
-    timeout 10 pkill -f apt 2>/dev/null || true
-    timeout 10 pkill -f dpkg 2>/dev/null || true
-    timeout 10 pkill -f unattended-upgrade 2>/dev/null || true
-    timeout 10 pkill -f apt-get 2>/dev/null || true
-    timeout 10 pkill -f apt-cache 2>/dev/null || true
-    sleep 2
+    # Kill any stuck apt processes with timeout and error handling
+    timeout 5 pkill -f apt 2>/dev/null || true
+    timeout 5 pkill -f dpkg 2>/dev/null || true
+    timeout 5 pkill -f unattended-upgrade 2>/dev/null || true
+    timeout 5 pkill -f apt-get 2>/dev/null || true
+    timeout 5 pkill -f apt-cache 2>/dev/null || true
+    sleep 1
     
     # Remove lock files
     rm -f /var/lib/dpkg/lock* 2>/dev/null || true
@@ -350,10 +353,12 @@ main() {
     log_info "Starting comprehensive APT fixes..."
     
     # Step 1: Fix HTTPS method issues
-    fix_https_method
+    if ! fix_https_method; then
+        log_warning "HTTPS method fix failed, continuing..."
+    fi
     
     # Step 2: Try to update
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful!"
         return 0
     fi
@@ -363,7 +368,7 @@ main() {
     fix_https_method_died
     
     # Step 2.6: Try to update again
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful after HTTPS method died fix!"
         return 0
     fi
@@ -371,10 +376,12 @@ main() {
     log_warning "First attempt failed, trying repository fixes..."
     
     # Step 3: Fix repository issues
-    fix_repository_issues
+    if ! fix_repository_issues; then
+        log_warning "Repository fixes failed, continuing..."
+    fi
     
     # Step 4: Try to update again
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful after repository fixes!"
         return 0
     fi
@@ -382,10 +389,12 @@ main() {
     log_warning "Repository fixes failed, trying GPG fixes..."
     
     # Step 5: Fix GPG issues
-    fix_gpg_issues
+    if ! fix_gpg_issues; then
+        log_warning "GPG fixes failed, continuing..."
+    fi
     
     # Step 6: Try to update again
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful after GPG fixes!"
         return 0
     fi
@@ -393,10 +402,12 @@ main() {
     log_warning "GPG fixes failed, trying network fixes..."
     
     # Step 7: Fix network issues
-    fix_network_issues
+    if ! fix_network_issues; then
+        log_warning "Network fixes failed, continuing..."
+    fi
     
     # Step 8: Try to update again
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful after network fixes!"
         return 0
     fi
@@ -404,10 +415,12 @@ main() {
     log_warning "Network fixes failed, restoring original sources..."
     
     # Step 9: Restore original sources
-    restore_sources
+    if ! restore_sources; then
+        log_warning "Source restoration failed, continuing..."
+    fi
     
     # Step 10: Final attempt
-    if apt update 2>/dev/null; then
+    if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful after restoring sources!"
         return 0
     fi
