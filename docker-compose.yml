@@ -9,18 +9,15 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin123
-    command: mongod --wiredTigerCacheSizeGB 1 --maxConns 1000 --setParameter disableLogicalSessionCacheRefresh=true --setParameter enableFreeMonitoring=false
-    networks:
-      - livestream-network
+    command: mongod --wiredTigerCacheSizeGB 1 --maxConns 1000
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "27017"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
+    networks:
+      - livestream-network
 
   # Redis Cache
   redis:
@@ -32,131 +29,86 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
-    networks:
-      - livestream-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  # Nginx RTMP (HLS now served directly from backend)
-  nginx:
-    build:
-      context: ./config/nginx
-      dockerfile: Dockerfile.nginx
-    platform: linux/amd64
-    container_name: livestream-nginx
-    restart: unless-stopped
-    ports:
-      - "1935:1935"  # RTMP only
-    environment:
-      RTMP_PORT: 1935
-      BACKEND_PORT: 9000
-    volumes:
-      - hls_data:/app/hls
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-    depends_on:
-      backend:
-        condition: service_healthy
     networks:
       - livestream-network
-    healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 1935 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   # Backend API
   backend:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
-      cache_from:
-        - node:18-alpine
-      args:
-        BUILDKIT_INLINE_CACHE: 1
     container_name: livestream-backend
     restart: unless-stopped
-    ports:
-      - "9000:9000"  # API
-    environment:
-      NODE_ENV: production
-      PORT: 9000
-      MONGODB_URI: mongodb://mongodb:27017/livestream
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      FRONTEND_URL: ${FRONTEND_URL}
-      HLS_BASE_URL: ${HLS_BASE_URL}
-      RTMP_BASE_URL: ${RTMP_BASE_URL}
-      NGINX_URL: ${NGINX_URL}
-      API_BASE_URL: ${API_BASE_URL}
-      WS_BASE_URL: ${WS_BASE_URL}
-      HLS_FRAGMENT_DURATION: 2
-      HLS_PLAYLIST_LENGTH: 6
-      HLS_CLEANUP_INTERVAL: 300
     volumes:
       - hls_data:/app/hls
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
+    environment:
+      - NODE_ENV=production
+      - PORT=9000
+      - MONGODB_URI=mongodb://mongodb:27017/livestream
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - API_BASE_URL=${API_BASE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - HLS_BASE_URL=${HLS_BASE_URL}
+      - HLS_FRAGMENT_DURATION=${HLS_FRAGMENT_DURATION:-2}
+      - HLS_PLAYLIST_LENGTH=${HLS_PLAYLIST_LENGTH:-6}
+      - HLS_CLEANUP_INTERVAL=${HLS_CLEANUP_INTERVAL:-300}
+      - RTMP_BASE_URL=${RTMP_BASE_URL}
+      - WS_BASE_URL=${WS_BASE_URL}
+      - NGINX_URL=${NGINX_URL}
     depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - mongodb
+      - redis
     networks:
       - livestream-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9000/api/v1/streams"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # Frontend
   frontend:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
-      cache_from:
-        - node:18-alpine
-      args:
-        BUILDKIT_INLINE_CACHE: 1
     container_name: livestream-frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"  # Frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${API_BASE_URL}
-      NEXT_PUBLIC_WS_URL: ${WS_BASE_URL}
-      NEXT_PUBLIC_RTMP_URL: ${RTMP_BASE_URL}
-      NEXT_PUBLIC_ENABLE_ANALYTICS: false
-      NEXT_PUBLIC_ENABLE_DEBUG: false
-      NEXT_PUBLIC_CACHE_TTL: 300
-      NEXT_PUBLIC_MAX_RETRIES: 3
-      NEXT_PUBLIC_RETRY_DELAY: 1000
+      - NEXT_PUBLIC_API_URL=${API_BASE_URL}
+      - NEXT_PUBLIC_WS_URL=${WS_BASE_URL}
+      - NEXT_PUBLIC_RTMP_URL=${RTMP_BASE_URL}
+      - NEXT_PUBLIC_CACHE_TTL=${NEXT_PUBLIC_CACHE_TTL:-300}
+      - NEXT_PUBLIC_MAX_RETRIES=${NEXT_PUBLIC_MAX_RETRIES:-3}
+      - NEXT_PUBLIC_RETRY_DELAY=${NEXT_PUBLIC_RETRY_DELAY:-1000}
+      - NEXT_PUBLIC_ENABLE_DEBUG=${NEXT_PUBLIC_ENABLE_DEBUG:-false}
+      - NEXT_PUBLIC_ENABLE_ANALYTICS=${NEXT_PUBLIC_ENABLE_ANALYTICS:-false}
     depends_on:
       - backend
     networks:
       - livestream-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+
+  # Nginx RTMP
+  nginx:
+    build:
+      context: ./config/nginx
+      dockerfile: Dockerfile.nginx
+    container_name: livestream-nginx
+    restart: unless-stopped
+    ports:
+      - "${RTMP_PORT:-1935}:1935"
+    volumes:
+      - hls_data:/app/hls
+    environment:
+      - BACKEND_PORT=9000
+      - RTMP_PORT=${RTMP_PORT:-1935}
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - livestream-network
 
   # Prometheus
   prometheus:
@@ -166,24 +118,18 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./config/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+      - --storage.tsdb.retention.time=200h
+      - --web.enable-lifecycle
     networks:
       - livestream-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   # Grafana
   grafana:
@@ -191,27 +137,20 @@ services:
     container_name: livestream-grafana
     restart: unless-stopped
     ports:
-      - "8080:8080"  # Grafana on port 8080
+      - "8080:8080"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_HTTP_PORT=8080
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./config/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
-      prometheus:
-        condition: service_healthy
+      - prometheus
     networks:
       - livestream-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   # Node Exporter
   node-exporter:
@@ -225,10 +164,10 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
     networks:
       - livestream-network
 
@@ -241,10 +180,8 @@ services:
       - "9216:9216"
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/livestream
-      - MONGODB_EXPORTER_URI=mongodb://mongodb:27017/livestream
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     networks:
       - livestream-network
 
@@ -258,8 +195,7 @@ services:
     environment:
       - REDIS_ADDR=redis://redis:6379
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     networks:
       - livestream-network
 
@@ -272,4 +208,3 @@ volumes:
 
 networks:
   livestream-network:
-    driver: bridge
