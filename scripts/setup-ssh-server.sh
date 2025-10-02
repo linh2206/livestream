@@ -170,16 +170,49 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     chmod +x /etc/update-motd.d/99-livestream
     
-    # Create simple SSH banner
+    # Create dynamic SSH banner with system info
     tee /etc/ssh/banner > /dev/null << 'EOF'
-+======================================================================+
-| LIVESTREAM SERVER                                                    |
-+======================================================================+
-| Welcome to LiveStream Platform Server!                              |
-| WARNING: Authorized access only. All activities are logged.         |
-+======================================================================+
+#!/bin/bash
+
+# Get system information
+HOSTNAME=$(hostname)
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get terminal width
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Function to pad string
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Create banner
+echo "┌$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┐"
+echo "│ $(pad_string "LIVESTREAM SERVER - SYSTEM STATUS" $((BOX_WIDTH-4))) │"
+echo "├$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┤"
+echo "│ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) │"
+echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
 EOF
-    chmod 644 /etc/ssh/banner
+    chmod +x /etc/ssh/banner
 else
     sudo tee /usr/local/bin/ssh-banner > /dev/null << 'EOF'
 #!/bin/bash
@@ -294,8 +327,49 @@ echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
 EOF
     sudo chmod +x /etc/update-motd.d/99-livestream
     
-    # Remove SSH banner
-    sudo rm -f /etc/ssh/banner
+    # Create dynamic SSH banner with system info
+    sudo tee /etc/ssh/banner > /dev/null << 'EOF'
+#!/bin/bash
+
+# Get system information
+HOSTNAME=$(hostname)
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get terminal width
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Function to pad string
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Create banner
+echo "┌$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┐"
+echo "│ $(pad_string "LIVESTREAM SERVER - SYSTEM STATUS" $((BOX_WIDTH-4))) │"
+echo "├$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┤"
+echo "│ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) │"
+echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
+EOF
+    sudo chmod +x /etc/ssh/banner
 fi
 
 echo "Configuring SSH server..."
@@ -512,12 +586,12 @@ fi
 
 echo ""
 echo "Testing banner display..."
-if [ -f "/usr/local/bin/ssh-banner" ]; then
-    echo "✅ Banner script exists and is executable"
+if [ -f "/etc/ssh/banner" ]; then
+    echo "✅ SSH banner script exists and is executable"
     echo "Banner preview:"
-    /usr/local/bin/ssh-banner
+    /etc/ssh/banner
 else
-    echo "❌ Warning: Banner script not found"
+    echo "❌ Warning: SSH banner script not found"
 fi
 
 # Update MOTD
@@ -550,13 +624,14 @@ echo "SSH server is running with enhanced security settings."
 echo ""
 echo "Important:"
 echo "1. SSH key has been added to ~/.ssh/authorized_keys"
-echo "2. Banner is configured and should display on SSH login"
+echo "2. Dynamic SSH banner with CPU/RAM/Disk info is configured"
 echo "3. Dynamic MOTD with system info is now active"
 echo "4. Test SSH connection before closing this session"
 echo "5. After testing, disable password auth for security"
 echo ""
 echo "Commands:"
 echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
+echo "Test SSH banner: /etc/ssh/banner"
 echo "Test MOTD: /etc/update-motd.d/99-livestream"
 echo "View current MOTD: cat /etc/motd"
 echo "Update MOTD: sudo /etc/update-motd.d/99-livestream > /etc/motd"
