@@ -20,15 +20,18 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="
-echo "This script will install everything the system needs:"
+echo "This script will install system dependencies and prepare environment:"
 echo "  • System dependencies (Docker, Node.js, Git)"
 echo "  • Development tools and libraries"
 echo "  • Create necessary directories and structure"
 echo "  • Setup environment files from .env.example"
 echo "  • Generate JWT secrets and security keys"
-echo "  • Install all project dependencies (backend, frontend)"
+echo "  • Install project dependencies (if npm available)"
 echo "  • Setup SSH keys and permissions"
 echo "  • Note: FFmpeg can be installed separately via dedicated scripts"
+echo ""
+echo "⚠️  This script does NOT build or start services!"
+echo "    Use 'make build' or './scripts/build-start.sh' after this script."
 echo "=========================================================="
 
 # Check if running on Ubuntu/Debian
@@ -110,6 +113,10 @@ sudo apt install -y python3 python3-pip python3-venv
 log_info "Installing system libraries..."
 sudo apt install -y libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev
 
+# Install additional build tools for Node.js native modules
+log_info "Installing Node.js build tools..."
+sudo apt install -y build-essential python3-dev python3-setuptools
+
 log_success "All system dependencies installed"
 
 # Create necessary directories
@@ -140,15 +147,34 @@ fi
 # Install project dependencies (only if Node.js is available)
 if command -v npm &> /dev/null; then
     log_info "Installing project dependencies..."
+    
+    # Build tools already installed above
+    
     if [ -d "apps/backend" ]; then
-        cd apps/backend && npm install
+        log_info "Installing backend dependencies..."
+        cd apps/backend
+        # Try npm install with error handling
+        if npm install --no-optional --legacy-peer-deps 2>/dev/null; then
+            log_success "Backend dependencies installed"
+        else
+            log_warning "Backend npm install failed, will be handled by Docker"
+        fi
         cd ../..
     fi
+    
     if [ -d "apps/frontend" ]; then
-        cd apps/frontend && npm install
+        log_info "Installing frontend dependencies..."
+        cd apps/frontend
+        # Try npm install with error handling
+        if npm install --no-optional --legacy-peer-deps 2>/dev/null; then
+            log_success "Frontend dependencies installed"
+        else
+            log_warning "Frontend npm install failed, will be handled by Docker"
+        fi
         cd ../..
     fi
-    log_success "Project dependencies installed"
+    
+    log_info "Project dependencies installation completed (with fallback to Docker)"
 else
     log_warning "npm not found. Project dependencies will be installed when building Docker containers."
 fi
@@ -168,7 +194,7 @@ chmod 644 ~/.ssh/id_rsa.pub
 log_success "SSH setup completed"
 
 # Note: Services will be built and started by build-start.sh
-log_info "Services will be built and started when you run build-start.sh"
+log_info "System dependencies installed. Services will be built and started by build-start.sh"
 
 echo ""
 log_success "System installation completed successfully!"
@@ -177,8 +203,9 @@ echo "📋 Next steps:"
 echo "  1. Run './scripts/build-start.sh' to build and start services"
 echo "  2. Or run 'make build' for quick setup"
 echo ""
-echo "ℹ️  Note: If npm dependencies failed to install, they will be installed"
-echo "    automatically when building Docker containers."
+echo "ℹ️  Note: If npm dependencies failed to install (common with native modules),"
+echo "    they will be installed automatically when building Docker containers."
+echo "    This is normal and expected behavior."
 echo ""
 echo "🌐 Once started, access:"
 echo "  • Frontend: \${FRONTEND_URL:-http://localhost:3000}"
