@@ -64,7 +64,20 @@ log_success "Docker installed and configured"
 log_info "Installing Node.js 18..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
-log_success "Node.js $(node --version) and npm $(npm --version) installed"
+
+# Verify installation
+if command -v node &> /dev/null && command -v npm &> /dev/null; then
+    log_success "Node.js $(node --version) and npm $(npm --version) installed"
+else
+    log_error "Failed to install Node.js or npm"
+    log_info "Trying alternative installation method..."
+    sudo apt install -y nodejs npm
+    if command -v node &> /dev/null && command -v npm &> /dev/null; then
+        log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
+    else
+        log_warning "Node.js installation failed. Docker containers will handle dependencies."
+    fi
+fi
 
 # Note: MongoDB and Nginx will be installed via Docker containers
 log_info "MongoDB and Nginx will be installed via Docker containers"
@@ -124,12 +137,21 @@ if [ -f "apps/frontend/.env.example" ]; then
     log_success "Created frontend .env file"
 fi
 
-# Install project dependencies
-log_info "Installing project dependencies..."
-cd apps/backend && npm install
-cd ../frontend && npm install
-cd ../..
-log_success "Project dependencies installed"
+# Install project dependencies (only if Node.js is available)
+if command -v npm &> /dev/null; then
+    log_info "Installing project dependencies..."
+    if [ -d "apps/backend" ]; then
+        cd apps/backend && npm install
+        cd ../..
+    fi
+    if [ -d "apps/frontend" ]; then
+        cd apps/frontend && npm install
+        cd ../..
+    fi
+    log_success "Project dependencies installed"
+else
+    log_warning "npm not found. Project dependencies will be installed when building Docker containers."
+fi
 
 # Setup SSH
 log_info "Setting up SSH..."
@@ -154,6 +176,9 @@ echo "=========================================================="
 echo "📋 Next steps:"
 echo "  1. Run './scripts/build-start.sh' to build and start services"
 echo "  2. Or run 'make build' for quick setup"
+echo ""
+echo "ℹ️  Note: If npm dependencies failed to install, they will be installed"
+echo "    automatically when building Docker containers."
 echo ""
 echo "🌐 Once started, access:"
 echo "  • Frontend: \${FRONTEND_URL:-http://localhost:3000}"
