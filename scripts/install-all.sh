@@ -18,13 +18,13 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Function to install Docker Compose V2 with version compatibility check
-install_docker_compose_v2() {
-    log_info "Installing Docker Compose V2 plugin..."
+# Function to install Docker Compose with version compatibility check
+install_docker_compose() {
+    log_info "Installing Docker Compose plugin..."
     
     # Check if docker compose already works
     if docker compose version &>/dev/null; then
-        log_success "Docker Compose V2 already installed and working"
+        log_success "Docker Compose  already installed and working"
         return 0
     fi
     
@@ -40,24 +40,25 @@ install_docker_compose_v2() {
         *) log_error "Unsupported architecture: $ARCH"; return 1 ;;
     esac
     
-    # Get latest stable version
-    log_info "Fetching latest Docker Compose V2 version..."
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    # Get latest stable version with timeout and fallback
+    log_info "Fetching latest Docker Compose  version..."
+    LATEST_VERSION=$(timeout 10 curl -s https://api.github.com/repos/docker/compose/releases/latest 2>/dev/null | grep '"tag_name"' | cut -d'"' -f4)
     
     if [ -z "$LATEST_VERSION" ]; then
-        log_warning "Could not fetch latest version, using fallback version"
+        log_warning "Could not fetch latest version (network issue), using fallback version"
         LATEST_VERSION="v2.24.0"
     fi
     
-    log_info "Installing Docker Compose V2 ${LATEST_VERSION} for ${OS_NAME}-${ARCH}..."
+    log_info "Installing Docker Compose  ${LATEST_VERSION} for ${OS_NAME}-${ARCH}..."
     
     # Create Docker CLI plugins directory
     sudo mkdir -p /usr/libexec/docker/cli-plugins
     
-    # Download and install Docker Compose V2
+    # Download and install Docker Compose 
     DOWNLOAD_URL="https://github.com/docker/compose/releases/download/${LATEST_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
     
-    if sudo curl -L "$DOWNLOAD_URL" -o /usr/local/bin/docker-compose; then
+    log_info "Downloading from: $DOWNLOAD_URL"
+    if sudo timeout 60 curl -L --retry 3 --retry-delay 5 "$DOWNLOAD_URL" -o /usr/local/bin/docker-compose; then
         sudo chmod +x /usr/local/bin/docker-compose
         
         # Create symlink for docker compose command
@@ -65,15 +66,60 @@ install_docker_compose_v2() {
         
         # Verify installation
         if docker compose version &>/dev/null; then
-            log_success "Docker Compose V2 ${LATEST_VERSION} installed successfully"
+            log_success "Docker Compose  ${LATEST_VERSION} installed successfully"
             docker compose version
         else
-            log_error "Docker Compose V2 installation failed"
+            log_error "Docker Compose  installation failed"
             return 1
         fi
     else
-        log_error "Failed to download Docker Compose V2"
+        log_warning "Failed to download Docker Compose , trying alternative method..."
+        
+        # Try installing via apt as fallback
+        if sudo apt update && sudo apt install -y docker-compose-plugin; then
+            log_success "Docker Compose  installed via apt package"
+            if docker compose version &>/dev/null; then
+                log_success "Docker Compose  working via apt installation"
+                return 0
+            fi
+        fi
+        
+        log_error "All Docker Compose  installation methods failed"
+        log_info "You may need to check network connectivity or install manually"
         return 1
+    fi
+}
+
+# Function to fix DNS and network connectivity issues
+fix_dns_issues() {
+    log_info "Checking DNS and network connectivity..."
+    
+    # Test DNS resolution
+    if nslookup google.com &>/dev/null; then
+        log_success "DNS resolution working"
+        return 0
+    fi
+    
+    log_warning "DNS resolution failed, trying to fix..."
+    
+    # Flush DNS cache
+    systemctl flush-dns 2>/dev/null || true
+    systemctl restart systemd-resolved 2>/dev/null || true
+    
+    # Try different DNS servers
+    log_info "Trying Google DNS servers..."
+    if [ -f /etc/resolv.conf ]; then
+        cp /etc/resolv.conf /etc/resolv.conf.backup
+        echo "nameserver 8.8.8.8" > /etc/resolv.conf
+        echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+        echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+    fi
+    
+    # Test again
+    if nslookup google.com &>/dev/null; then
+        log_success "DNS fixed with Google/Cloudflare servers"
+    else
+        log_warning "DNS still having issues, but continuing..."
     fi
 }
 
@@ -154,10 +200,13 @@ if [ "$OS" = "ubuntu" ]; then
     sudo systemctl start docker
     sudo usermod -aG docker $USER
     
-    # Install Docker Compose V2 plugin
-    install_docker_compose_v2
+    # Install Docker Compose  plugin
+    # Fix DNS issues before installing Docker Compose
+    fix_dns_issues
     
-    log_success "Docker and Docker Compose V2 installed and configured"
+    install_docker_compose
+    
+    log_success "Docker and Docker Compose  installed and configured"
 elif [ "$OS" = "macos" ]; then
     log_info "Checking Docker installation..."
     if command -v docker &> /dev/null; then
