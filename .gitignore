@@ -11,6 +11,20 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Backend environment
+apps/backend/.env
+apps/backend/.env.local
+apps/backend/.env.development.local
+apps/backend/.env.test.local
+apps/backend/.env.production.local
+
+# Frontend environment
+apps/frontend/.env
+apps/frontend/.env.local
+apps/frontend/.env.development.local
+apps/frontend/.env.test.local
+apps/frontend/.env.production.local
+
 # Build outputs
 dist/
 build/

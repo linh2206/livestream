@@ -1,209 +1,325 @@
-# Livestream Application
+# LiveStream Platform
 
-A complete livestreaming platform built with Next.js, NestJS, MongoDB, Redis, and Socket.IO.
+A complete livestreaming platform built with Next.js, NestJS, MongoDB, Redis, and Socket.IO. Optimized for Docker deployment with comprehensive monitoring and management tools.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
 - Git
+- Ubuntu/Debian system (for installation scripts)
 
-### Deployment
+### One-Command Setup
+
+```bash
+# Clone and setup everything
+git clone <repository-url>
+cd livestream
+make setup
+```
+
+### Manual Setup
 
 1. **Clone the repository**
 ```bash
-   git clone <repository-url>
-   cd livestream
-   ```
+git clone <repository-url>
+cd livestream
+```
 
-2. **Deploy the application**
-   ```bash
-   ./deploy.sh
-   ```
+2. **Install system dependencies**
+```bash
+./scripts/install-all.sh
+```
 
-   Or manually:
-   ```bash
-   docker-compose up -d --build
-   ```
+3. **Build and start services**
+```bash
+./scripts/build-start.sh
+```
 
-3. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:9000
+   - Backend API: http://localhost:9000/api/v1
+   - Grafana: http://localhost:8080 (admin/admin123)
+   - Prometheus: http://localhost:9090
    - RTMP Server: rtmp://localhost:1935
 
 ## 🏗️ Architecture
 
-### Services
-- **Frontend** (Next.js): User interface and streaming player
-- **Backend** (NestJS): API server and WebSocket gateway
-- **MongoDB**: Database for users, streams, and chat messages
-- **Redis**: Caching and session storage
-- **Nginx**: Reverse proxy and RTMP server
-- **Prometheus**: Metrics collection
-- **Grafana**: Monitoring dashboard
+### Core Services
+- **Frontend** (Next.js): Modern React-based user interface
+- **Backend** (NestJS): RESTful API and WebSocket gateway
+- **MongoDB**: Primary database for users, streams, and chat
+- **Redis**: Caching, session storage, and real-time data
+- **Nginx RTMP**: RTMP server for live streaming ingestion
 
-### Features
-- ✅ User authentication and authorization
-- ✅ Live streaming with HLS
-- ✅ Real-time chat with Socket.IO
-- ✅ Viewer count tracking
-- ✅ Like/unlike functionality
-- ✅ Admin user management
-- ✅ Responsive design
-- ✅ Production-ready deployment
+### Monitoring & Observability
+- **Prometheus**: Metrics collection and alerting
+- **Grafana**: Comprehensive monitoring dashboards
+- **Node Exporter**: System metrics
+- **MongoDB Exporter**: Database performance metrics
+- **Redis Exporter**: Cache performance metrics
 
-## 🔧 Configuration
+### Key Features
+- ✅ **User Management**: Authentication, authorization, profiles
+- ✅ **Live Streaming**: RTMP ingestion with HLS output
+- ✅ **Real-time Chat**: Socket.IO powered chat system
+- ✅ **Viewer Analytics**: Real-time viewer count and engagement
+- ✅ **Admin Dashboard**: User management and system monitoring
+- ✅ **Health Monitoring**: Comprehensive health checks
+- ✅ **Auto-scaling**: Docker-based horizontal scaling
+- ✅ **Security**: JWT authentication, CORS, rate limiting
 
-### Environment Variables
-The application uses the following environment variables:
+## 📁 Project Structure
 
-- `NEXT_PUBLIC_API_URL`: Backend API URL (default: http://localhost:9000/api/v1)
-- `NEXT_PUBLIC_WS_URL`: WebSocket URL (default: ws://localhost:9000)
-- `NEXT_PUBLIC_RTMP_URL`: RTMP server URL (default: rtmp://localhost:1935)
-
-### Ports
-- 3000: Frontend
-- 9000: Backend API
-- 80: Nginx (HTTP)
-- 1935: RTMP
-- 27017: MongoDB
-- 6379: Redis
-- 9090: Prometheus
-- 8080: Grafana
-
-## 📱 Usage
-
-### For Streamers
-1. Register/Login at http://localhost:3000/login
-2. Create a new stream
-3. Use OBS or similar software to stream to: `rtmp://localhost:1935/live/{stream_key}`
-4. Share your stream URL with viewers
-
-### For Viewers
-1. Visit http://localhost:3000/streams
-2. Click on any live stream to watch
-3. Use the chat feature to interact with other viewers
-4. Like streams to show support
-
-### For Admins
-1. Login with admin credentials
-2. Access admin panel at http://localhost:3000/admin/users
-3. Manage users, roles, and system settings
-
-## 🔍 Monitoring
-
-### Prometheus Metrics
-- Access: http://localhost:9090
-- Monitor system performance and application metrics
-
-### Grafana Dashboards
-- Access: http://localhost:8080
-- Default credentials: admin/admin
-- View detailed system and application dashboards
+```
+livestream/
+├── apps/                    # Application code
+│   ├── backend/            # NestJS API server
+│   │   ├── src/
+│   │   │   ├── modules/    # Feature modules
+│   │   │   │   ├── auth/   # Authentication
+│   │   │   │   ├── chat/   # Real-time chat
+│   │   │   │   ├── streams/# Stream management
+│   │   │   │   ├── users/  # User management
+│   │   │   │   └── ...
+│   │   │   └── shared/     # Shared utilities
+│   │   └── Dockerfile
+│   └── frontend/           # Next.js application
+│       ├── src/
+│       │   ├── app/        # App router pages
+│       │   ├── components/ # React components
+│       │   └── lib/        # Utilities and hooks
+│       └── Dockerfile
+├── config/                 # Configuration files
+│   ├── database/          # Database initialization
+│   ├── grafana/           # Grafana dashboards
+│   ├── nginx/             # Nginx configuration
+│   └── prometheus/        # Prometheus configuration
+├── scripts/               # Management scripts
+│   ├── install-all.sh     # System installation
+│   ├── build-start.sh     # Build and start services
+│   ├── clean-all.sh       # Cleanup utilities
+│   └── ...                # Other management scripts
+├── docker-compose.yml     # Service orchestration
+├── Makefile              # Development commands
+└── README.md             # This file
+```
 
 ## 🛠️ Development
 
-### Local Development
-```bash
-# Backend
-cd apps/backend
-npm install
-npm run start:dev
+### Available Commands
 
-# Frontend
-cd apps/frontend
-npm install
-npm run dev
+```bash
+# Quick setup
+make setup
+
+# Individual operations
+make install    # Install system dependencies
+make build      # Build and start services
+make start      # Start services
+make stop       # Stop services
+make clean      # Clean up containers
+make logs       # View service logs
+
+# Admin operations
+make reset-admin # Reset admin credentials
 ```
 
-### Testing
+### Environment Configuration
+
+Copy `.env.example` to `.env` and configure:
+
 ```bash
-# Run all tests
-docker-compose exec backend npm test
-docker-compose exec frontend npm test
+cp .env.example .env
+# Edit .env with your settings
 ```
+
+Key configuration options:
+- **Ports**: Customize service ports
+- **JWT Secret**: Auto-generated if not set
+- **Google OAuth**: Optional authentication
+- **URLs**: Auto-configured from ports
+
+### Development Workflow
+
+1. **Start development environment**
+```bash
+make build
+```
+
+2. **View logs**
+```bash
+make logs
+# Or specific service: docker-compose logs -f backend
+```
+
+3. **Stop services**
+```bash
+make stop
+```
+
+4. **Clean and rebuild**
+```bash
+make clean
+make build
+```
+
+## 🔧 Configuration
+
+### Port Configuration
+- Frontend: 3000
+- Backend API: 9000
+- MongoDB: 27017
+- Redis: 6379
+- RTMP: 1935
+- Grafana: 8080
+- Prometheus: 9090
+
+### Environment Variables
+See `.env.example` for all available configuration options.
+
+### Docker Services
+All services run in Docker containers with:
+- Health checks
+- Resource limits
+- Auto-restart policies
+- Network isolation
+
+## 📊 Monitoring
+
+### Grafana Dashboards
+Access Grafana at http://localhost:8080 (admin/admin123)
+
+Available dashboards:
+- **System Health**: Overall system status
+- **Application Metrics**: API and service performance
+- **Database Performance**: MongoDB and Redis metrics
+- **Network Monitoring**: Traffic and connectivity
+- **Streaming Performance**: RTMP and HLS metrics
+
+### Prometheus Metrics
+Access Prometheus at http://localhost:9090
+
+Key metrics:
+- HTTP request rates and latencies
+- Database connection pools
+- Memory and CPU usage
+- Custom application metrics
+
+## 🔐 Security
+
+### Authentication
+- JWT-based authentication
+- Google OAuth integration (optional)
+- Password hashing with bcrypt
+- Session management with Redis
+
+### Security Features
+- CORS configuration
+- Rate limiting
+- Input validation
+- SQL injection protection
+- XSS protection
+
+## 🚀 Deployment
+
+### Production Deployment
+
+1. **Configure environment**
+```bash
+cp .env.example .env
+# Update production values
+```
+
+2. **Deploy with Docker**
+```bash
+docker-compose -f docker-compose.yml up -d --build
+```
+
+3. **Setup monitoring**
+- Access Grafana dashboards
+- Configure alerts in Prometheus
+- Monitor system health
+
+### Scaling
+
+The platform supports horizontal scaling:
+- Multiple backend instances
+- Load balancer configuration
+- Database clustering
+- Redis clustering
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **Services not starting**
-   ```bash
-   docker-compose logs [service-name]
-   ```
+```bash
+docker-compose logs [service-name]
+```
 
 2. **Port conflicts**
-   - Check if ports 3000, 9000, 80, 1935 are available
-   - Modify docker-compose.yml if needed
+```bash
+# Check port usage
+netstat -tulpn | grep :PORT
+# Update .env file with different ports
+```
 
 3. **Database connection issues**
 ```bash
-   docker-compose restart mongodb redis
-   ```
+# Check MongoDB container
+docker-compose logs mongodb
+```
 
-4. **Build failures**
-   ```bash
-   docker-compose down
-   docker system prune -f
-   docker-compose up -d --build
-   ```
+4. **Reset admin user**
+```bash
+make reset-admin
+```
 
 ### Health Checks
-```bash
-# Check all services
-docker-compose ps
 
-# Check specific service logs
-docker-compose logs backend
-docker-compose logs frontend
+All services include health checks:
+```bash
+# Check service health
+docker-compose ps
 ```
 
 ## 📝 API Documentation
 
-### Authentication
-- POST `/api/v1/auth/login` - User login
-- POST `/api/v1/auth/register` - User registration
-- GET `/api/v1/auth/profile` - Get user profile
+### Authentication Endpoints
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/register` - User registration
+- `GET /api/v1/auth/profile` - Get user profile
 
-### Streams
-- GET `/api/v1/streams` - List all streams
-- GET `/api/v1/streams/:id` - Get stream details
-- POST `/api/v1/streams/:id/like` - Like/unlike stream
+### Stream Endpoints
+- `GET /api/v1/streams` - List streams
+- `POST /api/v1/streams` - Create stream
+- `GET /api/v1/streams/:id` - Get stream details
 
-### WebSocket Events
-- `join_stream` - Join stream room
-- `leave_stream` - Leave stream room
-- `join_stream_chat` - Join chat room
-- `send_message` - Send chat message
-- `stream:viewer_count_update` - Viewer count updates
-
-## 🚀 Production Deployment
-
-### Security Considerations
-- Change default passwords
-- Use HTTPS in production
-- Configure proper CORS settings
-- Set up SSL certificates
-- Use environment-specific configurations
-
-### Scaling
-- Use Docker Swarm or Kubernetes for orchestration
-- Set up load balancers
-- Configure database clustering
-- Implement CDN for static assets
-
-## 📄 License
-
-This project is licensed under the MIT License.
+### Chat Endpoints
+- WebSocket connection for real-time chat
+- Message history API
+- Online users tracking
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Test thoroughly
 5. Submit a pull request
 
-## 📞 Support
+## 📄 License
 
-For support and questions, please contact the development team.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Check the troubleshooting section
+- Review the logs with `make logs`
+- Open an issue on GitHub
+
+---
+
+**Built with ❤️ for the livestreaming community**

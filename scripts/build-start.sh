@@ -3,8 +3,8 @@
 echo "🔨 Building and Starting Livestream Platform"
 echo "============================================="
 echo "This script will:"
-echo "  • Remove existing .env and config.env files"
-echo "  • Copy fresh .env.example to .env and config.env"
+echo "  • Remove existing .env files"
+echo "  • Copy fresh .env.example to .env"
 echo "  • Generate JWT secrets if needed"
 echo "  • Stop existing containers"
 echo "  • Build and start all services"
@@ -32,26 +32,32 @@ if [ -f ".env" ]; then
     echo "🗑️  Removed existing .env file"
 fi
 
-if [ -f "config.env" ]; then
-    rm config.env
-    echo "🗑️  Removed existing config.env file"
-fi
-
 # Copy .env.example to .env
 cp .env.example .env
 echo "✅ Created fresh .env file from .env.example"
 
-# Copy .env.example to config.env
-cp .env.example config.env
-echo "✅ Created fresh config.env file from .env.example"
+# Setup backend environment
+if [ -f "apps/backend/.env.example" ]; then
+    cp apps/backend/.env.example apps/backend/.env
+    echo "✅ Created backend .env file"
+fi
+
+# Setup frontend environment
+if [ -f "apps/frontend/.env.example" ]; then
+    cp apps/frontend/.env.example apps/frontend/.env.local
+    echo "✅ Created frontend .env.local file"
+fi
 
 # Generate JWT secret if needed
 if grep -q "your-super-secret-jwt-key-change-in-production" .env; then
     echo "🔐 Generating JWT secret..."
     random_secret=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)
     sed -i.bak "s/your-super-secret-jwt-key-change-in-production/${random_secret}/g" .env
-    sed -i.bak "s/your-super-secret-jwt-key-change-in-production/${random_secret}/g" config.env
-    rm -f .env.bak config.env.bak
+    # Also update backend .env if it exists
+    if [ -f "apps/backend/.env" ]; then
+        sed -i.bak "s/your-super-secret-jwt-key-change-in-production/${random_secret}/g" apps/backend/.env
+    fi
+    rm -f .env.bak apps/backend/.env.bak
     echo "✅ Generated and set JWT_SECRET"
 fi
 

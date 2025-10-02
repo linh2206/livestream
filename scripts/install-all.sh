@@ -3,13 +3,13 @@
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="
 echo "This script will install everything the system needs:"
-echo "  • System dependencies (Docker, Node.js, MongoDB, Nginx, Git)"
+echo "  • System dependencies (Docker, Node.js, Git)"
 echo "  • Create necessary directories and structure"
-echo "  • Setup environment files (.env, config.env) from .env.example"
+echo "  • Setup environment files from .env.example"
 echo "  • Generate JWT secrets and security keys"
 echo "  • Install all project dependencies (backend, frontend)"
 echo "  • Setup SSH keys and permissions"
-echo "  • Build and start all services"
+echo "  • Build and start all services with Docker"
 echo "  • Initialize database and admin user"
 echo "=========================================================="
 
@@ -35,17 +35,8 @@ echo "📦 Installing Node.js 18..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Install MongoDB
-echo "🔧 Installing MongoDB..."
-sudo apt install -y mongodb
-sudo systemctl enable mongodb
-sudo systemctl start mongodb
-
-# Install Nginx
-echo "🌐 Installing Nginx..."
-sudo apt install -y nginx
-sudo systemctl enable nginx
-sudo systemctl start nginx
+# Note: MongoDB and Nginx will be installed via Docker containers
+echo "ℹ️  MongoDB and Nginx will be installed via Docker containers"
 
 # Install Git
 echo "🔧 Installing Git..."
@@ -63,8 +54,22 @@ mkdir -p config/nginx
 mkdir -p logs
 echo "✅ Created directory structure"
 
-# Note: Environment files will be created by build-start.sh
-echo "ℹ️  Environment files will be created when you run build-start.sh"
+# Setup environment files
+echo "📋 Setting up environment files..."
+if [ -f ".env.example" ]; then
+    cp .env.example .env
+    echo "✅ Created .env file from .env.example"
+fi
+
+if [ -f "apps/backend/.env.example" ]; then
+    cp apps/backend/.env.example apps/backend/.env
+    echo "✅ Created backend .env file"
+fi
+
+if [ -f "apps/frontend/.env.example" ]; then
+    cp apps/frontend/.env.example apps/frontend/.env.local
+    echo "✅ Created frontend .env.local file"
+fi
 
 # Install project dependencies
 echo "📦 Installing project dependencies..."
@@ -88,11 +93,11 @@ docker-compose up -d --build
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
-sleep 10
+sleep 15
 
-# Reset admin password
+# Setup admin user
 echo "👤 Setting up admin user..."
-if docker ps | grep -q mongodb; then
+if docker ps | grep -q livestream-mongodb; then
     docker exec livestream-mongodb mongosh livestream --eval "
         db.users.updateOne(
             { username: 'admin' },
@@ -100,7 +105,8 @@ if docker ps | grep -q mongodb; then
                 \$set: {
                     password: '\$2b\$10\$rQZ8K9vXqJ2H3L4M5N6O7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9'
                 }
-            }
+            },
+            { upsert: true }
         );
         print('Admin password set to admin123');
     " 2>/dev/null
@@ -110,13 +116,14 @@ echo ""
 echo "✅ System installation completed successfully!"
 echo "=========================================================="
 echo "📋 Next steps:"
-echo "  1. Run './scripts/build-start.sh' to build and start the application"
+echo "  1. Run './scripts/build-start.sh' to rebuild and restart services"
 echo "  2. Or run 'docker-compose up -d --build' manually"
 echo ""
 echo "🌐 Once started, access:"
 echo "  • Frontend: http://localhost:3000"
 echo "  • API: http://localhost:9000/api/v1"
-echo "  • MongoDB: mongodb://localhost:27017"
+echo "  • Grafana: http://localhost:8080 (admin/admin123)"
+echo "  • Prometheus: http://localhost:9090"
 echo ""
 echo "👤 Default login:"
 echo "   Username: admin"
@@ -124,4 +131,5 @@ echo "   Password: admin123"
 echo ""
 echo "🔄 To restart services: docker-compose restart"
 echo "🛑 To stop services: docker-compose down"
+echo "📊 To view logs: docker-compose logs -f [service-name]"
 echo "=========================================================="
