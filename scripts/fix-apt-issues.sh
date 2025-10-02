@@ -7,7 +7,7 @@
 set +e
 
 # Trap signals to prevent termination
-trap 'echo "Script interrupted, but continuing..."; exit 0' INT TERM
+trap 'echo "Script interrupted, but continuing..."; exit 0' INT TERM QUIT
 
 # Colors for output
 RED='\033[0;31m'

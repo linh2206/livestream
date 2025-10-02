@@ -170,12 +170,11 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     chmod +x /etc/update-motd.d/99-livestream
     
-    # Create dynamic SSH banner with system info
+    # Create dynamic SSH banner with CPU, RAM, Disk from system
     tee /etc/ssh/banner > /dev/null << 'EOF'
 #!/bin/bash
 
 # Get system information
-HOSTNAME=$(hostname)
 LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
@@ -204,10 +203,7 @@ pad_string() {
 
 # Create banner
 echo "┌$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┐"
-echo "│ $(pad_string "LIVESTREAM SERVER - SYSTEM STATUS" $((BOX_WIDTH-4))) │"
-echo "├$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┤"
-echo "│ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) │"
-echo "│ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "CPU: $LOAD" $((BOX_WIDTH-4))) │"
 echo "│ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) │"
 echo "│ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) │"
 echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
@@ -327,12 +323,11 @@ echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
 EOF
     sudo chmod +x /etc/update-motd.d/99-livestream
     
-    # Create dynamic SSH banner with system info
+    # Create dynamic SSH banner with CPU, RAM, Disk from system
     sudo tee /etc/ssh/banner > /dev/null << 'EOF'
 #!/bin/bash
 
 # Get system information
-HOSTNAME=$(hostname)
 LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
@@ -361,10 +356,7 @@ pad_string() {
 
 # Create banner
 echo "┌$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┐"
-echo "│ $(pad_string "LIVESTREAM SERVER - SYSTEM STATUS" $((BOX_WIDTH-4))) │"
-echo "├$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┤"
-echo "│ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) │"
-echo "│ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) │"
+echo "│ $(pad_string "CPU: $LOAD" $((BOX_WIDTH-4))) │"
 echo "│ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) │"
 echo "│ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) │"
 echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
