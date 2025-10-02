@@ -53,7 +53,19 @@ fi
 
 # Update system
 log_info "Updating system packages..."
-sudo apt update && sudo apt upgrade -y
+if ! sudo apt update; then
+    log_warning "APT update failed. Trying to fix APT issues..."
+    if [ -f "scripts/fix-apt-issues.sh" ]; then
+        sudo ./scripts/fix-apt-issues.sh
+        log_info "Retrying system update..."
+        sudo apt update
+    else
+        log_error "fix-apt-issues.sh not found. Please run 'make fix-apt' first."
+        exit 1
+    fi
+fi
+
+sudo apt upgrade -y
 
 # Install Docker
 log_info "Installing Docker..."

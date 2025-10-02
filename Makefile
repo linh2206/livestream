@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh
+.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt
 
 # Default target
 .DEFAULT_GOAL := help
@@ -23,6 +23,7 @@ help:
 	@echo ""
 	@echo "🔧 System Setup:"
 	@echo "  make setup-ssh  - Setup SSH server configuration"
+	@echo "  make fix-apt    - Fix APT package manager issues"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL:-http://localhost:3000}"
@@ -65,6 +66,10 @@ logs:
 setup-ssh:
 	@echo "Setting up SSH server..."
 	./scripts/setup-ssh-server.sh
+
+fix-apt:
+	@echo "Fixing APT package manager issues..."
+	sudo ./scripts/fix-apt-issues.sh
 
 # Quick setup
 setup:
