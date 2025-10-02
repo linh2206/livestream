@@ -68,7 +68,7 @@ setup-ssh:
 	./scripts/setup-ssh-server.sh
 
 fix-apt:
-	@echo "Fixing APT package manager issues..."
+	@echo "Fixing APT package manager issues (NUCLEAR OPTION)..."
 	sudo ./scripts/fix-apt-issues.sh
 
 # Quick setup

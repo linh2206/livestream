@@ -5,7 +5,7 @@ services:
     container_name: livestream-mongodb
     restart: unless-stopped
     ports:
-      - "${MONGODB_PORT:-27017}:27017"
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
       - ./config/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
@@ -25,7 +25,7 @@ services:
     container_name: livestream-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
@@ -47,7 +47,7 @@ services:
     container_name: livestream-nginx
     restart: unless-stopped
     ports:
-      - "${RTMP_PORT:-1935}:${RTMP_PORT:-1935}"  # RTMP only
+      - "1935:1935"  # RTMP only
     environment:
       RTMP_PORT: ${RTMP_PORT:-1935}
       BACKEND_PORT: ${BACKEND_PORT:-9000}
@@ -83,7 +83,7 @@ services:
     container_name: livestream-backend
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-9000}:${BACKEND_PORT:-9000}"  # API
+      - "9000:9000"  # API
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${BACKEND_PORT:-9000}
