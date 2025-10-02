@@ -2,7 +2,7 @@ services:
   # MongoDB Database
   mongodb:
     image: mongo:7.0
-    container_name: ${APP_NAME:-livestream}-${MONGODB_SERVICE_NAME:-mongodb}
+    container_name: livestream-mongodb
     restart: unless-stopped
     ports:
       - "${MONGODB_PORT:-27017}:27017"
@@ -22,7 +22,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7.2-alpine
-    container_name: ${APP_NAME:-livestream}-${REDIS_SERVICE_NAME:-redis}
+    container_name: livestream-redis
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"

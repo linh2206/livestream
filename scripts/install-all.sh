@@ -34,9 +34,21 @@ echo "⚠️  This script does NOT build or start services!"
 echo "    Use 'make build' or './scripts/build-start.sh' after this script."
 echo "=========================================================="
 
-# Check if running on Ubuntu/Debian
-if ! command -v apt &> /dev/null; then
-    log_error "This script is designed for Ubuntu/Debian systems"
+# Check if running on Ubuntu/Debian or macOS
+if ! command -v apt &> /dev/null && [[ "$OSTYPE" != "darwin"* ]]; then
+    log_error "This script is designed for Ubuntu/Debian or macOS systems"
+    exit 1
+fi
+
+# Detect OS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="macos"
+    log_info "Detected macOS system"
+elif command -v apt &> /dev/null; then
+    OS="ubuntu"
+    log_info "Detected Ubuntu/Debian system"
+else
+    log_error "Unsupported operating system"
     exit 1
 fi
 
@@ -51,94 +63,148 @@ if [ "$(id -u)" = "0" ]; then
     fi
 fi
 
-# Update system
-log_info "Updating system packages..."
-if ! timeout 60 sudo apt update; then
-    log_warning "APT update failed. Trying to fix APT issues..."
-    if [ -f "scripts/fix-apt-issues.sh" ]; then
-        log_info "Running APT fix script..."
-        if timeout 300 sudo ./scripts/fix-apt-issues.sh; then
-            log_info "APT fix completed. Retrying system update..."
-            if timeout 60 sudo apt update; then
-                log_success "System update successful after APT fix"
+# Update system based on OS
+if [ "$OS" = "ubuntu" ]; then
+    log_info "Updating system packages..."
+    if ! sudo apt update 2>/dev/null; then
+        log_warning "APT update failed. Trying to fix APT issues..."
+        if [ -f "scripts/fix-apt-issues.sh" ]; then
+            log_info "Running comprehensive APT fix script..."
+            sudo ./scripts/fix-apt-issues.sh
+            log_info "Testing APT after fix..."
+            if sudo apt update 2>/dev/null; then
+                log_success "✅ APT update successful after fix!"
+                log_info "APT is now working properly"
             else
-                log_warning "System update still failing. Continuing with installation..."
+                log_warning "APT update still failing. Continuing with installation..."
+                log_info "Some packages may not install properly"
             fi
         else
-            log_warning "APT fix script timed out or failed. Continuing with installation..."
+            log_warning "APT fix script not found. Continuing with installation..."
         fi
     else
-        log_error "fix-apt-issues.sh not found. Please run 'make fix-apt' first."
-        exit 1
+        log_success "✅ APT update successful!"
+    fi
+
+    log_info "Upgrading system packages..."
+    timeout 300 sudo apt upgrade -y || log_warning "System upgrade timed out or failed"
+elif [ "$OS" = "macos" ]; then
+    log_info "Updating macOS packages..."
+    if command -v brew &> /dev/null; then
+        log_info "Updating Homebrew..."
+        brew update || log_warning "Homebrew update failed"
+        log_success "✅ Homebrew update completed!"
+    else
+        log_warning "Homebrew not found. Please install Homebrew first."
+        log_info "Run: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
     fi
 fi
 
-log_info "Upgrading system packages..."
-timeout 300 sudo apt upgrade -y || log_warning "System upgrade timed out or failed"
-
-# Install Docker
-log_info "Installing Docker..."
-sudo apt install -y docker.io docker-compose
-sudo systemctl enable docker
-sudo systemctl start docker
-sudo usermod -aG docker $USER
-log_success "Docker installed and configured"
-
-# Install Node.js 18
-log_info "Installing Node.js 18..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Verify installation
-if command -v node &> /dev/null && command -v npm &> /dev/null; then
-    log_success "Node.js $(node --version) and npm $(npm --version) installed"
-else
-    log_error "Failed to install Node.js or npm"
-    log_info "Trying alternative installation method..."
-    sudo apt install -y nodejs npm
-    if command -v node &> /dev/null && command -v npm &> /dev/null; then
-        log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
+# Install Docker based on OS
+if [ "$OS" = "ubuntu" ]; then
+    log_info "Installing Docker..."
+    sudo apt install -y docker.io docker-compose
+    sudo systemctl enable docker
+    sudo systemctl start docker
+    sudo usermod -aG docker $USER
+    log_success "Docker installed and configured"
+elif [ "$OS" = "macos" ]; then
+    log_info "Checking Docker installation..."
+    if command -v docker &> /dev/null; then
+        log_success "Docker already installed"
     else
-        log_warning "Node.js installation failed. Docker containers will handle dependencies."
+        log_warning "Docker not found. Please install Docker Desktop for macOS"
+        log_info "Download from: https://www.docker.com/products/docker-desktop"
+    fi
+fi
+
+# Install Node.js based on OS
+if [ "$OS" = "ubuntu" ]; then
+    log_info "Installing Node.js 18..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt install -y nodejs
+
+    # Verify installation
+    if command -v node &> /dev/null && command -v npm &> /dev/null; then
+        log_success "Node.js $(node --version) and npm $(npm --version) installed"
+    else
+        log_error "Failed to install Node.js or npm"
+        log_info "Trying alternative installation method..."
+        sudo apt install -y nodejs npm
+        if command -v node &> /dev/null && command -v npm &> /dev/null; then
+            log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
+        else
+            log_warning "Node.js installation failed. Docker containers will handle dependencies."
+        fi
+    fi
+elif [ "$OS" = "macos" ]; then
+    log_info "Checking Node.js installation..."
+    if command -v node &> /dev/null && command -v npm &> /dev/null; then
+        log_success "Node.js $(node --version) and npm $(npm --version) already installed"
+    else
+        log_warning "Node.js not found. Please install Node.js"
+        log_info "Run: brew install node"
     fi
 fi
 
 # Note: MongoDB and Nginx will be installed via Docker containers
 log_info "MongoDB and Nginx will be installed via Docker containers"
 
-# Install Git
-log_info "Installing Git..."
-sudo apt install -y git
-log_success "Git installed"
+# Install Git based on OS
+if [ "$OS" = "ubuntu" ]; then
+    log_info "Installing Git..."
+    sudo apt install -y git
+    log_success "Git installed"
 
-# Install additional tools
-log_info "Installing additional tools..."
-sudo apt install -y curl wget unzip build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release
+    # Install additional tools
+    log_info "Installing additional tools..."
+    sudo apt install -y curl wget unzip build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release
+elif [ "$OS" = "macos" ]; then
+    log_info "Checking Git installation..."
+    if command -v git &> /dev/null; then
+        log_success "Git already installed"
+    else
+        log_warning "Git not found. Please install Git"
+        log_info "Run: brew install git"
+    fi
+fi
 
 # Note: FFmpeg will be installed via dedicated scripts if needed
 log_info "FFmpeg can be installed via scripts/install-ffmpeg-quick.sh or scripts/compile-ffmpeg.sh"
 
-# Install monitoring tools
-log_info "Installing monitoring tools..."
-sudo apt install -y htop iotop nethogs
+# Install additional tools based on OS
+if [ "$OS" = "ubuntu" ]; then
+    # Install monitoring tools
+    log_info "Installing monitoring tools..."
+    sudo apt install -y htop iotop nethogs
 
-# Install development tools
-log_info "Installing development tools..."
-sudo apt install -y vim nano tree jq
+    # Install development tools
+    log_info "Installing development tools..."
+    sudo apt install -y vim nano tree jq
 
-# Install Python and pip (for some tools)
-log_info "Installing Python and pip..."
-sudo apt install -y python3 python3-pip python3-venv
+    # Install Python and pip (for some tools)
+    log_info "Installing Python and pip..."
+    sudo apt install -y python3 python3-pip python3-venv
 
-# Install additional system libraries
-log_info "Installing system libraries..."
-sudo apt install -y libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev
+    # Install additional system libraries
+    log_info "Installing system libraries..."
+    sudo apt install -y libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev libjpeg-dev libpng-dev
 
-# Install additional build tools for Node.js native modules
-log_info "Installing Node.js build tools..."
-sudo apt install -y build-essential python3-dev python3-setuptools
+    # Install additional build tools for Node.js native modules
+    log_info "Installing Node.js build tools..."
+    sudo apt install -y build-essential python3-dev python3-setuptools
 
-log_success "All system dependencies installed"
+    log_success "All system dependencies installed"
+elif [ "$OS" = "macos" ]; then
+    log_info "Checking additional tools..."
+    if command -v brew &> /dev/null; then
+        log_info "Installing additional tools via Homebrew..."
+        brew install htop tree jq python3 || log_warning "Some tools installation failed"
+        log_success "Additional tools installation completed"
+    else
+        log_warning "Homebrew not found. Please install tools manually if needed"
+    fi
+fi
 
 # Create necessary directories
 log_info "Creating necessary directories..."
