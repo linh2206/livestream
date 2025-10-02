@@ -139,13 +139,13 @@ fi
 fix_https_method() {
     log_info "Fixing HTTPS method issues..."
     
-    # Kill any stuck apt processes
-    pkill -f apt 2>/dev/null || true
-    pkill -f dpkg 2>/dev/null || true
-    pkill -f unattended-upgrade 2>/dev/null || true
-    pkill -f apt-get 2>/dev/null || true
-    pkill -f apt-cache 2>/dev/null || true
-    sleep 3
+    # Kill any stuck apt processes with timeout
+    timeout 10 pkill -f apt 2>/dev/null || true
+    timeout 10 pkill -f dpkg 2>/dev/null || true
+    timeout 10 pkill -f unattended-upgrade 2>/dev/null || true
+    timeout 10 pkill -f apt-get 2>/dev/null || true
+    timeout 10 pkill -f apt-cache 2>/dev/null || true
+    sleep 2
     
     # Remove lock files
     rm -f /var/lib/dpkg/lock* 2>/dev/null || true

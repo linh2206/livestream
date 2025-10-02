@@ -113,15 +113,25 @@ DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
 DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
 DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 
-# Get top 3 processes by CPU usage
-PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-12s %-6s %-6s %s\n", $1, $2, $3"%", $11}')
+# Get top 3 processes by CPU usage with better formatting
+if command -v ps >/dev/null 2>&1; then
+    if ps aux --help 2>&1 | grep -q "sort"; then
+        # Linux/Ubuntu
+        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+    else
+        # macOS
+        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+    fi
+else
+    PROCESSES="No process info available"
+fi
 
 # Get terminal width
 TERM_WIDTH=${COLUMNS:-80}
-if [ $TERM_WIDTH -lt 60 ]; then
-    TERM_WIDTH=60
+if [ $TERM_WIDTH -lt 80 ]; then
+    TERM_WIDTH=80
 fi
-BOX_WIDTH=$((TERM_WIDTH - 4))
+BOX_WIDTH=$((TERM_WIDTH - 2))
 
 # Function to pad string
 pad_string() {
@@ -151,6 +161,8 @@ echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_W
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "USER       PID   CPU%  COMMAND" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "$PROCESSES" | while read line; do
     echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
 done
@@ -160,13 +172,12 @@ EOF
     
     # Create simple SSH banner
     tee /etc/ssh/banner > /dev/null << 'EOF'
-╔══════════════════════════════════════════════════════════════════════════╗
-║ 🚀 LIVESTREAM SERVER 🚀                                                  ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║ Welcome to the LiveStream Platform Server!                              ║
-║                                                                          ║
-║ ⚠️  Authorized access only. All activities are logged.                   ║
-╚══════════════════════════════════════════════════════════════════════════╝
++======================================================================+
+| LIVESTREAM SERVER                                                    |
++======================================================================+
+| Welcome to LiveStream Platform Server!                              |
+| WARNING: Authorized access only. All activities are logged.         |
++======================================================================+
 EOF
     chmod 644 /etc/ssh/banner
 else
@@ -240,15 +251,25 @@ DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
 DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
 DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 
-# Get top 3 processes by CPU usage
-PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-12s %-6s %-6s %s\n", $1, $2, $3"%", $11}')
+# Get top 3 processes by CPU usage with better formatting
+if command -v ps >/dev/null 2>&1; then
+    if ps aux --help 2>&1 | grep -q "sort"; then
+        # Linux/Ubuntu
+        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+    else
+        # macOS
+        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+    fi
+else
+    PROCESSES="No process info available"
+fi
 
 # Get terminal width
 TERM_WIDTH=${COLUMNS:-80}
-if [ $TERM_WIDTH -lt 60 ]; then
-    TERM_WIDTH=60
+if [ $TERM_WIDTH -lt 80 ]; then
+    TERM_WIDTH=80
 fi
-BOX_WIDTH=$((TERM_WIDTH - 4))
+BOX_WIDTH=$((TERM_WIDTH - 2))
 
 # Function to pad string
 pad_string() {
@@ -262,38 +283,30 @@ pad_string() {
     fi
 }
 
-# Create banner
-echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4))) ║"
-echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
-echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
-echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
-echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4))) ║"
-echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
-echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
-echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
-echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4))) ║"
-echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "$PROCESSES" | while read line; do
-    echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
-done
-echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
+# Create system info banner with solid lines
+echo "┌$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┐"
+echo "│$(printf ' %-*s ' $((BOX_WIDTH-2)) "LIVESTREAM SERVER - SYSTEM STATUS")│"
+echo "├$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┤"
+echo "│$(printf ' %-*s ' $((BOX_WIDTH-2)) "CPU Load: $LOAD")│"
+echo "│$(printf ' %-*s ' $((BOX_WIDTH-2)) "Memory: $MEMORY_USED / $MEMORY_TOTAL")│"
+echo "│$(printf ' %-*s ' $((BOX_WIDTH-2)) "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)")│"
+echo "└$(printf '─%.0s' $(seq 1 $((BOX_WIDTH-2))))┘"
 EOF
     sudo chmod +x /etc/update-motd.d/99-livestream
     
-    # Create simple SSH banner
+    # Create simple SSH banner with solid lines
     sudo tee /etc/ssh/banner > /dev/null << 'EOF'
-╔══════════════════════════════════════════════════════════════════════════╗
-║ 🚀 LIVESTREAM SERVER 🚀                                                  ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║ Welcome to the LiveStream Platform Server!                              ║
-║                                                                          ║
-║ ⚠️  Authorized access only. All activities are logged.                   ║
-╚══════════════════════════════════════════════════════════════════════════╝
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│ LIVESTREAM SERVER                                                    │
+│                                                                      │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ Welcome to the LiveStream Platform Server!                          │
+│                                                                      │
+│ WARNING: Authorized access only. All activities are logged.         │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
 EOF
     sudo chmod 644 /etc/ssh/banner
 fi
@@ -524,8 +537,24 @@ fi
 log_info "Updating MOTD..."
 if [ "$(id -u)" = "0" ]; then
     /etc/update-motd.d/99-livestream > /etc/motd
+    echo "✅ MOTD updated successfully"
 else
     sudo /etc/update-motd.d/99-livestream | sudo tee /etc/motd > /dev/null
+    echo "✅ MOTD updated successfully"
+fi
+
+echo ""
+echo "Testing MOTD display..."
+if [ -f "/etc/update-motd.d/99-livestream" ]; then
+    echo "✅ MOTD script exists and is executable"
+    echo "MOTD preview:"
+    /etc/update-motd.d/99-livestream
+    echo ""
+    echo "📋 Current /etc/motd content:"
+    echo "============================="
+    cat /etc/motd
+else
+    echo "❌ Warning: MOTD script not found"
 fi
 
 echo ""
@@ -542,5 +571,7 @@ echo ""
 echo "Commands:"
 echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
 echo "Test MOTD: /etc/update-motd.d/99-livestream"
+echo "View current MOTD: cat /etc/motd"
+echo "Update MOTD: sudo /etc/update-motd.d/99-livestream > /etc/motd"
 echo "Disable password auth: sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart ssh"
 echo "Restore config: sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config && sudo systemctl restart ssh"
