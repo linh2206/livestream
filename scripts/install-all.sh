@@ -76,10 +76,10 @@ install_docker_compose() {
         log_warning "Failed to download Docker Compose , trying alternative method..."
         
         # Try installing via apt as fallback
-        if sudo apt update && sudo apt install -y docker-compose-plugin; then
-            log_success "Docker Compose  installed via apt package"
-            if docker compose version &>/dev/null; then
-                log_success "Docker Compose  working via apt installation"
+        if sudo apt update && sudo apt install -y docker-compose; then
+            log_success "Docker Compose V1 installed via apt package"
+            if docker-compose version &>/dev/null; then
+                log_success "Docker Compose V1 working via apt installation"
                 return 0
             fi
         fi

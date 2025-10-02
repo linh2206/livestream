@@ -83,18 +83,26 @@ fi
 echo "✅ Environment files setup completed!"
 
 
+# Check Docker Compose version and use appropriate command
+if docker compose version &>/dev/null; then
+    COMPOSE_CMD="docker compose"
+    echo "✅ Using Docker Compose V2"
+else
+    COMPOSE_CMD="docker-compose"
+    echo "✅ Using Docker Compose V1"
+fi
+
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
-docker compose down
-
+$COMPOSE_CMD down
 
 # Build and start services
 echo "🔨 Building and starting all services..."
 echo "  • Building Docker images..."
-docker compose build --no-cache
+$COMPOSE_CMD build --no-cache
 
 echo "  • Starting all services..."
-docker compose up -d
+$COMPOSE_CMD up -d
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."

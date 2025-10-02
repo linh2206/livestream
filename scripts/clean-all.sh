@@ -3,9 +3,16 @@
 echo "🧹 Cleaning Livestream Platform - Complete Cleanup"
 echo "================================================="
 
+# Check Docker Compose version and use appropriate command
+if docker compose version &>/dev/null; then
+    COMPOSE_CMD="docker compose"
+else
+    COMPOSE_CMD="docker-compose"
+fi
+
 # Stop and remove containers
 echo "🛑 Stopping and removing containers..."
-docker compose down -v
+$COMPOSE_CMD down -v
 
 # Remove all containers
 echo "🗑️ Removing all containers..."
