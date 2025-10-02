@@ -48,9 +48,9 @@ if [ "$(id -u)" = "0" ]; then
 
 # Get system information
 HOSTNAME=$(hostname)
-UPTIME=$(uptime -p | sed 's/up //')
+UPTIME=$(uptime -p | cut -d' ' -f2-)
 DATE=$(date '+%Y-%m-%d %H:%M:%S')
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
@@ -83,13 +83,13 @@ BOX_WIDTH=$((TERM_WIDTH - 4))
 
 # Create responsive banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
@@ -104,9 +104,9 @@ EOF
 
 # Get system information
 HOSTNAME=$(hostname)
-UPTIME=$(uptime -p | sed 's/up //')
+UPTIME=$(uptime -p | cut -d' ' -f2-)
 DATE=$(date '+%Y-%m-%d %H:%M:%S')
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
@@ -117,10 +117,10 @@ DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 if command -v ps >/dev/null 2>&1; then
     if ps aux --help 2>&1 | grep -q "sort"; then
         # Linux/Ubuntu
-        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | tr -s ' ')
     else
         # macOS
-        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | tr -s ' ')
     fi
 else
     PROCESSES="No process info available"
@@ -175,7 +175,7 @@ EOF
 #!/bin/bash
 
 # Get system information
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
@@ -215,9 +215,9 @@ else
 
 # Get system information
 HOSTNAME=$(hostname)
-UPTIME=$(uptime -p | sed 's/up //')
+UPTIME=$(uptime -p | cut -d' ' -f2-)
 DATE=$(date '+%Y-%m-%d %H:%M:%S')
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
@@ -250,13 +250,13 @@ BOX_WIDTH=$((TERM_WIDTH - 4))
 
 # Create responsive banner
 echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "LIVESTREAM SERVER" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
-echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4))) ║"
 echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
 echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
 echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
@@ -271,9 +271,9 @@ EOF
 
 # Get system information
 HOSTNAME=$(hostname)
-UPTIME=$(uptime -p | sed 's/up //')
+UPTIME=$(uptime -p | cut -d' ' -f2-)
 DATE=$(date '+%Y-%m-%d %H:%M:%S')
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
@@ -284,10 +284,10 @@ DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
 if command -v ps >/dev/null 2>&1; then
     if ps aux --help 2>&1 | grep -q "sort"; then
         # Linux/Ubuntu
-        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+        PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | tr -s ' ')
     else
         # macOS
-        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | sed 's/  */ /g')
+        PROCESSES=$(ps aux | sort -k3 -nr | head -3 | awk '{printf "%-10s %-6s %-5s %s\n", $1, $2, $3"%", $11}' | tr -s ' ')
     fi
 else
     PROCESSES="No process info available"
@@ -328,7 +328,7 @@ EOF
 #!/bin/bash
 
 # Get system information
-LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
 MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
 MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
 DISK_USED=$(df -h / | tail -1 | awk '{print $3}')

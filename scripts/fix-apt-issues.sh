@@ -143,12 +143,12 @@ fix_https_method() {
     log_info "Fixing HTTPS method issues..."
     
     # Kill any stuck apt processes with timeout and error handling
-    timeout 5 pkill -f apt 2>/dev/null || true
-    timeout 5 pkill -f dpkg 2>/dev/null || true
-    timeout 5 pkill -f unattended-upgrade 2>/dev/null || true
-    timeout 5 pkill -f apt-get 2>/dev/null || true
-    timeout 5 pkill -f apt-cache 2>/dev/null || true
-    sleep 1
+    timeout 5 pkill -9 -f apt 2>/dev/null || true
+    timeout 5 pkill -9 -f dpkg 2>/dev/null || true
+    timeout 5 pkill -9 -f unattended-upgrade 2>/dev/null || true
+    timeout 5 pkill -9 -f apt-get 2>/dev/null || true
+    timeout 5 pkill -9 -f apt-cache 2>/dev/null || true
+    sleep 2
     
     # Remove lock files
     rm -f /var/lib/dpkg/lock* 2>/dev/null || true
@@ -352,14 +352,45 @@ EOF
 main() {
     log_info "Starting comprehensive APT fixes..."
     
+    # Step 0: Force kill all APT processes
+    log_info "Force killing all APT processes..."
+    pkill -9 -f apt 2>/dev/null || true
+    pkill -9 -f dpkg 2>/dev/null || true
+    pkill -9 -f unattended-upgrade 2>/dev/null || true
+    sleep 3
+    
     # Step 1: Fix HTTPS method issues
     if ! fix_https_method; then
         log_warning "HTTPS method fix failed, continuing..."
     fi
     
-    # Step 2: Try to update
+    # Step 2: Try to update with multiple methods
+    log_info "Trying APT update with multiple methods..."
+    
+    # Method 1: Standard update
     if timeout 30 apt update 2>/dev/null; then
         log_success "APT update successful!"
+        return 0
+    fi
+    
+    # Method 2: Update with --allow-unauthenticated
+    log_info "Trying with --allow-unauthenticated..."
+    if timeout 30 apt update --allow-unauthenticated 2>/dev/null; then
+        log_success "APT update successful with --allow-unauthenticated!"
+        return 0
+    fi
+    
+    # Method 3: Update with --allow-releaseinfo-change
+    log_info "Trying with --allow-releaseinfo-change..."
+    if timeout 30 apt update --allow-releaseinfo-change 2>/dev/null; then
+        log_success "APT update successful with --allow-releaseinfo-change!"
+        return 0
+    fi
+    
+    # Method 4: Update with both flags
+    log_info "Trying with both flags..."
+    if timeout 30 apt update --allow-unauthenticated --allow-releaseinfo-change 2>/dev/null; then
+        log_success "APT update successful with both flags!"
         return 0
     fi
     
