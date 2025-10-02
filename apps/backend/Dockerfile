@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (need nest CLI for start)
-RUN npm ci --no-audit --no-fund && npm cache clean --force
+RUN npm install --no-audit --no-fund && npm cache clean --force
 
 # Copy source code
 COPY . .

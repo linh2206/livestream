@@ -85,7 +85,7 @@ services:
     ports:
       - "9000:9000"  # API
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: production
       PORT: 9000
       MONGODB_URI: mongodb://mongodb:27017/livestream
       REDIS_URL: redis://redis:6379
@@ -97,9 +97,9 @@ services:
       NGINX_URL: ${NGINX_URL}
       API_BASE_URL: ${API_BASE_URL}
       WS_BASE_URL: ${WS_BASE_URL}
-      HLS_FRAGMENT_DURATION: ${HLS_FRAGMENT_DURATION:-2}
-      HLS_PLAYLIST_LENGTH: ${HLS_PLAYLIST_LENGTH:-6}
-      HLS_CLEANUP_INTERVAL: ${HLS_CLEANUP_INTERVAL:-300}
+      HLS_FRAGMENT_DURATION: 2
+      HLS_PLAYLIST_LENGTH: 6
+      HLS_CLEANUP_INTERVAL: 300
     volumes:
       - hls_data:/app/hls
     deploy:
