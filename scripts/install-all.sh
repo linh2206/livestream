@@ -53,19 +53,28 @@ fi
 
 # Update system
 log_info "Updating system packages..."
-if ! sudo apt update; then
+if ! timeout 60 sudo apt update; then
     log_warning "APT update failed. Trying to fix APT issues..."
     if [ -f "scripts/fix-apt-issues.sh" ]; then
-        sudo ./scripts/fix-apt-issues.sh
-        log_info "Retrying system update..."
-        sudo apt update
+        log_info "Running APT fix script..."
+        if timeout 300 sudo ./scripts/fix-apt-issues.sh; then
+            log_info "APT fix completed. Retrying system update..."
+            if timeout 60 sudo apt update; then
+                log_success "System update successful after APT fix"
+            else
+                log_warning "System update still failing. Continuing with installation..."
+            fi
+        else
+            log_warning "APT fix script timed out or failed. Continuing with installation..."
+        fi
     else
         log_error "fix-apt-issues.sh not found. Please run 'make fix-apt' first."
         exit 1
     fi
 fi
 
-sudo apt upgrade -y
+log_info "Upgrading system packages..."
+timeout 300 sudo apt upgrade -y || log_warning "System upgrade timed out or failed"
 
 # Install Docker
 log_info "Installing Docker..."

@@ -98,12 +98,65 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     chmod +x /usr/local/bin/ssh-banner
     
-    # Create the banner file that calls the script
+    # Create the banner file with dynamic content
     tee /etc/ssh/banner > /dev/null << 'EOF'
 #!/bin/bash
-/usr/local/bin/ssh-banner
+
+# Get system information
+HOSTNAME=$(hostname)
+UPTIME=$(uptime -p | sed 's/up //')
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get top 3 processes by CPU usage
+PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-12s %-6s %-6s %s\n", $1, $2, $3"%", $11}')
+
+# Get terminal width
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Function to pad string
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Create banner
+echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "$PROCESSES" | while read line; do
+    echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
+done
+echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
-    chmod 755 /etc/ssh/banner
+    chmod 644 /etc/ssh/banner
 else
     sudo tee /usr/local/bin/ssh-banner > /dev/null << 'EOF'
 #!/bin/bash
@@ -160,10 +213,63 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     sudo chmod +x /usr/local/bin/ssh-banner
     
-    # Create the banner file that calls the script
+    # Create the banner file with dynamic content
     sudo tee /etc/ssh/banner > /dev/null << 'EOF'
 #!/bin/bash
-/usr/local/bin/ssh-banner
+
+# Get system information
+HOSTNAME=$(hostname)
+UPTIME=$(uptime -p | sed 's/up //')
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+MEMORY_USED=$(free -h | grep '^Mem:' | awk '{print $3}')
+MEMORY_TOTAL=$(free -h | grep '^Mem:' | awk '{print $2}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $3}')
+DISK_TOTAL=$(df -h / | tail -1 | awk '{print $2}')
+DISK_PERCENT=$(df -h / | tail -1 | awk '{print $5}')
+
+# Get top 3 processes by CPU usage
+PROCESSES=$(ps aux --sort=-%cpu | head -4 | tail -3 | awk '{printf "%-12s %-6s %-6s %s\n", $1, $2, $3"%", $11}')
+
+# Get terminal width
+TERM_WIDTH=${COLUMNS:-80}
+if [ $TERM_WIDTH -lt 60 ]; then
+    TERM_WIDTH=60
+fi
+BOX_WIDTH=$((TERM_WIDTH - 4))
+
+# Function to pad string
+pad_string() {
+    local str="$1"
+    local width="$2"
+    local len=${#str}
+    if [ $len -lt $width ]; then
+        printf "%-*s" $width "$str"
+    else
+        printf "%.*s" $((width-3)) "$str..."
+    fi
+}
+
+# Create banner
+echo "╔$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╗"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "🚀 LIVESTREAM SERVER 🚀" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "Hostname: $HOSTNAME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Uptime: $UPTIME" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Date: $DATE" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "SYSTEM STATUS" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║ $(pad_string "CPU Load: $LOAD" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Memory: $MEMORY_USED / $MEMORY_TOTAL" $((BOX_WIDTH-4))) ║"
+echo "║ $(pad_string "Disk: $DISK_USED / $DISK_TOTAL ($DISK_PERCENT)" $((BOX_WIDTH-4))) ║"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "║$(printf ' %.0s' $(seq 1 $((BOX_WIDTH-2))))║" | sed "s/^║/║ $(pad_string "TOP PROCESSES" $((BOX_WIDTH-4)))/"
+echo "╠$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╣"
+echo "$PROCESSES" | while read line; do
+    echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
+done
+echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     sudo chmod 755 /etc/ssh/banner
 fi

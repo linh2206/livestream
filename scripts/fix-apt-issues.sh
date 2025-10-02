@@ -38,17 +38,18 @@ fi
 fix_https_method() {
     log_info "Fixing HTTPS method issues..."
     
-    # Kill any stuck apt processes
-    pkill -f apt || true
-    pkill -f dpkg || true
+    # Kill any stuck apt processes (with timeout)
+    timeout 5 pkill -f apt || true
+    timeout 5 pkill -f dpkg || true
+    sleep 2
     
     # Remove lock files
     rm -f /var/lib/dpkg/lock*
     rm -f /var/cache/apt/archives/lock
     rm -f /var/lib/apt/lists/lock
     
-    # Configure dpkg
-    dpkg --configure -a
+    # Configure dpkg with timeout
+    timeout 30 dpkg --configure -a || log_warning "dpkg configure timed out"
     
     log_success "HTTPS method issues fixed"
 }
@@ -57,9 +58,9 @@ fix_https_method() {
 fix_repository_issues() {
     log_info "Fixing repository issues..."
     
-    # Clean package lists
-    apt clean
-    apt autoclean
+    # Clean package lists with timeout
+    timeout 30 apt clean || log_warning "apt clean timed out"
+    timeout 30 apt autoclean || log_warning "apt autoclean timed out"
     
     # Remove corrupted package lists
     rm -rf /var/lib/apt/lists/*
@@ -68,8 +69,8 @@ fix_repository_issues() {
     log_info "Trying HTTP method instead of HTTPS..."
     sed -i 's/https:/http:/g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
     
-    # Try to update
-    if apt update; then
+    # Try to update with timeout
+    if timeout 60 apt update; then
         log_success "Repository issues fixed with HTTP method"
     else
         log_warning "HTTP method failed, trying alternative approach..."
@@ -79,7 +80,7 @@ fix_repository_issues() {
         
         # Try with different mirrors
         log_info "Trying with different mirrors..."
-        apt update --allow-releaseinfo-change || true
+        timeout 60 apt update --allow-releaseinfo-change || log_warning "apt update with mirrors timed out"
     fi
 }
 
@@ -87,12 +88,12 @@ fix_repository_issues() {
 fix_gpg_issues() {
     log_info "Fixing GPG key issues..."
     
-    # Update GPG keys
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32 || true
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 871920D1991BC93C || true
+    # Update GPG keys with timeout
+    timeout 30 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32 || log_warning "GPG key 1 timed out"
+    timeout 30 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 871920D1991BC93C || log_warning "GPG key 2 timed out"
     
-    # Update package lists
-    apt update || true
+    # Update package lists with timeout
+    timeout 60 apt update || log_warning "apt update after GPG fix timed out"
     
     log_success "GPG key issues addressed"
 }
@@ -101,14 +102,14 @@ fix_gpg_issues() {
 fix_package_manager() {
     log_info "Fixing package manager..."
     
-    # Reinstall apt
-    apt install --reinstall apt -y
+    # Reinstall apt with timeout
+    timeout 120 apt install --reinstall apt -y || log_warning "apt reinstall timed out"
     
-    # Fix broken packages
-    apt --fix-broken install -y
+    # Fix broken packages with timeout
+    timeout 120 apt --fix-broken install -y || log_warning "fix-broken install timed out"
     
-    # Update package lists
-    apt update
+    # Update package lists with timeout
+    timeout 60 apt update || log_warning "final apt update timed out"
     
     log_success "Package manager fixed"
 }
@@ -142,7 +143,7 @@ main() {
     fix_https_method
     
     # Step 2: Try to update
-    if apt update; then
+    if timeout 60 apt update; then
         log_success "APT update successful!"
         return 0
     fi
@@ -153,7 +154,7 @@ main() {
     fix_repository_issues
     
     # Step 4: Try to update again
-    if apt update; then
+    if timeout 60 apt update; then
         log_success "APT update successful after repository fixes!"
         return 0
     fi
@@ -164,7 +165,7 @@ main() {
     fix_gpg_issues
     
     # Step 6: Try to update again
-    if apt update; then
+    if timeout 60 apt update; then
         log_success "APT update successful after GPG fixes!"
         return 0
     fi
@@ -175,7 +176,7 @@ main() {
     fix_package_manager
     
     # Step 8: Try to update again
-    if apt update; then
+    if timeout 60 apt update; then
         log_success "APT update successful after package manager fixes!"
         return 0
     fi
@@ -186,7 +187,7 @@ main() {
     restore_sources
     
     # Step 10: Final attempt
-    if apt update; then
+    if timeout 60 apt update; then
         log_success "APT update successful after restoring sources!"
         return 0
     fi
