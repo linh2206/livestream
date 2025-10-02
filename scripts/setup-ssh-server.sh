@@ -98,8 +98,8 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     chmod +x /usr/local/bin/ssh-banner
     
-    # Create the banner file with dynamic content
-    tee /etc/ssh/banner > /dev/null << 'EOF'
+    # Create dynamic MOTD script
+    tee /etc/update-motd.d/99-livestream > /dev/null << 'EOF'
 #!/bin/bash
 
 # Get system information
@@ -155,6 +155,18 @@ echo "$PROCESSES" | while read line; do
     echo "║ $(pad_string "$line" $((BOX_WIDTH-4))) ║"
 done
 echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
+EOF
+    chmod +x /etc/update-motd.d/99-livestream
+    
+    # Create simple SSH banner
+    tee /etc/ssh/banner > /dev/null << 'EOF'
+╔══════════════════════════════════════════════════════════════════════════╗
+║ 🚀 LIVESTREAM SERVER 🚀                                                  ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║ Welcome to the LiveStream Platform Server!                              ║
+║                                                                          ║
+║ ⚠️  Authorized access only. All activities are logged.                   ║
+╚══════════════════════════════════════════════════════════════════════════╝
 EOF
     chmod 644 /etc/ssh/banner
 else
@@ -213,8 +225,8 @@ echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
     sudo chmod +x /usr/local/bin/ssh-banner
     
-    # Create the banner file with dynamic content
-    sudo tee /etc/ssh/banner > /dev/null << 'EOF'
+    # Create dynamic MOTD script
+    sudo tee /etc/update-motd.d/99-livestream > /dev/null << 'EOF'
 #!/bin/bash
 
 # Get system information
@@ -271,7 +283,19 @@ echo "$PROCESSES" | while read line; do
 done
 echo "╚$(printf '═%.0s' $(seq 1 $((BOX_WIDTH-2))))╝"
 EOF
-    sudo chmod 755 /etc/ssh/banner
+    sudo chmod +x /etc/update-motd.d/99-livestream
+    
+    # Create simple SSH banner
+    sudo tee /etc/ssh/banner > /dev/null << 'EOF'
+╔══════════════════════════════════════════════════════════════════════════╗
+║ 🚀 LIVESTREAM SERVER 🚀                                                  ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║ Welcome to the LiveStream Platform Server!                              ║
+║                                                                          ║
+║ ⚠️  Authorized access only. All activities are logged.                   ║
+╚══════════════════════════════════════════════════════════════════════════╝
+EOF
+    sudo chmod 644 /etc/ssh/banner
 fi
 
 echo "Configuring SSH server..."
@@ -496,6 +520,14 @@ else
     echo "❌ Warning: Banner script not found"
 fi
 
+# Update MOTD
+log_info "Updating MOTD..."
+if [ "$(id -u)" = "0" ]; then
+    /etc/update-motd.d/99-livestream > /etc/motd
+else
+    sudo /etc/update-motd.d/99-livestream | sudo tee /etc/motd > /dev/null
+fi
+
 echo ""
 echo "SSH Server Configuration Complete"
 echo "SSH server is running with enhanced security settings."
@@ -503,11 +535,12 @@ echo ""
 echo "Important:"
 echo "1. SSH key has been added to ~/.ssh/authorized_keys"
 echo "2. Banner is configured and should display on SSH login"
-echo "3. Test SSH connection before closing this session"
-echo "4. After testing, disable password auth for security"
+echo "3. Dynamic MOTD with system info is now active"
+echo "4. Test SSH connection before closing this session"
+echo "5. After testing, disable password auth for security"
 echo ""
 echo "Commands:"
 echo "Test connection: ssh \$USER@\$(hostname -I | awk '{print \$1}')"
-echo "Test banner: /usr/local/bin/ssh-banner"
+echo "Test MOTD: /etc/update-motd.d/99-livestream"
 echo "Disable password auth: sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart ssh"
 echo "Restore config: sudo cp /etc/ssh/sshd_config.backup /etc/ssh/sshd_config && sudo systemctl restart ssh"
