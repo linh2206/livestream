@@ -26,10 +26,10 @@ help:
 	@echo "  make fix-apt    - Fix APT package manager issues"
 	@echo ""
 	@echo "📊 Quick Access:"
-	@echo "  Frontend:  \$${FRONTEND_URL:-http://localhost:3000}"
-	@echo "  Backend:   \$${API_BASE_URL:-http://localhost:9000/api/v1}"
-	@echo "  Grafana:   \$${GRAFANA_URL:-http://localhost:8080} (admin/admin123)"
-	@echo "  Prometheus: \$${PROMETHEUS_URL:-http://localhost:9090}"
+	@echo "  Frontend:  \$${FRONTEND_URL}"
+	@echo "  Backend:   \$${API_BASE_URL}"
+	@echo "  Grafana:   \$${GRAFANA_URL} (admin/admin123)"
+	@echo "  Prometheus: \$${PROMETHEUS_URL}"
 	@echo ""
 
 # Development
@@ -76,4 +76,4 @@ setup:
 	@echo "Setting up LiveStream Platform..."
 	./scripts/install-all.sh
 	./scripts/build-start.sh
-	@echo "Setup complete! Access at \$${FRONTEND_URL:-http://localhost:3000}"
+	@echo "Setup complete! Access at \$${FRONTEND_URL}"
