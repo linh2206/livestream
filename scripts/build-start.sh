@@ -70,10 +70,11 @@ fi
 if grep -q "your-super-secret-jwt-key-change-in-production" .env; then
     echo "🔐 Generating JWT secret..."
     random_secret=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)
-    sed -i.bak "s/your-super-secret-jwt-key-change-in-production/${random_secret}/g" .env
+    # Use different delimiter to avoid issues with special characters
+    sed -i.bak "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" .env
     # Also update backend .env if it exists
     if [ -f "apps/backend/.env" ]; then
-        sed -i.bak "s/your-super-secret-jwt-key-change-in-production/${random_secret}/g" apps/backend/.env
+        sed -i.bak "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" apps/backend/.env
     fi
     rm -f .env.bak apps/backend/.env.bak
     echo "✅ Generated and set JWT_SECRET"
