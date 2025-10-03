@@ -183,30 +183,27 @@ else
     exit 1
 fi
 
-# Display connection information
+# Get system information
+CPU_INFO=$(lscpu | grep "Model name" | cut -d: -f2 | xargs || echo "Unknown")
+CPU_CORES=$(nproc)
+MEMORY_TOTAL=$(free -h | grep "Mem:" | awk '{print $2}')
+MEMORY_USED=$(free -h | grep "Mem:" | awk '{print $3}')
+DISK_TOTAL=$(df -h / | awk 'NR==2 {print $2}')
+DISK_USED=$(df -h / | awk 'NR==2 {print $3}')
+DISK_FREE=$(df -h / | awk 'NR==2 {print $4}')
+
+# Display system information table
 echo ""
 log_success "SSH Server Setup Complete!"
 echo ""
-echo "📋 SSH Server Information:"
-echo "  • Port: 22"
-echo "  • Protocol: SSH-2"
-echo "  • Authentication: Password + Public Key"
-echo "  • Root login: Enabled"
-echo "  • Max auth tries: 3"
-echo "  • Max sessions: 10"
-echo ""
-echo "🔗 Connection Commands:"
-echo "  • Local: ssh $USER@localhost"
-echo "  • Remote: ssh $USER@$(hostname -I | awk '{print $1}')"
-echo ""
-echo "🔧 Management Commands:"
-echo "  • Status: systemctl status ssh"
-echo "  • Restart: systemctl restart ssh"
-echo "  • Config test: sshd -t"
-echo "  • View logs: journalctl -u ssh"
-echo ""
-echo "⚠️  Security Recommendations:"
-echo "  • Consider disabling root login after setup"
-echo "  • Use SSH keys instead of passwords"
-echo "  • Change default SSH port if needed"
-echo "  • Configure fail2ban for additional security"
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│                    System Information                       │"
+echo "├─────────────────────────────────────────────────────────────┤"
+printf "│ %-19s │ %-35s │\n" "CPU" "$CPU_INFO"
+printf "│ %-19s │ %-35s │\n" "CPU Cores" "$CPU_CORES"
+printf "│ %-19s │ %-35s │\n" "Memory Total" "$MEMORY_TOTAL"
+printf "│ %-19s │ %-35s │\n" "Memory Used" "$MEMORY_USED"
+printf "│ %-19s │ %-35s │\n" "Disk Total" "$DISK_TOTAL"
+printf "│ %-19s │ %-35s │\n" "Disk Used" "$DISK_USED"
+printf "│ %-19s │ %-35s │\n" "Disk Free" "$DISK_FREE"
+echo "└─────────────────────────────────────────────────────────────┘"
