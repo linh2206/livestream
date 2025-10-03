@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Plus, Play } from 'lucide-react';
+import { RequireAuth } from '@/components/auth/AuthGuard';
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -19,12 +20,8 @@ export default function DashboardPage() {
     return <Loading fullScreen text="Loading..." />;
   }
 
-  if (!user) {
-    router.push('/login');
-    return <Loading fullScreen text="Redirecting to login..." />;
-  }
-
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header />
       <div className="flex">
@@ -105,6 +102,7 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </RequireAuth>
   );
 }
 

@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { RequireAuth, AuthRequired } from '@/components/auth/AuthGuard';
 
 export default function StreamDetailPage() {
   const params = useParams();
@@ -119,19 +120,6 @@ export default function StreamDetailPage() {
   }
 
   // Check authentication first - TẤT CẢ cần auth
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Authentication Required</h1>
-          <p className="text-gray-300 mb-4">Please log in to view this stream.</p>
-          <Button onClick={() => router.push('/login')}>
-            Go to Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   if (error || !stream) {
     return (
@@ -158,11 +146,12 @@ export default function StreamDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6">
+    <RequireAuth>
+      <div className="min-h-screen bg-gray-900">
+        <Header />
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Video Player */}
@@ -236,5 +225,6 @@ export default function StreamDetailPage() {
         </main>
       </div>
     </div>
+    </RequireAuth>
   );
 }
