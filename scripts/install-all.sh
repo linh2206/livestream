@@ -222,13 +222,9 @@ fi
 # Install Node.js based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
-    # Try NodeSource setup, fallback to apt if it fails
-    if curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - 2>/dev/null; then
-        sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..."
-    else
-        log_warning "NodeSource setup failed, trying apt directly..."
-        sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
-    fi
+    # Skip NodeSource setup to avoid apt-get update, install directly via apt
+    log_info "Installing Node.js directly via apt to avoid version upgrade..."
+    sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
 
     # Verify installation
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
