@@ -19,7 +19,8 @@ export class AuthController {
       httpOnly: false, // Allow JavaScript to read
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      domain: '.183.182.104.226', // Set domain with dot for subdomain access
+      domain: '183.182.104.226', // Set exact domain for IP access
+      path: '/', // Set root path
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
@@ -35,7 +36,8 @@ export class AuthController {
       httpOnly: false, // Allow JavaScript to read
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      domain: '.183.182.104.226', // Set domain with dot for subdomain access
+      domain: '183.182.104.226', // Set exact domain for IP access
+      path: '/', // Set root path
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
@@ -49,7 +51,8 @@ export class AuthController {
     
     // Clear cookie
     res.clearCookie('auth_token', {
-      domain: '.183.182.104.226'
+      domain: '183.182.104.226',
+      path: '/'
     });
     
     return res.json({ message: 'Logged out successfully' });

@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
+      // ONLY COOKIE - as requested
       const token = document.cookie
         .split('; ')
         .find(row => row.startsWith('auth_token='))
