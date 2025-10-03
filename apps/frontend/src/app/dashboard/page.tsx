@@ -31,7 +31,7 @@ export default function DashboardPage() {
             {/* Welcome Section */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome back, {user.username}! 👋
+                Welcome back, {user?.username || 'User'}! 👋
               </h1>
               <p className="text-gray-400">
                 Discover live streams and connect with creators
