@@ -19,6 +19,7 @@ export class AuthController {
       httpOnly: false, // Allow JavaScript to read
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      domain: '183.182.104.226', // Set domain for IP access
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
@@ -34,6 +35,7 @@ export class AuthController {
       httpOnly: false, // Allow JavaScript to read
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      domain: '183.182.104.226', // Set domain for IP access
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     
@@ -46,7 +48,9 @@ export class AuthController {
     await this.authService.logout((req['user'] as any).sub);
     
     // Clear cookie
-    res.clearCookie('auth_token');
+    res.clearCookie('auth_token', {
+      domain: '183.182.104.226'
+    });
     
     return res.json({ message: 'Logged out successfully' });
   }

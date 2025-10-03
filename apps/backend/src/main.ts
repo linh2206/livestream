@@ -49,7 +49,13 @@ async function bootstrap() {
 
   // Enable CORS with optimization
   app.enableCors({
-    origin: true,
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'http://183.182.104.226:24130',
+      'http://183.182.104.226:8080',
+      'http://183.182.104.226:3000'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: [
