@@ -139,7 +139,6 @@ echo "  • Setup environment files from .env.example"
 echo "  • Generate JWT secrets and security keys"
 echo "  • Install project dependencies (if npm available)"
 echo "  • Setup SSH keys and permissions"
-echo "  • Note: FFmpeg can be installed separately via dedicated scripts"
 echo ""
 echo "⚠️  This script does NOT build or start services!"
 echo "    Use 'make build' or './scripts/build-start.sh' after this script."
@@ -280,8 +279,6 @@ elif [ "$OS" = "macos" ]; then
     fi
 fi
 
-# Note: FFmpeg will be installed via dedicated scripts if needed
-log_info "FFmpeg can be installed via scripts/install-ffmpeg-quick.sh or scripts/compile-ffmpeg.sh"
 
 # Install additional tools based on OS
 if [ "$OS" = "ubuntu" ]; then
