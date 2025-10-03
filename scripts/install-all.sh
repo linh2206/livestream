@@ -75,8 +75,8 @@ install_docker_compose() {
     else
         log_warning "Failed to download Docker Compose , trying alternative method..."
         
-        # Try installing via apt as fallback
-        if sudo apt update && sudo apt install -y docker-compose; then
+        # Try installing via apt as fallback (without update)
+        if sudo apt install -y docker-compose; then
             log_success "Docker Compose V1 installed via apt package"
             if docker-compose version &>/dev/null; then
                 log_success "Docker Compose V1 working via apt installation"
@@ -179,13 +179,9 @@ fi
 
 # Update system based on OS
 if [ "$OS" = "ubuntu" ]; then
-    log_info "Updating system packages..."
-    if sudo apt update; then
-        sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
-        log_success "✅ System packages updated!"
-    else
-        log_warning "APT update failed, but continuing with installation..."
-    fi
+    # Skip apt update to avoid HTTPS issues
+    log_info "Skipping apt update to avoid HTTPS issues..."
+    log_info "If you need to update packages, run: make fix-apt"
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
     if command -v brew &> /dev/null; then
