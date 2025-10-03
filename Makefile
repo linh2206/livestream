@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker fix-all check-apt
+.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker fix-all check-apt quick-fix-apt
 
 # Default target
 .DEFAULT_GOAL := help
@@ -22,11 +22,12 @@ help:
 	@echo "  make logs       - View service logs"
 	@echo ""
 	@echo "🔧 System Setup:"
-	@echo "  make setup-ssh  - Setup SSH server configuration"
-	@echo "  make check-apt  - Check APT issues (no sudo required)"
-	@echo "  make fix-apt    - Fix APT package manager issues"
-	@echo "  make fix-docker - Fix Docker connectivity issues"
-	@echo "  make fix-all    - Fix both APT and Docker issues"
+	@echo "  make setup-ssh     - Setup SSH server configuration"
+	@echo "  make check-apt     - Check APT issues (no sudo required)"
+	@echo "  make quick-fix-apt - Quick fix for APT HTTPS issues"
+	@echo "  make fix-apt       - Comprehensive APT fix"
+	@echo "  make fix-docker    - Fix Docker connectivity issues"
+	@echo "  make fix-all       - Fix both APT and Docker issues"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -73,6 +74,11 @@ setup-ssh:
 check-apt:
 	@echo "Checking APT issues..."
 	./scripts/check-apt-issues.sh
+
+quick-fix-apt:
+	@echo "Quick fixing APT HTTPS issues..."
+	@echo "⚠️  This requires sudo privileges"
+	sudo ./scripts/quick-fix-apt.sh
 
 fix-apt:
 	@echo "Fixing APT package manager issues..."
