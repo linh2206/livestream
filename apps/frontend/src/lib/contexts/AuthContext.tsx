@@ -62,8 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
       const isPublicRoute = publicRoutes.some(route => currentPath === route || currentPath.startsWith(route));
       
-      if (!isPublicRoute && (error.response?.status === 401 || error.response?.status === 404)) {
-        console.log('🔐 [Auth] Token invalid, redirecting to login...');
+      // Only redirect on 401 (unauthorized), not 404 (not found)
+      if (!isPublicRoute && error.response?.status === 401) {
+        console.log('🔐 [Auth] Token invalid (401), redirecting to login...');
         router.push('/login');
       }
     } finally {
