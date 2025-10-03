@@ -66,10 +66,6 @@ detect_os() {
 # Function to install dependencies
 install_dependencies() {
     print_status "Installing build dependencies..."
-    
-    # Update package list
-    sudo apt-get update
-    
     # Install essential build tools
     sudo apt-get install -y \
         autoconf \

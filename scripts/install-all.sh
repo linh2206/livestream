@@ -222,7 +222,6 @@ fi
 # Install Node.js based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
-    # Skip NodeSource setup to avoid apt-get update, install directly via apt
     log_info "Installing Node.js directly via apt to avoid version upgrade..."
     sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
 

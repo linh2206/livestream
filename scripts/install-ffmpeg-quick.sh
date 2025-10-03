@@ -21,9 +21,6 @@ print_success() {
 
 print_status "Installing FFmpeg from repositories..."
 
-# Update package list
-sudo apt-get update
-
 # Install FFmpeg and related tools
 sudo apt-get install -y \
     ffmpeg \
