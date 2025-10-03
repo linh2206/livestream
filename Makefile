@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker fix-all
+.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker
 
 # Default target
 .DEFAULT_GOAL := help
@@ -25,7 +25,6 @@ help:
 	@echo "  make setup-ssh  - Setup SSH server configuration"
 	@echo "  make fix-apt    - Fix APT HTTPS issues"
 	@echo "  make fix-docker - Fix Docker connectivity issues"
-	@echo "  make fix-all    - Fix both APT and Docker issues"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -90,23 +89,6 @@ fix-docker:
 	@sudo systemctl restart docker || true
 	@echo "✅ Docker daemon configured with registry mirrors"
 
-fix-all:
-	@echo "Fixing both APT and Docker issues..."
-	@echo "⚠️  This requires sudo privileges - please enter your password when prompted"
-	@echo "🔧 Step 1: Fixing APT issues..."
-	@sudo ./scripts/fix-apt.sh
-	@echo "🔧 Step 2: Fixing Docker issues..."
-	@sudo mkdir -p /etc/docker
-	@echo '{' | sudo tee /etc/docker/daemon.json > /dev/null
-	@echo '    "registry-mirrors": [' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '        "https://docker.mirrors.ustc.edu.cn",' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '        "https://hub-mirror.c.163.com",' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '        "https://mirror.baidubce.com"' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '    ],' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '    "dns": ["8.8.8.8", "8.8.4.4"]' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@echo '}' | sudo tee -a /etc/docker/daemon.json > /dev/null
-	@sudo systemctl restart docker || true
-	@echo "✅ Both APT and Docker issues fixed!"
 
 
 # Quick setup

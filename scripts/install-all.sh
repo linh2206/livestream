@@ -125,51 +125,7 @@ fix_dns_issues() {
     fi
 }
 
-# Function to fix common APT issues on Ubuntu 20.04
-fix_apt_issues() {
-    log_info "Checking and fixing APT issues..."
-    
-    # Stop apt processes and remove locks
-    sudo pkill -f apt 2>/dev/null || true
-    sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock /var/lib/apt/lists/lock
-    
-    # Clean apt cache
-    sudo apt clean 2>/dev/null || true
-    sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
-    sudo mkdir -p /var/lib/apt/lists/partial
-    
-    # Fix broken packages
-    sudo dpkg --configure -a 2>/dev/null || true
-    sudo apt --fix-broken install -y 2>/dev/null || true
-    
-    log_success "APT issues fixed"
-}
 
-# Function to configure Docker for better connectivity
-configure_docker_connectivity() {
-    log_info "Configuring Docker for better connectivity..."
-    
-    # Create Docker daemon config
-    sudo mkdir -p /etc/docker
-    sudo tee /etc/docker/daemon.json > /dev/null <<EOF
-{
-    "registry-mirrors": [
-        "https://docker.mirrors.ustc.edu.cn",
-        "https://hub-mirror.c.163.com",
-        "https://mirror.baidubce.com"
-    ],
-    "dns": ["8.8.8.8", "8.8.4.4"]
-}
-EOF
-    
-    # Restart Docker if running
-    if systemctl is-active --quiet docker; then
-        sudo systemctl restart docker
-        log_success "Docker daemon configured and restarted"
-    else
-        log_success "Docker daemon configuration saved"
-    fi
-}
 
 
 echo "🚀 Installing Livestream Platform - Complete System Setup"
@@ -190,9 +146,8 @@ echo "    Use 'make build' or './scripts/build-start.sh' after this script."
 echo "=========================================================="
 
 # Fix system issues first
-echo "🔧 Fixing system connectivity and APT issues first..."
+echo "🔧 Fixing system connectivity first..."
 fix_dns_issues
-fix_apt_issues
 
 # Check if running on Ubuntu/Debian or macOS
 if ! command -v apt &> /dev/null && [[ "$OSTYPE" != "darwin"* ]]; then
@@ -230,14 +185,7 @@ if [ "$OS" = "ubuntu" ]; then
         sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
         log_success "✅ System packages updated!"
     else
-        log_warning "APT update failed, trying to fix issues..."
-        fix_apt_issues
-        if sudo apt update; then
-            sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
-            log_success "✅ System packages updated after fix!"
-        else
-            log_error "APT still failing after fix attempts"
-        fi
+        log_warning "APT update failed, but continuing with installation..."
     fi
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
@@ -265,9 +213,6 @@ if [ "$OS" = "ubuntu" ]; then
     
     install_docker_compose
     
-    # Configure Docker for better connectivity
-    configure_docker_connectivity
-    
     log_success "Docker and Docker Compose  installed and configured"
 elif [ "$OS" = "macos" ]; then
     log_info "Checking Docker installation..."
@@ -282,8 +227,13 @@ fi
 # Install Node.js based on OS
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..."
+    # Try NodeSource setup, fallback to apt if it fails
+    if curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - 2>/dev/null; then
+        sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..."
+    else
+        log_warning "NodeSource setup failed, trying apt directly..."
+        sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+    fi
 
     # Verify installation
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -291,7 +241,7 @@ if [ "$OS" = "ubuntu" ]; then
     else
         log_error "Failed to install Node.js or npm"
         log_info "Trying alternative installation method..."
-        sudo apt install -y nodejs || log_warning "Node.js installation failed, but continuing..." npm
+        sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
         if command -v node &> /dev/null && command -v npm &> /dev/null; then
             log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
         else
