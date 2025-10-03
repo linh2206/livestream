@@ -11,20 +11,44 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
+    const result = await this.authService.register(registerDto);
+    
+    // Set cookie
+    res.cookie('auth_token', result.token, {
+      httpOnly: false, // Allow JavaScript to read
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    
+    return res.json(result);
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res() res: Response) {
+    const result = await this.authService.login(loginDto);
+    
+    // Set cookie
+    res.cookie('auth_token', result.token, {
+      httpOnly: false, // Allow JavaScript to read
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    
+    return res.json(result);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: Request) {
+  async logout(@Req() req: Request, @Res() res: Response) {
     await this.authService.logout((req['user'] as any).sub);
-    return { message: 'Logged out successfully' };
+    
+    // Clear cookie
+    res.clearCookie('auth_token');
+    
+    return res.json({ message: 'Logged out successfully' });
   }
 
   @Post('refresh')
@@ -53,7 +77,7 @@ export class AuthController {
     
     // Set cookie and redirect
     res.cookie('auth_token', result.token, {
-      httpOnly: true,
+      httpOnly: false, // Allow JavaScript to read
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
