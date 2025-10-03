@@ -159,10 +159,10 @@ $COMPOSE_CMD up -d
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
 echo "  • Waiting for database services..."
-sleep 10
+sleep 15
 
 echo "  • Waiting for application services..."
-sleep 15
+sleep 25
 
 # Check service status
 echo "🏥 Checking service status..."
