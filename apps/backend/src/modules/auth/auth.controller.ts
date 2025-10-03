@@ -14,34 +14,22 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
     const result = await this.authService.register(registerDto);
     
-    // Set cookie
-    res.cookie('auth_token', result.token, {
-      httpOnly: false, // Allow JavaScript to read
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: '183.182.104.226', // Set exact domain for IP access
-      path: '/', // Set root path
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    // Return token for localStorage - no cookie needed
+    return res.json({
+      ...result,
+      message: 'Store this token in localStorage'
     });
-    
-    return res.json(result);
   }
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
     const result = await this.authService.login(loginDto);
     
-    // Set cookie
-    res.cookie('auth_token', result.token, {
-      httpOnly: false, // Allow JavaScript to read
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: '183.182.104.226', // Set exact domain for IP access
-      path: '/', // Set root path
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    // Return token for localStorage - no cookie needed
+    return res.json({
+      ...result,
+      message: 'Store this token in localStorage'
     });
-    
-    return res.json(result);
   }
 
   @Post('logout')
@@ -49,13 +37,8 @@ export class AuthController {
   async logout(@Req() req: Request, @Res() res: Response) {
     await this.authService.logout((req['user'] as any).sub);
     
-    // Clear cookie
-    res.clearCookie('auth_token', {
-      domain: '183.182.104.226',
-      path: '/'
-    });
-    
-    return res.json({ message: 'Logged out successfully' });
+    // No need to clear cookie - frontend will clear localStorage
+    return res.json({ message: 'Logged out successfully - clear localStorage token' });
   }
 
   @Post('refresh')
@@ -82,14 +65,8 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const result = await this.authService.googleLogin(req.user);
     
-    // Set cookie and redirect
-    res.cookie('auth_token', result.token, {
-      httpOnly: false, // Allow JavaScript to read
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
+    // Redirect with token as URL parameter for frontend to store in localStorage
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/dashboard?token=${result.token}`);
   }
 }

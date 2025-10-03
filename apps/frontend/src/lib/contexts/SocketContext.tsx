@@ -48,7 +48,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Debug socket connection status
   useEffect(() => {
-    console.log('🔌 [SocketContext] Status changed:', {
       isLoading,
       hasUser: !!user,
       isAuthenticated,
@@ -61,7 +60,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     
     // Force disconnect if no valid user
     if (!isLoading && (!user || !user._id || !isAuthenticated)) {
-      console.log('🔌 [SocketContext] Invalid auth state, disconnecting...');
     }
   }, [isLoading, user?._id, isAuthenticated]);
 
@@ -70,16 +68,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Chat methods - use useCallback to prevent re-creation
   const joinStreamChat = useCallback((streamId: string) => {
-    console.log('💬 [SocketContext] joinStreamChat called:', { streamId, user: user?.username, isConnected, hasSocket: !!socket });
     if (user && isConnected && socket) {
-      console.log('💬 [SocketContext] Emitting join_stream_chat event');
       emit('join_stream_chat', {
         streamId,
         userId: user._id,
         username: user.username,
       });
     } else {
-      console.log('💬 [SocketContext] Cannot join - missing:', { hasUser: !!user, isConnected, hasSocket: !!socket });
     }
   }, [user, isConnected, emit, socket]);
 
@@ -93,9 +88,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [user, isConnected, emit]);
 
   const sendMessage = useCallback((streamId: string, content: string) => {
-    console.log('💬 [SocketContext] sendMessage called:', { streamId, content, user: user?.username, isConnected });
     if (user && isConnected && socket) {
-      console.log('💬 [SocketContext] Emitting send_message event');
       emit('send_message', {
         streamId,
         content,
@@ -103,7 +96,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         username: user.username,
       });
     } else {
-      console.log('💬 [SocketContext] Cannot send - missing:', { hasUser: !!user, isConnected, hasSocket: !!socket });
     }
   }, [user, isConnected, emit, socket]);
 
@@ -128,25 +120,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const joinStream = useCallback((streamId: string) => {
     if (user && isConnected && user._id) {
-      console.log('🚀 Emitting join_stream:', { streamId, userId: user._id });
       emit('join_stream', {
         streamId,
         userId: user._id,
       });
     } else {
-      console.log('❌ Cannot join stream - missing data:', { user: !!user, isConnected, userId: user?._id });
     }
   }, [user, isConnected, emit]);
 
   const leaveStream = useCallback((streamId: string) => {
     if (user && isConnected && user._id) {
-      console.log('🚀 Emitting leave_stream:', { streamId, userId: user._id });
       emit('leave_stream', {
         streamId,
         userId: user._id,
       });
     } else {
-      console.log('❌ Cannot leave stream - missing data:', { user: !!user, isConnected, userId: user?._id });
     }
   }, [user, isConnected, emit]);
 

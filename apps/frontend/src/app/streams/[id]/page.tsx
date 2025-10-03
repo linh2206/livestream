@@ -52,7 +52,6 @@ export default function StreamDetailPage() {
   // Join chat room and stream room
   useEffect(() => {
     if (stream && user && socket) {
-      console.log('💬 Joining chat room:', stream._id, 'User:', user._id);
       
       // Join chat room
       joinStreamChat(stream._id);
@@ -69,7 +68,6 @@ export default function StreamDetailPage() {
       
       // Listen for like updates (REALTIME)
       const handleLikeUpdate = (data: any) => {
-        console.log('💖 [Stream] Received like update:', data);
         if (data.streamId === stream._id) {
           setStream(prev => prev ? { ...prev, likeCount: data.likeCount } : null);
         }
@@ -79,7 +77,6 @@ export default function StreamDetailPage() {
       socket.on('stream:like', handleLikeUpdate);
       
       return () => {
-        console.log('💬 Leaving chat room:', stream._id, 'User:', user._id);
         leaveStreamChat(stream._id);
         leaveStream(stream._id);
         socket.off('stream:viewer_count_update', handleViewerCountUpdate);

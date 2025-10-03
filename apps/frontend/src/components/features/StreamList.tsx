@@ -17,28 +17,24 @@ export const StreamList: React.FC = () => {
     if (socket) {
       // Listen for stream start events
       socket.on('stream:started', (streamData: any) => {
-        console.log('Stream started via WebSocket:', streamData);
         // Refresh stream list to show new live stream
         mutate();
       });
 
       // Listen for stream end events
       socket.on('stream:ended', (data: any) => {
-        console.log('Stream ended via WebSocket:', data);
         // Refresh stream list to update status
         mutate();
       });
 
       // Listen for stream stop events
       socket.on('stream:stop', (data: any) => {
-        console.log('Stream stopped via WebSocket:', data);
         // Refresh stream list to update status
         mutate();
       });
 
       // Listen for viewer count updates
       socket.on('stream:viewer_count_update', (data: any) => {
-        console.log('Viewer count updated via WebSocket:', data);
         // Refresh stream list to update viewer counts
         mutate();
       });

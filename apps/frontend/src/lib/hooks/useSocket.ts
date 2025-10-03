@@ -9,33 +9,28 @@ export function useSocket(options?: SocketOptions) {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    console.log('🔌 [useSocket] Effect triggered:', {
       hasUser: !!options?.auth?.user,
       hasToken: !!options?.auth?.token,
       userId: options?.auth?.user?.id
     });
 
     if (options?.auth?.user && options?.auth?.token) {
-      console.log('🔌 [useSocket] Connecting with auth...');
       setIsConnecting(true);
       socketClient.connect(options);
       
       // Listen to connection events
       const handleConnect = () => {
-        console.log('🔌 [useSocket] Connected successfully');
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
       };
 
       const handleDisconnect = () => {
-        console.log('🔌 [useSocket] Disconnected');
         setIsConnected(false);
         setIsConnecting(false);
       };
 
       const handleError = (err: Error) => {
-        console.log('🔌 [useSocket] Connection error:', err.message);
         setError(err.message);
         setIsConnecting(false);
       };
@@ -47,14 +42,12 @@ export function useSocket(options?: SocketOptions) {
       socketRef.current = socketClient;
 
       return () => {
-        console.log('🔌 [useSocket] Cleaning up...');
         socketClient.off('connect', handleConnect);
         socketClient.off('disconnect', handleDisconnect);
         socketClient.off('connect_error', handleError);
         socketClient.disconnect();
       };
     } else {
-      console.log('🔌 [useSocket] No auth data, disconnecting...');
       socketClient.disconnect();
       setIsConnected(false);
       setIsConnecting(false);

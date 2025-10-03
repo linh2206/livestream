@@ -120,7 +120,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
       if (finalHlsUrl) {
         // Add cache busting to avoid cache issues
         const cacheBustedUrl = `${finalHlsUrl}?t=${Date.now()}`;
-        console.log('Loading HLS URL:', cacheBustedUrl);
         hls.loadSource(cacheBustedUrl);
         hls.attachMedia(video);
       } else {
@@ -129,7 +128,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
       }
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed');
         setIsLoading(false);
         setIsLive(true);
         setError(null);
@@ -159,14 +157,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
           
           // For fragLoadError, try to recover
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === 'fragLoadError') {
-            console.log('Fragment load error, attempting recovery...');
             hls.startLoad();
             return;
           }
           
           // For manifest load errors, try to reload
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === 'manifestLoadError') {
-            console.log('Manifest load error, attempting recovery...');
             setTimeout(() => {
               hls.startLoad();
             }, 1000);

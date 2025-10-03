@@ -31,31 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      // ONLY COOKIE - as requested
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth_token='))
-        ?.split('=')[1];
-      
-      console.log('🔐 [Auth] Checking auth, token:', token ? 'exists' : 'missing');
+      // ONLY LOCALSTORAGE - simpler and more reliable
+      const token = localStorage.getItem('auth_token');
       
       if (!token) {
-        console.log('🔐 [Auth] No token found');
         setUser(null);
         setIsLoading(false);
         return;
       }
       
-      console.log('🔐 [Auth] Token found, fetching profile...');
       const userData = await authService.getProfile();
-      console.log('🔐 [Auth] Profile fetched:', userData?.username);
-      console.log('🔐 [Auth] Full user data:', userData);
       setUser(userData);
     } catch (error: any) {
-      console.log('🔐 [Auth] Auth check failed:', error);
       setUser(null);
-      // Clear invalid token
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      // Clear invalid token from localStorage
+      localStorage.removeItem('auth_token');
       
       // Redirect to login for ALL routes that need auth
       const publicRoutes = ['/login', '/register', '/'];
@@ -64,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Only redirect on 401 (unauthorized), not 404 (not found)
       if (!isPublicRoute && error.response?.status === 401) {
-        console.log('🔐 [Auth] Token invalid (401), redirecting to login...');
         router.push('/login');
       }
     } finally {
@@ -79,10 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginRequest) => {
     try {
       const { user: userData, token } = await authService.login(credentials);
+      
+      // Store token in localStorage
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      }
+      
       setUser(userData);
       setIsLoading(false);
     } catch (error) {
-      console.error('Login failed:', error);
       setUser(null);
       setIsLoading(false);
       throw error;
@@ -92,11 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: RegisterRequest) => {
     try {
       const { user: newUser, token } = await authService.register(userData);
+      
+      // Store token in localStorage
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      }
+      
       setUser(newUser);
     } catch (error) {
-      console.error('Registration failed:', error);
       // Clear any invalid token on registration failure
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      localStorage.removeItem('auth_token');
       throw error;
     }
   };
@@ -106,9 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.logout();
       showInfo('Logged Out', 'You have been successfully logged out');
     } catch (error) {
-      console.error('Logout failed:', error);
     } finally {
       setUser(null);
+      // Clear token from localStorage
+      localStorage.removeItem('auth_token');
     }
   };
 

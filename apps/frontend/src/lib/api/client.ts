@@ -8,7 +8,7 @@ class ApiClient {
     this.client = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
       timeout: 10000,
-      withCredentials: true,
+      withCredentials: false, // No cookies needed
     });
 
     this.setupInterceptors();
@@ -18,8 +18,8 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        // Add auth token from cookie if available
-        const token = this.getCookie('auth_token');
+        // Add auth token from localStorage if available
+        const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -38,31 +38,21 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           // Handle unauthorized access - NEVER redirect, let the app handle it
-          this.clearAuthToken();
-          console.log('Unauthorized access, clearing token');
+          this.clearToken();
         } else if (error.response?.status === 404) {
           // Don't reload on 404, just return the error
-          console.warn('Resource not found:', error.config?.url);
         }
         return Promise.reject(error);
       }
     );
   }
 
-  private getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      return parts.pop()?.split(';').shift() || null;
-    }
-    return null;
+  private getToken(): string | null {
+    return localStorage.getItem('auth_token');
   }
 
-  private clearAuthToken() {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const clearCookieString = `auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax${isProduction ? '; secure' : ''}`;
-    document.cookie = clearCookieString;
-    console.log('Clearing auth token cookie:', clearCookieString);
+  private clearToken() {
+    localStorage.removeItem('auth_token');
   }
 
   // Generic HTTP methods
@@ -93,18 +83,15 @@ class ApiClient {
 
   // Utility methods
   setAuthToken(token: string) {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const cookieString = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax${isProduction ? '; secure' : ''}`;
-    document.cookie = cookieString;
-    console.log('Setting auth token cookie:', cookieString);
+    localStorage.setItem('auth_token', token);
   }
 
   clearAuth() {
-    this.clearAuthToken();
+    this.clearToken();
   }
 
   isAuthenticated(): boolean {
-    return !!this.getCookie('auth_token');
+    return !!this.getToken();
   }
 }
 

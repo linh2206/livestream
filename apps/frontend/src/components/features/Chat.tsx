@@ -27,7 +27,6 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
   
   // Debug chat connection
   useEffect(() => {
-    console.log('💬 [Chat] Component mounted:', {
       streamId,
       hasUser: !!user,
       hasSocket: !!socket,
@@ -80,11 +79,9 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
     if (socket && isConnected && user) {
       // Connection events
       socket.on('connect', () => {
-        console.log('🔌 Socket connected');
       });
 
       socket.on('disconnect', () => {
-        console.log('🔌 Socket disconnected');
       });
 
       // Message events
@@ -166,7 +163,6 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !isConnected) return;
 
-    console.log('💬 [Chat] Sending message:', { streamId, content: newMessage.trim(), user: user.username });
 
     // Send message via SocketContext - backend will broadcast to all including sender
     sendMessageViaSocket(streamId, newMessage.trim());
