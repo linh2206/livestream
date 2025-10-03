@@ -39,7 +39,7 @@ cd livestream
 4. **Access the application**
    - Frontend: ${FRONTEND_URL:-http://localhost:3000}
    - Backend API: ${API_BASE_URL:-http://localhost:9000/api/v1}
-   - Grafana: ${GRAFANA_URL:-http://localhost:8080} (admin/admin123)
+   - Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)
    - Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}
    - RTMP Server: ${RTMP_BASE_URL:-rtmp://localhost:1935}
 
@@ -172,7 +172,7 @@ make build
 - MongoDB: 27017
 - Redis: 6379
 - RTMP: 1935
-- Grafana: 8080
+- Grafana: 8000
 - Prometheus: 9090
 
 ### Environment Variables
@@ -188,7 +188,7 @@ All services run in Docker containers with:
 ## 📊 Monitoring
 
 ### Grafana Dashboards
-Access Grafana at ${GRAFANA_URL:-http://localhost:8080} (admin/admin123)
+Access Grafana at ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)
 
 Available dashboards:
 - **System Health**: Overall system status

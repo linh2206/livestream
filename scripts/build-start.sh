@@ -127,7 +127,7 @@ echo ""
 echo "🌐 Testing HTTP endpoints..."
 echo "  • Frontend: $(curl -s -o /dev/null -w '%{http_code}' ${FRONTEND_URL:-http://localhost} || echo 'DOWN')"
 echo "  • Backend API: $(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://localhost/api/v1}/health || echo 'DOWN')"
-echo "  • Grafana: $(curl -s -o /dev/null -w '%{http_code}' ${GRAFANA_URL:-http://localhost:8080} || echo 'DOWN')"
+echo "  • Grafana: $(curl -s -o /dev/null -w '%{http_code}' ${GRAFANA_URL:-http://localhost:8000} || echo 'DOWN')"
 echo "  • Prometheus: $(curl -s -o /dev/null -w '%{http_code}' ${PROMETHEUS_URL:-http://localhost:9090} || echo 'DOWN')"
 
 echo ""
