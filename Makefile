@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt
+.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker fix-all
 
 # Default target
 .DEFAULT_GOAL := help
@@ -23,6 +23,9 @@ help:
 	@echo ""
 	@echo "🔧 System Setup:"
 	@echo "  make setup-ssh  - Setup SSH server configuration"
+	@echo "  make fix-apt    - Fix APT package manager issues"
+	@echo "  make fix-docker - Fix Docker connectivity issues"
+	@echo "  make fix-all    - Fix both APT and Docker issues"
 	@echo ""
 	@echo "📊 Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -65,6 +68,49 @@ logs:
 setup-ssh:
 	@echo "Setting up SSH server..."
 	./scripts/setup-ssh-server.sh
+
+fix-apt:
+	@echo "Fixing APT package manager issues..."
+	@echo "⚠️  This requires sudo privileges"
+	sudo ./scripts/fix-apt-issues.sh
+
+fix-docker:
+	@echo "Fixing Docker connectivity issues..."
+	@echo "⚠️  This requires sudo privileges"
+	@echo "Configuring Docker daemon for better connectivity..."
+	@sudo mkdir -p /etc/docker
+	@sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+	@{
+	@    "registry-mirrors": [
+	@        "https://docker.mirrors.ustc.edu.cn",
+	@        "https://hub-mirror.c.163.com",
+	@        "https://mirror.baidubce.com"
+	@    ],
+	@    "dns": ["8.8.8.8", "8.8.4.4"]
+	@}
+	@EOF
+	@sudo systemctl restart docker || true
+	@echo "✅ Docker daemon configured with registry mirrors"
+
+fix-all:
+	@echo "Fixing both APT and Docker issues..."
+	@echo "⚠️  This requires sudo privileges"
+	@echo "🔧 Step 1: Fixing APT issues..."
+	@sudo ./scripts/fix-apt-issues.sh
+	@echo "🔧 Step 2: Fixing Docker issues..."
+	@sudo mkdir -p /etc/docker
+	@sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+	@{
+	@    "registry-mirrors": [
+	@        "https://docker.mirrors.ustc.edu.cn",
+	@        "https://hub-mirror.c.163.com",
+	@        "https://mirror.baidubce.com"
+	@    ],
+	@    "dns": ["8.8.8.8", "8.8.4.4"]
+	@}
+	@EOF
+	@sudo systemctl restart docker || true
+	@echo "✅ Both APT and Docker issues fixed!"
 
 
 # Quick setup

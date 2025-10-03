@@ -125,6 +125,52 @@ fix_dns_issues() {
     fi
 }
 
+# Function to fix common APT issues on Ubuntu 20.04
+fix_apt_issues() {
+    log_info "Checking and fixing APT issues..."
+    
+    # Stop apt processes and remove locks
+    sudo pkill -f apt 2>/dev/null || true
+    sudo rm -f /var/lib/dpkg/lock* /var/cache/apt/archives/lock /var/lib/apt/lists/lock
+    
+    # Clean apt cache
+    sudo apt clean 2>/dev/null || true
+    sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+    sudo mkdir -p /var/lib/apt/lists/partial
+    
+    # Fix broken packages
+    sudo dpkg --configure -a 2>/dev/null || true
+    sudo apt --fix-broken install -y 2>/dev/null || true
+    
+    log_success "APT issues fixed"
+}
+
+# Function to configure Docker for better connectivity
+configure_docker_connectivity() {
+    log_info "Configuring Docker for better connectivity..."
+    
+    # Create Docker daemon config
+    sudo mkdir -p /etc/docker
+    sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+    "registry-mirrors": [
+        "https://docker.mirrors.ustc.edu.cn",
+        "https://hub-mirror.c.163.com",
+        "https://mirror.baidubce.com"
+    ],
+    "dns": ["8.8.8.8", "8.8.4.4"]
+}
+EOF
+    
+    # Restart Docker if running
+    if systemctl is-active --quiet docker; then
+        sudo systemctl restart docker
+        log_success "Docker daemon configured and restarted"
+    else
+        log_success "Docker daemon configuration saved"
+    fi
+}
+
 
 echo "🚀 Installing Livestream Platform - Complete System Setup"
 echo "=========================================================="
@@ -143,9 +189,10 @@ echo "⚠️  This script does NOT build or start services!"
 echo "    Use 'make build' or './scripts/build-start.sh' after this script."
 echo "=========================================================="
 
-# Fix DNS issues first
-echo "🔧 Fixing DNS connectivity issues first..."
+# Fix system issues first
+echo "🔧 Fixing system connectivity and APT issues first..."
 fix_dns_issues
+fix_apt_issues
 
 # Check if running on Ubuntu/Debian or macOS
 if ! command -v apt &> /dev/null && [[ "$OSTYPE" != "darwin"* ]]; then
@@ -183,7 +230,14 @@ if [ "$OS" = "ubuntu" ]; then
         sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
         log_success "✅ System packages updated!"
     else
-        log_warning "APT update failed, but continuing with installation..."
+        log_warning "APT update failed, trying to fix issues..."
+        fix_apt_issues
+        if sudo apt update; then
+            sudo apt upgrade -y || log_warning "Some packages could not be upgraded"
+            log_success "✅ System packages updated after fix!"
+        else
+            log_error "APT still failing after fix attempts"
+        fi
     fi
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
@@ -210,6 +264,9 @@ if [ "$OS" = "ubuntu" ]; then
     fix_dns_issues
     
     install_docker_compose
+    
+    # Configure Docker for better connectivity
+    configure_docker_connectivity
     
     log_success "Docker and Docker Compose  installed and configured"
 elif [ "$OS" = "macos" ]; then
