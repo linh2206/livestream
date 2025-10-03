@@ -12,7 +12,7 @@ fi
 
 # Reset all users password to admin123
 echo "🔄 Resetting all users password to admin123..."
-docker exec livestream-mongodb mongosh livestream --eval "
+docker exec livestream-mongodb mongo livestream --eval "
     // Update all users password to admin123 (bcrypt hash)
     const result = db.users.updateMany(
         {},
