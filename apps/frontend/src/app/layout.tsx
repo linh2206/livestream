@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { SocketProvider } from '@/lib/contexts/SocketContext';
 import { ToastProvider } from '@/lib/contexts/ToastContext';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Livestream Platform',
@@ -22,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans">
         <ToastProvider>
           <AuthProvider>
             <SocketProvider>

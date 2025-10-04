@@ -15,7 +15,6 @@ export class RtmpCleanupService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOfflineStreams() {
     try {
-      console.log('Starting cleanup of offline streams...');
       
       // Find streams that have been offline for more than 1 hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -26,20 +25,15 @@ export class RtmpCleanupService {
         endTime: { $lt: oneHourAgo },
       });
 
-      console.log(`Found ${offlineStreams.length} offline streams to clean up`);
 
       for (const stream of offlineStreams) {
         try {
           await this.deleteStreamAndFiles(stream.streamKey);
-          console.log(`Cleaned up stream: ${stream.streamKey}`);
         } catch (error) {
-          console.error(`Error cleaning up stream ${stream.streamKey}:`, error);
         }
       }
 
-      console.log('Cleanup completed');
     } catch (error) {
-      console.error('Error during stream cleanup:', error);
     }
   }
 
@@ -52,7 +46,6 @@ export class RtmpCleanupService {
     
     if (fs.existsSync(hlsDir)) {
       fs.rmSync(hlsDir, { recursive: true, force: true });
-      console.log(`Deleted HLS files for stream: ${streamKey}`);
     }
   }
 }

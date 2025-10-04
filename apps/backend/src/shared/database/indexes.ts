@@ -35,9 +35,9 @@ export class DatabaseIndexes {
       await chatModel.collection.createIndex({ streamId: 1, isDeleted: 1, createdAt: -1 });
       await chatModel.collection.createIndex({ userId: 1, createdAt: -1 });
 
-      console.log('✅ Database indexes created successfully');
+      // Database indexes created successfully
     } catch (error) {
-      console.error('❌ Error creating database indexes:', error);
+      // Error creating database indexes - will be handled by application
     }
   }
 }

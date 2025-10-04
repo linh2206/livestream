@@ -123,12 +123,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.catch((error) => {
-              console.warn('Autoplay prevented:', error);
               // Don't treat autoplay prevention as an error
               if (error.name === 'NotAllowedError') {
                 setAutoplayBlocked(true);
-              } else {
-                console.error('Play error:', error);
               }
             });
           }
@@ -136,11 +133,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS error:', data);
         
         // Handle non-fatal errors (like fragLoadError) more gracefully
         if (!data.fatal) {
-          console.warn('Non-fatal HLS error:', data);
           
           // For fragLoadError, try to recover
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === 'fragLoadError') {
@@ -150,7 +145,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
           
           // For buffer stall, try to recover
           if (data.type === Hls.ErrorTypes.MEDIA_ERROR && data.details === 'bufferStalledError') {
-            console.warn('Buffer stalled, attempting recovery...');
             // Try to seek to current time to trigger buffer refill
             if (video && !isNaN(video.currentTime)) {
               const currentTime = video.currentTime;
@@ -208,11 +202,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.catch((error) => {
-              console.warn('Autoplay prevented:', error);
               if (error.name === 'NotAllowedError') {
                 setAutoplayBlocked(true);
               } else {
-                console.error('Play error:', error);
               }
             });
           }
@@ -220,7 +212,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
       };
       
       const handleError = (e: Event) => {
-        console.error('Video error:', e);
         const videoError = video.error;
         if (videoError) {
           switch (videoError.code) {
@@ -264,7 +255,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
     setAutoplayBlocked(false);
     const video = videoRef.current;
     if (video && video.paused) {
-      video.play().catch(console.error);
+      video.play().catch(() => {});
     }
   }, []);
 

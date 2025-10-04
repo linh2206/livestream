@@ -22,7 +22,6 @@ export class RtmpService {
       
       // If stream doesn't exist, create a new one automatically
       if (!stream) {
-        console.log(`Creating new stream for key: ${streamKey}`);
         
         stream = new this.streamModel({
           title: `Live Stream - ${streamKey}`,
@@ -38,7 +37,6 @@ export class RtmpService {
         });
         
         await stream.save();
-        console.log(`Auto-created stream: ${stream._id}`);
       }
 
       // Update stream status
@@ -63,9 +61,7 @@ export class RtmpService {
         timestamp: new Date(),
       });
 
-      console.log(`Stream started: ${streamKey}`);
     } catch (error) {
-      console.error(`Error starting stream ${streamKey}:`, error);
       throw error;
     }
   }
@@ -75,7 +71,6 @@ export class RtmpService {
       const stream = await this.streamModel.findOne({ streamKey });
       
       if (!stream) {
-        console.warn(`Stream not found for key: ${streamKey}`);
         return;
       }
 
@@ -97,7 +92,6 @@ export class RtmpService {
         timestamp: new Date(),
       });
 
-      console.log(`Stream stopped: ${streamKey}`);
 
       // Auto-delete stream after 5 minutes if it's not a user-created stream
       if (!stream.userId) {
@@ -105,12 +99,10 @@ export class RtmpService {
           try {
             await this.deleteOfflineStream(streamKey);
           } catch (error) {
-            console.error(`Error auto-deleting stream ${streamKey}:`, error);
           }
         }, 5 * 60 * 1000); // 5 minutes
       }
     } catch (error) {
-      console.error(`Error stopping stream ${streamKey}:`, error);
     }
   }
 
@@ -122,9 +114,7 @@ export class RtmpService {
         { $inc: { viewerCount: 1 } }
       );
 
-      console.log(`Viewer joined stream: ${streamKey}`);
     } catch (error) {
-      console.error(`Error handling play for ${streamKey}:`, error);
     }
   }
 
@@ -136,9 +126,7 @@ export class RtmpService {
         { $inc: { viewerCount: -1 } }
       );
 
-      console.log(`Viewer left stream: ${streamKey}`);
     } catch (error) {
-      console.error(`Error handling play done for ${streamKey}:`, error);
     }
   }
 
@@ -155,7 +143,6 @@ export class RtmpService {
         viewerCount: stream.viewerCount,
       };
     } catch (error) {
-      console.error(`Error getting stream status for ${streamKey}:`, error);
       return { isLive: false, viewerCount: 0 };
     }
   }
@@ -170,7 +157,6 @@ export class RtmpService {
         startTime: stream.startTime?.toISOString() || new Date().toISOString(),
       }));
     } catch (error) {
-      console.error('Error getting active streams:', error);
       return [];
     }
   }
@@ -180,7 +166,6 @@ export class RtmpService {
       const stream = await this.streamModel.findOne({ streamKey });
       return !!stream;
     } catch (error) {
-      console.error(`Error validating stream key ${streamKey}:`, error);
       return false;
     }
   }
@@ -190,7 +175,6 @@ export class RtmpService {
       const stream = await this.streamModel.findOne({ streamKey });
       
       if (!stream) {
-        console.log(`Stream ${streamKey} not found for deletion`);
         return;
       }
 
@@ -203,7 +187,6 @@ export class RtmpService {
         
         if (fs.existsSync(hlsDir)) {
           fs.rmSync(hlsDir, { recursive: true, force: true });
-          console.log(`Deleted HLS files for stream: ${streamKey}`);
         }
 
         // Broadcast deletion to frontend
@@ -213,10 +196,8 @@ export class RtmpService {
           timestamp: new Date(),
         });
 
-        console.log(`Auto-deleted offline stream: ${streamKey}`);
       }
     } catch (error) {
-      console.error(`Error deleting offline stream ${streamKey}:`, error);
       throw error;
     }
   }

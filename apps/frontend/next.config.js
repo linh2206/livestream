@@ -5,6 +5,9 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  // Disable telemetry for Docker builds
+  telemetry: false,
+  
   // Build optimizations
   output: 'standalone',
   

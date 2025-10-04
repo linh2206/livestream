@@ -12,7 +12,8 @@ RUN npm ci --no-audit --no-fund
 # Copy source code
 COPY . .
 
-# Build application with optimizations
+# Build application with optimizations and network resilience
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Production stage

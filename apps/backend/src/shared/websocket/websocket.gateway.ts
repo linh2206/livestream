@@ -34,18 +34,15 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   afterInit(server: Server) {
     this.webSocketService.setServer(server);
-    console.log('🚀 WebSocket Gateway initialized');
   }
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
     
     // Extract user info from handshake (if authenticated)
     const user = client.handshake.auth?.user;
     if (user) {
       const success = this.webSocketService.addUser(user.id, user.username, client.id);
       if (!success) {
-        console.log(`Connection rejected for user ${user.id} - limits exceeded`);
         client.disconnect(true);
         return;
       }
@@ -53,7 +50,6 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   }
 
   async handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
     
     // Find and remove user
     const user = Array.from(this.webSocketService.getOnlineUsers()).find(
