@@ -27,12 +27,13 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
   
   // Debug chat connection
   useEffect(() => {
+    const debugInfo = {
       streamId,
       hasUser: !!user,
       hasSocket: !!socket,
       isConnected,
       userId: user?._id
-    });
+    };
   }, [streamId, user, socket, isConnected]);
 
   // Show loading if no user (auth still loading)
