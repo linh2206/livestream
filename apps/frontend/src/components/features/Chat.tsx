@@ -76,8 +76,41 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
     }
   }, [isTyping, socket, streamId, user?._id]);
 
+  // Load chat history when component mounts
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!streamId) return;
+      
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/messages/stream/${streamId}/recent?limit=50`);
+        if (response.ok) {
+          const history = await response.json();
+          // Transform backend format to frontend format
+          const formattedMessages = history.map((msg: any) => ({
+            id: msg._id,
+            userId: msg.userId._id || msg.userId,
+            username: msg.userId.username || msg.username,
+            content: msg.content,
+            timestamp: new Date(msg.createdAt),
+            avatar: msg.userId.avatar || msg.avatar,
+            role: msg.isModerator ? 'moderator' : 'user'
+          }));
+          setMessages(formattedMessages);
+          scrollToBottom();
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+
+    loadChatHistory();
+  }, [streamId, scrollToBottom]);
+
   useEffect(() => {
     if (socket && isConnected && user) {
+      // Join stream chat room
+      socket.emit('join_stream_chat', { streamId, userId: user._id, username: user.username });
+
       // Connection events
       socket.on('connect', () => {
       });
@@ -127,13 +160,16 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
         scrollToBottom();
       });
 
-      // Recent messages
+      // Recent messages (fallback)
       socket.on('chat:recent_messages', (messages: ChatMessage[]) => {
         setMessages(messages);
         scrollToBottom();
       });
 
       return () => {
+        // Leave stream chat room
+        socket.emit('leave_stream_chat', { streamId, userId: user._id });
+        
         socket.off('connect');
         socket.off('disconnect');
         socket.off('chat:new_message');
@@ -144,7 +180,7 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
         socket.off('chat:recent_messages');
       };
     }
-  }, [socket, isConnected, user, scrollToBottom]);
+  }, [socket, isConnected, user, streamId, scrollToBottom]);
 
   // Auto-scroll when messages change
   useEffect(() => {

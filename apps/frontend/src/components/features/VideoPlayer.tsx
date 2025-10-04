@@ -54,16 +54,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
     
     if (Hls.isSupported()) {
       const hls = new Hls({
-        // Optimized configuration for live streaming
-        enableWorker: false,
-        lowLatencyMode: true,
-        backBufferLength: 10,              // Reduced for lower latency
-        maxBufferLength: 30,               // Reduced for lower latency
-        maxMaxBufferLength: 60,            // Reduced for lower latency
+        // Optimized configuration for stable streaming
+        enableWorker: true,
+        lowLatencyMode: false,             // Disable for better buffering
+        backBufferLength: 30,              // Increased for stability
+        maxBufferLength: 60,               // Increased for stability
+        maxMaxBufferLength: 120,           // Increased for stability
         
-        // Live streaming specific settings - Optimized
-        liveSyncDurationCount: 2,          // Reduced for lower latency
-        liveMaxLatencyDurationCount: 3,    // Reduced for lower latency
+        // Live streaming specific settings - Stable
+        liveSyncDurationCount: 3,          // Increased for stability
+        liveMaxLatencyDurationCount: 5,    // Increased for stability
         liveBackBufferLength: 0,
         liveDurationInfinity: true,
         
@@ -144,6 +144,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
           
           // For fragLoadError, try to recover
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === 'fragLoadError') {
+            hls.startLoad();
+            return;
+          }
+          
+          // For buffer stall, try to recover
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && data.details === 'bufferStalledError') {
+            console.warn('Buffer stalled, attempting recovery...');
+            // Try to seek to current time to trigger buffer refill
+            if (video && !isNaN(video.currentTime)) {
+              const currentTime = video.currentTime;
+              video.currentTime = currentTime + 0.1;
+            }
             hls.startLoad();
             return;
           }
