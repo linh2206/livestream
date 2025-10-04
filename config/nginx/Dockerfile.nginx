@@ -1,15 +1,15 @@
 # Use nginx with RTMP module
 FROM nginx:alpine
 
-# Install nginx-rtmp module and dependencies
-RUN apk update && \
-    apk add --no-cache \
-    curl \
-    && rm -rf /var/cache/apk/*
+# Install nginx-rtmp module and dependencies with network resilience
+RUN apk update --no-cache && \
+    apk add --no-cache curl || \
+    (sleep 5 && apk update --no-cache && apk add --no-cache curl)
 
-# Try to install RTMP module (different package names)
+# Try to install RTMP module (different package names) with retry
 RUN apk add --no-cache nginx-mod-rtmp 2>/dev/null || \
     apk add --no-cache nginx-module-rtmp 2>/dev/null || \
+    (sleep 3 && apk add --no-cache nginx-mod-rtmp) 2>/dev/null || \
     echo "RTMP module not available in this nginx version"
 
 # Load RTMP module if available
