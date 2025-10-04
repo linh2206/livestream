@@ -74,7 +74,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190/api/v1',
     NEXT_PUBLIC_HLS_BASE_URL: process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1',
-    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://183.182.104.226:24190',
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://183.182.104.226:24190',
     NEXT_PUBLIC_RTMP_URL: process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935',
   },
 };
