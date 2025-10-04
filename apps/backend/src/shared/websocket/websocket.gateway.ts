@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
     origin: [
       'http://localhost:3000',
       'http://localhost:3000',
-      'http://localhost:9000',
+      'http://183.182.104.226:24190',
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ],
     credentials: true,

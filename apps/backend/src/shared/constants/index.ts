@@ -14,15 +14,15 @@ export const APP_CONSTANTS = {
   
   // Streaming Configuration
   STREAMING: {
-    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1',
+    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1',
     RTMP_BASE_URL: process.env.RTMP_BASE_URL || 'rtmp://localhost:1935',
     NGINX_URL: process.env.NGINX_URL || 'http://localhost:8080',
   },
   
   // API Configuration
   API: {
-    BASE_URL: process.env.API_BASE_URL || 'http://localhost:9000/api/v1',
-    WS_BASE_URL: process.env.WS_BASE_URL || 'ws://localhost:9000',
+    BASE_URL: process.env.API_BASE_URL || 'http://183.182.104.226:24190/api/v1',
+    WS_BASE_URL: process.env.WS_BASE_URL || 'http://183.182.104.226:24190',
     FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
   

@@ -179,12 +179,12 @@ fix_service_issues() {
     log_info "🔧 Checking and fixing service issues..."
     
     # Check Backend API health
-    BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://localhost:9000}/api/v1/health || echo 'DOWN')
+    BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://183.182.104.226:24190}/api/v1/health || echo 'DOWN')
     if [ "$BACKEND_STATUS" != "200" ]; then
         log_warning "Backend API health check failed (HTTP $BACKEND_STATUS)"
         log_info "Backend might be starting up, waiting additional 10 seconds..."
         sleep 10
-        BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://localhost:9000}/api/v1/health || echo 'DOWN')
+        BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://183.182.104.226:24190}/api/v1/health || echo 'DOWN')
         if [ "$BACKEND_STATUS" = "200" ]; then
             log_success "✅ Backend API is now healthy"
         else
@@ -219,7 +219,7 @@ echo "🌐 Testing HTTP endpoints..."
 FRONTEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${FRONTEND_URL:-http://localhost:3000} || echo 'DOWN')
 echo "  • Frontend: $FRONTEND_STATUS"
 
-BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://localhost:9000}/api/v1/health || echo 'DOWN')
+BACKEND_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${API_BASE_URL:-http://183.182.104.226:24190}/api/v1/health || echo 'DOWN')
 echo "  • Backend API: $BACKEND_STATUS"
 
 NGINX_STATUS=$(curl -s -o /dev/null -w '%{http_code}' ${NGINX_URL:-http://localhost:80} || echo 'DOWN')

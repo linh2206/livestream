@@ -38,7 +38,7 @@ cd livestream
 
 4. **Access the application**
    - Frontend: ${FRONTEND_URL:-http://localhost:3000}
-   - Backend API: ${API_BASE_URL:-http://localhost:9000/api/v1}
+   - Backend API: ${API_BASE_URL:-http://183.182.104.226:24190/api/v1}
    - Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)
    - Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}
    - RTMP Server: ${RTMP_BASE_URL:-rtmp://localhost:1935}

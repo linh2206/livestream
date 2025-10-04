@@ -30,7 +30,7 @@ export class StreamsService {
       ...createStreamDto,
       userId: new Types.ObjectId(userId),
       streamKey,
-      hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${streamKey}`,
+      hlsUrl: `${process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1'}/hls/${streamKey}`,
       rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${streamKey}`,
     });
 
@@ -103,7 +103,7 @@ export class StreamsService {
       endTime: stream.endTime,
       // Only include URLs if stream is live
       ...(stream.isLive && {
-        hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`
+        hlsUrl: `${process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1'}/hls/${stream.streamKey}`
       })
     }));
 
@@ -146,7 +146,7 @@ export class StreamsService {
       status: stream.status || 'inactive',
       viewerCount: stream.viewerCount || 0,
       likeCount: stream.likeCount || 0,
-      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`,
+      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1'}/hls/${stream.streamKey}`,
       rtmpUrl: stream.rtmpUrl || `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
       isLikedByUser,
     } as Stream & { isLikedByUser?: boolean };
@@ -180,7 +180,7 @@ export class StreamsService {
       likeCount: stream.likeCount || 0,
       isPublic: stream.isPublic !== undefined ? stream.isPublic : true,
       requiresAuth: stream.requiresAuth !== undefined ? stream.requiresAuth : false,
-      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`,
+      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1'}/hls/${stream.streamKey}`,
       rtmpUrl: stream.rtmpUrl || `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
     } as Stream;
   }
