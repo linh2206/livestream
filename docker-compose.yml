@@ -43,6 +43,7 @@ services:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
+      target: production
     container_name: livestream-backend
     restart: unless-stopped
     ports:
@@ -65,9 +66,17 @@ services:
       - RTMP_BASE_URL=${RTMP_BASE_URL}
       - WS_BASE_URL=${WS_BASE_URL}
       - NGINX_URL=${NGINX_URL}
+    healthcheck:
+      test: ["CMD", "node", "dist/main.js", "--health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
-      - mongodb
-      - redis
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - livestream-network
 
@@ -76,6 +85,7 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
+      target: production
     container_name: livestream-frontend
     restart: unless-stopped
     ports:
@@ -90,8 +100,15 @@ services:
       - NEXT_PUBLIC_RETRY_DELAY=${NEXT_PUBLIC_RETRY_DELAY:-1000}
       - NEXT_PUBLIC_ENABLE_DEBUG=${NEXT_PUBLIC_ENABLE_DEBUG:-false}
       - NEXT_PUBLIC_ENABLE_ANALYTICS=${NEXT_PUBLIC_ENABLE_ANALYTICS:-false}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - livestream-network
 
@@ -110,9 +127,17 @@ services:
     environment:
       - BACKEND_PORT=9000
       - RTMP_PORT=${RTMP_PORT:-1935}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     networks:
       - livestream-network
 
