@@ -35,14 +35,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
       return hlsUrl;
     }
     if (streamKey) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190/api/v1';
+      const hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1';
       // Add authentication token if available
       // Get token from localStorage (consistent with AuthContext)
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       if (token) {
-        return `${apiUrl}/hls/${streamKey}?token=${token}`;
+        return `${hlsBaseUrl}/hls/${streamKey}?token=${token}`;
       }
-      return `${apiUrl}/hls/${streamKey}`;
+      return `${hlsBaseUrl}/hls/${streamKey}`;
     }
     return null;
   }, [hlsUrl, streamKey]);
