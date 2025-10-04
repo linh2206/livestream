@@ -9,6 +9,7 @@ export function useSocket(options?: SocketOptions) {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
+    console.log('useSocket effect triggered:', {
       hasUser: !!options?.auth?.user,
       hasToken: !!options?.auth?.token,
       userId: options?.auth?.user?.id

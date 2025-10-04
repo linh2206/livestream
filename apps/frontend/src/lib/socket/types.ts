@@ -30,6 +30,17 @@ export interface SocketEvents {
 
   // System events
   'system:maintenance': (data: { message: string; duration?: number }) => void;
+  
+  // Alert events
+  'alert': (alertData: {
+    name: string;
+    severity: 'critical' | 'warning' | 'info';
+    status: 'firing' | 'resolved';
+    summary: string;
+    description: string;
+    timestamp: string;
+    labels: Record<string, string>;
+  }) => void;
 }
 
 // Socket Emit Events

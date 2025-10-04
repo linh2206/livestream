@@ -48,6 +48,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Debug socket connection status
   useEffect(() => {
+    const debugInfo = {
       isLoading,
       hasUser: !!user,
       isAuthenticated,
@@ -56,15 +57,70 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       isConnecting,
       hasSocket: !!socket,
       userId: user?._id
-    });
-    
-    // Force disconnect if no valid user
+    };
+    // Debug info available but not logged
+  }, [isLoading, user, isAuthenticated, isConnected, isConnecting, socket]);
+
+  // Force disconnect if no valid user
+  useEffect(() => {
     if (!isLoading && (!user || !user._id || !isAuthenticated)) {
+      // Force disconnect logic can be added here
     }
   }, [isLoading, user?._id, isAuthenticated]);
 
   // Handle socket connection events silently (no notifications)
   // Socket runs in background without user notifications
+
+  // Handle alert notifications
+  useEffect(() => {
+    if (socket && isConnected) {
+      const handleAlert = (alertData: any) => {
+        const { name, severity, status, summary, description } = alertData;
+        
+        // Map severity to toast type
+        let toastType: 'success' | 'error' | 'warning' | 'info' = 'info';
+        switch (severity) {
+          case 'critical':
+            toastType = 'error';
+            break;
+          case 'warning':
+            toastType = 'warning';
+            break;
+          case 'info':
+            toastType = 'info';
+            break;
+          default:
+            toastType = 'info';
+        }
+
+        // Only show alerts for firing status (not resolved)
+        if (status === 'firing') {
+          const title = `${severity.toUpperCase()}: ${name}`;
+          const message = summary || description || 'System alert triggered';
+          
+          switch (toastType) {
+            case 'error':
+              showError(title, message, { duration: 8000 });
+              break;
+            case 'warning':
+              showWarning(title, message, { duration: 6000 });
+              break;
+            case 'info':
+              showInfo(title, message, { duration: 5000 });
+              break;
+            default:
+              showInfo(title, message, { duration: 5000 });
+          }
+        }
+      };
+
+      socket.on('alert', handleAlert);
+
+      return () => {
+        socket.off('alert', handleAlert);
+      };
+    }
+  }, [socket, isConnected, showError, showWarning, showInfo]);
 
   // Chat methods - use useCallback to prevent re-creation
   const joinStreamChat = useCallback((streamId: string) => {
