@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { Stream, StreamDocument } from '../../shared/database/schemas/stream.schema';
 import { RedisService } from '../../shared/redis/redis.service';
@@ -197,8 +199,6 @@ export class RtmpService {
         await this.streamModel.deleteOne({ streamKey });
         
         // Clean up HLS files
-        const fs = require('fs');
-        const path = require('path');
         const hlsDir = path.join('/app', 'hls', streamKey);
         
         if (fs.existsSync(hlsDir)) {

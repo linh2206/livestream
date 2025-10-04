@@ -3,6 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Stream, StreamDocument } from '../../shared/database/schemas/stream.schema';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class RtmpCleanupService {
@@ -46,8 +48,6 @@ export class RtmpCleanupService {
     await this.streamModel.deleteOne({ streamKey });
 
     // Clean up HLS files
-    const fs = require('fs');
-    const path = require('path');
     const hlsDir = path.join('/app', 'hls', streamKey);
     
     if (fs.existsSync(hlsDir)) {

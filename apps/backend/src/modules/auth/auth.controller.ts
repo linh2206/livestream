@@ -54,19 +54,4 @@ export class AuthController {
     return this.authService.getUserProfile(userId);
   }
 
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // This will redirect to Google OAuth
-  }
-
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    const result = await this.authService.googleLogin(req.user);
-    
-    // Redirect with token as URL parameter for frontend to store in localStorage
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/dashboard?token=${result.token}`);
-  }
 }

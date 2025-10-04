@@ -91,44 +91,6 @@ export class AuthService {
     return { user: userWithoutPassword, token };
   }
 
-  async googleLogin(profile: any): Promise<{ user: Partial<User>; token: string }> {
-    const { id, emails, name, photos } = profile;
-    const email = emails[0].value;
-
-    // Check if user exists
-    let user = await this.userModel.findOne({ email });
-
-    if (user) {
-      // Check if user is active
-      if (!user.isActive) {
-        throw new UnauthorizedException('Account is deactivated');
-      }
-      
-      // Update last seen and online status
-      user.lastSeen = new Date();
-      user.isOnline = true;
-      await user.save();
-    } else {
-      // Create new user
-      user = new this.userModel({
-        username: `user_${id}`,
-        email,
-        fullName: `${name.givenName} ${name.familyName}`,
-        avatar: photos[0]?.value,
-        provider: 'google',
-        isEmailVerified: true,
-      });
-
-      await user.save();
-    }
-
-    // Generate token
-    const token = this.generateToken(user);
-
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user.toObject();
-    return { user: userWithoutPassword, token };
-  }
 
   async validateUser(payload: any): Promise<User> {
     const user = await this.userModel.findById(payload.sub);

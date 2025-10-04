@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { RedisService } from '../redis/redis.service';
+import { APP_CONSTANTS } from '../constants';
 
 export interface SocketUser {
   id: string;
@@ -21,16 +22,16 @@ export class WebSocketService {
   
   // Rate limiting
   private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-  private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
-  private readonly RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute
+  private readonly RATE_LIMIT_WINDOW = APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_WINDOW;
+  private readonly RATE_LIMIT_MAX_REQUESTS = APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_MAX_REQUESTS;
   
   // Connection pooling
-  private readonly MAX_CONNECTIONS_PER_USER = 3;
-  private readonly MAX_TOTAL_CONNECTIONS = 1000;
+  private readonly MAX_CONNECTIONS_PER_USER = APP_CONSTANTS.WEBSOCKET.MAX_CONNECTIONS_PER_USER;
+  private readonly MAX_TOTAL_CONNECTIONS = APP_CONSTANTS.WEBSOCKET.MAX_TOTAL_CONNECTIONS;
   
   // Cleanup intervals
   private cleanupInterval: NodeJS.Timeout;
-  private readonly CLEANUP_INTERVAL = 30000; // 30 seconds
+  private readonly CLEANUP_INTERVAL = APP_CONSTANTS.WEBSOCKET.CLEANUP_INTERVAL;
 
   constructor(private redisService: RedisService) {
     this.startCleanupInterval();

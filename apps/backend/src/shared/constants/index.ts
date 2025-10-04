@@ -14,15 +14,15 @@ export const APP_CONSTANTS = {
   
   // Streaming Configuration
   STREAMING: {
-    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://183.182.104.226:8080/api/v1',
-    RTMP_BASE_URL: process.env.RTMP_BASE_URL || 'rtmp://localhost:1935',
-    NGINX_URL: process.env.NGINX_URL || 'http://localhost:8080',
+    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1',
+    RTMP_BASE_URL: process.env.RTMP_BASE_URL || 'rtmp://183.182.104.226:19522',
+    NGINX_URL: process.env.NGINX_URL || 'http://183.182.104.226:8080',
   },
   
   // API Configuration
   API: {
     BASE_URL: process.env.API_BASE_URL || 'http://183.182.104.226:24190/api/v1',
-    WS_BASE_URL: process.env.WS_BASE_URL || 'http://183.182.104.226:24190',
+    WS_BASE_URL: process.env.WS_BASE_URL || 'ws://183.182.104.226:24190',
     FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
   
@@ -52,11 +52,31 @@ export const APP_CONSTANTS = {
     MAX_REQUESTS: 100,
   },
   
+  // WebSocket Configuration
+  WEBSOCKET: {
+    RATE_LIMIT_WINDOW: 60000, // 1 minute
+    RATE_LIMIT_MAX_REQUESTS: 100, // 100 requests per minute
+    MAX_CONNECTIONS_PER_USER: 3,
+    MAX_TOTAL_CONNECTIONS: 1000,
+    CLEANUP_INTERVAL: 30000, // 30 seconds
+  },
+  
   // HLS Configuration
   HLS: {
     FRAGMENT_DURATION: parseInt(process.env.HLS_FRAGMENT_DURATION || '2'), // seconds
     PLAYLIST_LENGTH: parseInt(process.env.HLS_PLAYLIST_LENGTH || '6'),
     CLEANUP_INTERVAL: parseInt(process.env.HLS_CLEANUP_INTERVAL || '300'), // 5 minutes
+  },
+  
+  // Error Messages
+  ERRORS: {
+    UNAUTHORIZED: 'Unauthorized access',
+    FORBIDDEN: 'Access forbidden',
+    NOT_FOUND: 'Resource not found',
+    VALIDATION_FAILED: 'Validation failed',
+    INTERNAL_ERROR: 'Internal server error',
+    RATE_LIMIT_EXCEEDED: 'Rate limit exceeded',
+    CONNECTION_FAILED: 'Connection failed',
   },
 } as const;
 

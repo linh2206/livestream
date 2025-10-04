@@ -6,21 +6,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { GoogleStrategy } from './strategies/google.strategy';
 import { RedisModule } from '../../shared/redis/redis.module';
 
 import { User, UserSchema } from '../../shared/database/schemas/user.schema';
-
-// Conditional provider for Google Strategy
-const googleStrategyProvider = {
-  provide: GoogleStrategy,
-  useFactory: () => {
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-      return new GoogleStrategy();
-    }
-    return null;
-  },
-};
 
 @Module({
   imports: [
@@ -33,7 +21,7 @@ const googleStrategyProvider = {
     RedisModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, googleStrategyProvider],
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

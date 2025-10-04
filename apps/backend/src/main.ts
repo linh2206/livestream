@@ -51,26 +51,24 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:8080',
-      'http://183.182.104.226:24130',
-      'http://183.182.104.226:8080',
-      'http://183.182.104.226:3000'
+      'http://183.182.104.226:24190',
+      process.env.FRONTEND_URL || 'http://localhost:3000'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: [
-          'Content-Type', 
-          'Authorization', 
-          'Accept', 
-          'Origin', 
-          'X-Requested-With',
-          'Cache-Control',
-          'Range',
-          'If-Range',
-          'If-Modified-Since',
-          'If-None-Match',
-          'Pragma'
-        ],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'Accept', 
+      'Origin', 
+      'X-Requested-With',
+      'Cache-Control',
+      'Range',
+      'If-Range',
+      'If-Modified-Since',
+      'If-None-Match',
+      'Pragma'
+    ],
     exposedHeaders: [
       'Content-Length',
       'Content-Range',

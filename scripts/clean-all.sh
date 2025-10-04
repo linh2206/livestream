@@ -40,17 +40,17 @@ docker system prune -a -f
 
 # Remove node_modules
 echo "🗑️ Removing node_modules..."
-rm -rf apps/api/node_modules
+rm -rf apps/backend/node_modules
 rm -rf apps/frontend/node_modules
 
 # Remove package-lock files
 echo "🗑️ Removing package-lock files..."
-rm -f apps/api/package-lock.json
+rm -f apps/backend/package-lock.json
 rm -f apps/frontend/package-lock.json
 
 # Remove build artifacts
 echo "🗑️ Removing build artifacts..."
-rm -rf apps/api/dist
+rm -rf apps/backend/dist
 rm -rf apps/frontend/.next
 rm -rf apps/frontend/out
 

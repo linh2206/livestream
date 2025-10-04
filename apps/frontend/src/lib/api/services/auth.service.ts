@@ -40,18 +40,6 @@ class AuthService {
     return apiClient.get<User>('/auth/profile');
   }
 
-  async googleAuth(): Promise<void> {
-    // Redirect to Google OAuth
-    window.location.href = `/api/auth/google`;
-  }
-
-  async googleCallback(code: string): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/google/callback', { code });
-    if (response.token) {
-      apiClient.setAuthToken(response.token);
-    }
-    return response;
-  }
 
   isAuthenticated(): boolean {
     return apiClient.isAuthenticated();

@@ -142,13 +142,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const sendMessage = useCallback((streamId: string, content: string) => {
     if (user && isConnected && socket) {
-      emit('send_message', {
-        streamId,
-        content,
-        userId: user._id,
-        username: user.username,
-      });
-    } else {
+        emit('send_message', {
+          streamId,
+          content,
+          userId: user._id,
+          username: user.username,
+        });
     }
   }, [user, isConnected, emit, socket]);
 

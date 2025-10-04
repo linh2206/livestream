@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
+import { APP_CONSTANTS } from './shared/constants';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -32,8 +33,8 @@ import { databaseConfig } from './shared/database/database.config';
     MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/livestream', databaseConfig),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+      secret: APP_CONSTANTS.JWT.SECRET,
+      signOptions: { expiresIn: APP_CONSTANTS.JWT.EXPIRES_IN },
     }),
     DatabaseModule,
     RedisModule,

@@ -8,15 +8,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
 import { WebSocketService } from './websocket.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ChatService } from '../../modules/chat/chat.service';
+import { APP_CONSTANTS } from '../constants';
 
 @WSGateway({
   cors: {
     origin: [
-      'http://localhost:3000',
-      'http://localhost:3000',
       'http://183.182.104.226:24190',
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ],
@@ -29,7 +27,10 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer()
   server: Server;
 
-  constructor(private webSocketService: WebSocketService) {}
+  constructor(
+    private webSocketService: WebSocketService,
+    private chatService: ChatService,
+  ) {}
 
   afterInit(server: Server) {
     this.webSocketService.setServer(server);
@@ -156,31 +157,6 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     console.log(`👥 User ${userId} left stream ${streamId}, total viewers: ${viewerCount}`);
   }
 
-  @SubscribeMessage('send_message')
-  async handleSendMessage(
-    @MessageBody() data: { streamId: string; content: string; userId: string; username: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const { streamId, content, userId, username } = data;
-    
-    console.log('💬 [Chat] Received message:', { streamId, userId, username, content });
-    
-    const message = {
-      id: Date.now().toString(),
-      content,
-      userId,
-      username,
-      timestamp: new Date(),
-    };
-
-    // Broadcast to all OTHER clients in the chat room (exclude sender)
-    client.to(`chat:${streamId}`).emit('chat:new_message', message);
-    
-    // Also send back to sender to confirm (with same structure)
-    client.emit('chat:new_message', message);
-    
-    console.log('💬 [Chat] Broadcasted to room:', `chat:${streamId}`, 'including sender');
-  }
 
   @SubscribeMessage('join_stream_chat')
   async handleJoinStreamChat(
@@ -220,23 +196,33 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     console.log('💬 [Chat] User left chat room:', `chat:${streamId}`);
   }
 
-  @SubscribeMessage('chat_message')
+  @SubscribeMessage('send_message')
   async handleChatMessage(
-    @MessageBody() data: { room: string; content: string; userId: string; username: string },
+    @MessageBody() data: { streamId: string; content: string; userId: string; username: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { room, content, userId, username } = data;
+    const { streamId, content, userId, username } = data;
     
-    const message = {
-      id: Date.now().toString(),
-      content,
-      userId,
-      username,
-      room,
-      timestamp: new Date(),
-    };
+    try {
+      // Create message in database
+      const message = await this.chatService.createMessage({
+        streamId,
+        content,
+      }, userId);
 
-    this.webSocketService.broadcastChatMessage(room, message);
+      // Broadcast message to room
+      this.webSocketService.broadcastToRoom(`chat:${streamId}`, 'chat:new_message', {
+        id: (message as any)._id,
+        content: message.content,
+        userId: message.userId,
+        username: message.username,
+        avatar: message.avatar,
+        timestamp: (message as any).createdAt,
+      });
+    } catch (error) {
+      console.error('Failed to save chat message:', error);
+      client.emit('chat:error', { message: APP_CONSTANTS.ERRORS.INTERNAL_ERROR });
+    }
   }
 
   @SubscribeMessage('typing')
