@@ -25,24 +25,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { showInfo, showError, showWarning } = useToast();
   
-  // Get token from cookie for socket auth
-  const getTokenFromCookie = () => {
-    if (typeof document === 'undefined') return null;
-    return document.cookie
-      .split('; ')
-      .find(row => row.startsWith('auth_token='))
-      ?.split('=')[1];
+  // Get token from localStorage for socket auth (consistent with AuthContext)
+  const getTokenFromStorage = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('auth_token');
   };
 
   // Only connect socket when user is loaded and authenticated
   const { socket, isConnected, isConnecting, error, emit, on, off } = useSocket({
-    auth: (!isLoading && user && isAuthenticated && user._id && getTokenFromCookie()) ? {
+    auth: (!isLoading && user && isAuthenticated && user._id && getTokenFromStorage()) ? {
       user: {
         id: user._id,
         username: user.username,
         role: user.role,
       },
-      token: getTokenFromCookie() || undefined
+      token: getTokenFromStorage() || undefined
     } : undefined,
   });
 
@@ -52,7 +49,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       hasUser: !!user,
       isAuthenticated,
-      hasToken: !!getTokenFromCookie(),
+      hasToken: !!getTokenFromStorage(),
       isConnected,
       isConnecting,
       hasSocket: !!socket,

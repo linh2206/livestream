@@ -37,11 +37,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
     if (streamKey) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1';
       // Add authentication token if available
-      // Get token from cookie (same as other components)
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth_token='))
-        ?.split('=')[1];
+      // Get token from localStorage (consistent with AuthContext)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       if (token) {
         return `${apiUrl}/hls/${streamKey}?token=${token}`;
       }
