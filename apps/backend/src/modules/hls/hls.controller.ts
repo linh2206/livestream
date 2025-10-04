@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Res, Header } from '@nestjs/common';
+import { Controller, Get, Param, Res, Header, Query, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { StreamsService } from '../streams/streams.service';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { 
   StreamNotFoundException, 
   StreamOfflineException 
@@ -14,6 +15,7 @@ export class HlsController {
 
   // This route must come BEFORE the generic :streamKey route
   @Get(':streamKey/:filename')
+  @UseGuards(JwtAuthGuard)
   async serveHlsSegment(
     @Param('streamKey') streamKey: string,
     @Param('filename') filename: string,
@@ -63,6 +65,7 @@ export class HlsController {
   }
 
   @Get(':streamKey')
+  @UseGuards(JwtAuthGuard)
   async serveHlsPlaylist(
     @Param('streamKey') streamKey: string,
     @Res() res: Response,

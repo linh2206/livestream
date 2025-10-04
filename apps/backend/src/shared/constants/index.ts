@@ -14,7 +14,7 @@ export const APP_CONSTANTS = {
   
   // Streaming Configuration
   STREAMING: {
-    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1',
+    HLS_BASE_URL: process.env.HLS_BASE_URL || 'http://183.182.104.226:8080/api/v1',
     RTMP_BASE_URL: process.env.RTMP_BASE_URL || 'rtmp://localhost:1935',
     NGINX_URL: process.env.NGINX_URL || 'http://localhost:8080',
   },
