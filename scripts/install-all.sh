@@ -96,19 +96,42 @@ install_docker_compose() {
 fix_ubuntu_mirror() {
     log_info "Fixing Ubuntu mirror issues..."
     
-    # Check if sources.list contains Vietnamese mirror
-    if grep -q "vn.archive.ubuntu.com" /etc/apt/sources.list 2>/dev/null; then
-        log_warning "Vietnamese Ubuntu mirror detected, replacing with stable mirrors..."
+    # Detect Ubuntu version
+    UBUNTU_VERSION=$(lsb_release -cs 2>/dev/null || echo "jammy")
+    log_info "Detected Ubuntu version: $UBUNTU_VERSION"
+    
+    # Check if sources.list contains Vietnamese mirror or has issues
+    if grep -q "vn.archive.ubuntu.com" /etc/apt/sources.list 2>/dev/null || ! apt update &>/dev/null; then
+        log_warning "Package repository issues detected, replacing with stable mirrors..."
         
         # Backup sources.list
         sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
         
-        # Replace Vietnamese mirror with stable mirrors
-        sudo sed -i 's|http://vn.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+        # Create completely new sources.list with stable mirrors
+        sudo tee /etc/apt/sources.list > /dev/null << EOF
+# Ubuntu $UBUNTU_VERSION LTS - Stable Mirrors
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu/ $UBUNTU_VERSION-security main restricted universe multiverse
+EOF
         
-        log_success "Updated sources.list with stable mirrors"
+        log_success "Created new sources.list with stable mirrors"
+        
+        # Clean and update package lists
+        log_info "Cleaning APT cache and updating package lists..."
+        sudo apt clean 2>/dev/null || true
+        sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+        sudo mkdir -p /var/lib/apt/lists/partial
+        
+        # Update package lists
+        if sudo apt update 2>/dev/null; then
+            log_success "✅ Package lists updated successfully"
+        else
+            log_warning "Package list update failed, but continuing..."
+        fi
     else
-        log_info "No Vietnamese mirror detected, sources.list looks good"
+        log_info "Package repositories look good"
     fi
 }
 
@@ -202,9 +225,9 @@ if [ "$OS" = "ubuntu" ]; then
     # Fix Ubuntu mirror issues first
     fix_ubuntu_mirror
     
-    # Skip apt update to avoid HTTPS issues
-    log_info "Skipping apt update to avoid HTTPS issues..."
-    log_info "If you need to update packages, run: make fix-apt"
+    # Now we can safely update packages
+    log_info "Updating system packages..."
+    sudo apt update || log_warning "Package update failed, but continuing..."
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
     if command -v brew &> /dev/null; then
