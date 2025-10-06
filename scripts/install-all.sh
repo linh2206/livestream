@@ -1,19 +1,22 @@
 #!/bin/bash
 
-# LiveStream Platform - Optimized System Installation Script
+# LiveStream Platform - System Installation Script
 set -e
 
-# Simple logging
-log_info() { echo "INFO: $1"; }
-log_success() { echo "SUCCESS: $1"; }
-log_warning() { echo "WARNING: $1"; }
-log_error() { echo "ERROR: $1"; }
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Quick system setup
+# Logging functions
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
 echo "Installing system dependencies..."
-
-
-
 
 # Detect OS and install essentials
 if command -v apt &> /dev/null; then
