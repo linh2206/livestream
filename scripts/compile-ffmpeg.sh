@@ -188,22 +188,18 @@ configure_ffmpeg() {
         --disable-indev=sndio \
         --disable-outdev=sndio \
         --cc=gcc \
-        --enable-fontconfig \
+        --disable-fontconfig \
         --disable-frei0r \
         --enable-gpl \
-        --enable-libaom \
-        --enable-libass \
-        --enable-libdav1d \
         --enable-libfdk-aac \
-        --enable-libfreetype \
-        --enable-libmp3lame \
-        --enable-libopus \
-        --enable-libvorbis \
-        --enable-libvpx \
         --enable-libx264 \
-        --enable-libx265 \
-        --enable-libxvid \
-        --enable-libzimg \
+        --disable-libmp3lame \
+        --disable-libopus \
+        --disable-libvorbis \
+        --disable-libvpx \
+        --disable-libx265 \
+        --disable-libxvid \
+        --disable-libzimg \
         --enable-nonfree \
         --enable-openssl \
         --disable-gnutls \
@@ -211,10 +207,10 @@ configure_ffmpeg() {
         --enable-pthreads \
         --enable-shared \
         --enable-small \
-        --enable-vaapi \
-        --enable-vdpau \
+        --disable-vaapi \
+        --disable-vdpau \
         --enable-version3 \
-        --enable-x86asm \
+        --disable-x86asm \
         --extra-cflags="-I$INSTALL_DIR/include" \
         --extra-ldflags="-L$INSTALL_DIR/lib" \
         --extra-libs="-lpthread -lm" \
