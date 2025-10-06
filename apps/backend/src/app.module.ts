@@ -30,7 +30,7 @@ import { databaseConfig } from './shared/database/database.config';
       envFilePath: ['.env.local', '.env'],
     }),
     ScheduleModule.forRoot(),
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/livestream', databaseConfig),
+    MongooseModule.forRoot(APP_CONSTANTS.DATABASE.MONGODB_URI, databaseConfig),
     JwtModule.register({
       global: true,
       secret: APP_CONSTANTS.JWT.SECRET,
