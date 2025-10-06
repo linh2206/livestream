@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg restart-nginx
+.PHONY: help start stop clean setup reset-password logs
 
 # Default target
 .DEFAULT_GOAL := help
@@ -16,14 +16,11 @@ help:
 	@echo "  make logs       - View service logs"
 	@echo "  make clean      - Clean up containers and images"
 	@echo ""
-	@echo "Utilities:"
-	@echo "  make reset-password - Reset admin password"
-	@echo "  make install-ffmpeg - Install FFmpeg"
-	@echo "  make restart-nginx - Restart nginx container"
-	@echo ""
 	@echo "Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
 	@echo "  Backend:   \$${API_BASE_URL}"
+	@echo "  RTMP:      rtmp://localhost:1935/live"
+	@echo "  HLS:       http://localhost:8080/api/v1/hls"
 	@echo "  Grafana:   \$${GRAFANA_URL} (admin/admin123)"
 	@echo "  Prometheus: \$${PROMETHEUS_URL}"
 	@echo ""
@@ -48,16 +45,6 @@ reset-password:
 logs:
 	@echo "Viewing service logs..."
 	docker-compose logs -f
-
-install-ffmpeg:
-	@echo "Installing FFmpeg from repositories (quick method)..."
-	@echo "This requires sudo privileges"
-	sudo ./scripts/install-ffmpeg-quick.sh
-
-restart-nginx:
-	@echo "Restarting nginx container..."
-	docker-compose restart nginx
-	@echo "Nginx restarted"
 
 setup:
 	@echo "Setting up LiveStream Platform..."
