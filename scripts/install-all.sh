@@ -19,9 +19,11 @@ echo "Installing system dependencies..."
 if command -v apt &> /dev/null; then
     log_info "Ubuntu/Debian detected - installing essentials..."
     
-    # Fix APT issues first
+    # Fix APT issues first - wait for completion to avoid log chaos
     sudo pkill -9 -f apt 2>/dev/null || true
     sudo pkill -9 -f dpkg 2>/dev/null || true
+    sleep 5  # Wait for processes to fully terminate
+    
     sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
     sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
     sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
