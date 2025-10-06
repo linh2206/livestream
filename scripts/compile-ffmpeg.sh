@@ -239,10 +239,16 @@ compile_ffmpeg() {
 install_ffmpeg() {
     print_status "Installing FFmpeg..."
     
-    sudo make install
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        make install
+    else
+        sudo make install
+    fi
     
     # Update library cache
-    sudo ldconfig
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        sudo ldconfig
+    fi
     
     print_success "FFmpeg installed to $INSTALL_DIR"
 }
