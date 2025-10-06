@@ -66,8 +66,10 @@ detect_os() {
 # Function to install dependencies
 install_dependencies() {
     print_status "Installing build dependencies..."
-    # Install essential build tools
-    sudo apt-get install -y \
+    # Prefer OpenSSL over GnuTLS to avoid mutual exclusion during configure
+    # Essential build tools and headers
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+        apt-get -o Dpkg::Use-Pty=0 install -y \
         autoconf \
         automake \
         build-essential \
@@ -75,7 +77,6 @@ install_dependencies() {
         git-core \
         libass-dev \
         libfreetype6-dev \
-        # Prefer OpenSSL over GnuTLS to avoid mutual exclusion during configure
         libssl-dev \
         libmp3lame-dev \
         libsdl2-dev \
@@ -95,7 +96,8 @@ install_dependencies() {
         zlib1g-dev
     
     # Install additional codec libraries
-    sudo apt-get install -y \
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+        apt-get -o Dpkg::Use-Pty=0 install -y \
         libaom-dev \
         libdav1d-dev \
         libfdk-aac-dev \
@@ -107,7 +109,8 @@ install_dependencies() {
         libxvidcore-dev
     
     # Install optional libraries for better performance
-    sudo apt-get install -y \
+    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+        apt-get -o Dpkg::Use-Pty=0 install -y \
         libavcodec-extra \
         libavformat-dev \
         libavutil-dev \
