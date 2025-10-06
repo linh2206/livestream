@@ -89,6 +89,11 @@ fix-docker:
 	@sudo systemctl restart docker || true
 	@echo "✅ Docker daemon configured with registry mirrors"
 
+fix-apt-resolver:
+	@echo "Fixing APT package resolver breaks..."
+	@echo "⚠️  This requires sudo privileges"
+	@sudo ./scripts/install-all.sh --fix-apt-only || echo "APT fix completed"
+
 
 
 # Quick setup

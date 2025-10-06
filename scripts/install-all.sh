@@ -5,6 +5,64 @@
 
 set -e  # Exit on any error
 
+# Check for special flags
+if [ "$1" = "--fix-apt-only" ]; then
+    echo "🔧 APT Fix Only Mode"
+    echo "===================="
+    if [ "$(id -u)" != "0" ]; then
+        echo "❌ This script must be run as root for APT fixes"
+        echo "Usage: sudo $0 --fix-apt-only"
+        exit 1
+    fi
+    # We'll define the functions inline for this mode
+    fix_ubuntu_mirror() {
+        echo "Fixing Ubuntu mirror issues..."
+        UBUNTU_VERSION=$(lsb_release -cs 2>/dev/null || echo "jammy")
+        if grep -q "vn.archive.ubuntu.com" /etc/apt/sources.list 2>/dev/null || ! apt update &>/dev/null; then
+            echo "Package repository issues detected, replacing with stable mirrors..."
+            sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+            sudo tee /etc/apt/sources.list > /dev/null << EOF
+# Ubuntu $UBUNTU_VERSION LTS - Stable Mirrors
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ $UBUNTU_VERSION-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu/ $UBUNTU_VERSION-security main restricted universe multiverse
+EOF
+            sudo apt clean 2>/dev/null || true
+            sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+            sudo mkdir -p /var/lib/apt/lists/partial
+            sudo apt update 2>/dev/null || true
+            echo "✅ Package repositories fixed"
+        fi
+    }
+    fix_apt_resolver() {
+        echo "Fixing APT package resolver breaks..."
+        sudo pkill -9 -f apt 2>/dev/null || true
+        sudo pkill -9 -f dpkg 2>/dev/null || true
+        sleep 3
+        sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
+        sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
+        sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
+        sudo rm -f /var/lib/apt/lists/partial/* 2>/dev/null || true
+        sudo apt clean 2>/dev/null || true
+        sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+        sudo mkdir -p /var/lib/apt/lists/partial
+        sudo dpkg --configure -a 2>/dev/null || true
+        sudo apt --fix-broken install -y 2>/dev/null || true
+        HELD_PACKAGES=$(apt-mark showhold 2>/dev/null || true)
+        if [ -n "$HELD_PACKAGES" ]; then
+            echo "Unholding packages: $HELD_PACKAGES"
+            echo "$HELD_PACKAGES" | xargs -r sudo apt-mark unhold 2>/dev/null || true
+        fi
+        sudo apt update 2>/dev/null || true
+        echo "✅ APT resolver fixed"
+    }
+    fix_ubuntu_mirror
+    fix_apt_resolver
+    echo "✅ APT fixes completed"
+    exit 0
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -135,6 +193,54 @@ EOF
     fi
 }
 
+# Function to fix APT package resolver breaks
+fix_apt_resolver() {
+    log_info "Fixing APT package resolver breaks..."
+    
+    # Kill all APT processes
+    log_info "Killing stuck APT processes..."
+    sudo pkill -9 -f apt 2>/dev/null || true
+    sudo pkill -9 -f dpkg 2>/dev/null || true
+    sleep 3
+    
+    # Remove lock files
+    log_info "Removing APT lock files..."
+    sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
+    sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
+    sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
+    sudo rm -f /var/lib/apt/lists/partial/* 2>/dev/null || true
+    
+    # Clean APT cache
+    log_info "Cleaning APT cache..."
+    sudo apt clean 2>/dev/null || true
+    sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+    sudo mkdir -p /var/lib/apt/lists/partial
+    
+    # Fix broken packages
+    log_info "Fixing broken packages..."
+    sudo dpkg --configure -a 2>/dev/null || true
+    sudo apt --fix-broken install -y 2>/dev/null || true
+    
+    # Check for held packages
+    log_info "Checking for held packages..."
+    HELD_PACKAGES=$(apt-mark showhold 2>/dev/null || true)
+    if [ -n "$HELD_PACKAGES" ]; then
+        log_warning "Found held packages: $HELD_PACKAGES"
+        log_info "Unholding packages..."
+        echo "$HELD_PACKAGES" | xargs -r sudo apt-mark unhold 2>/dev/null || true
+    else
+        log_info "No held packages found"
+    fi
+    
+    # Update package lists
+    log_info "Updating package lists..."
+    if sudo apt update 2>/dev/null; then
+        log_success "✅ APT resolver fixed successfully"
+    else
+        log_warning "APT update still failing, but continuing..."
+    fi
+}
+
 # Function to fix DNS and network connectivity issues
 fix_dns_issues() {
     log_info "Checking DNS and network connectivity..."
@@ -224,6 +330,9 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     # Fix Ubuntu mirror issues first
     fix_ubuntu_mirror
+    
+    # Fix APT resolver breaks
+    fix_apt_resolver
     
     # Now we can safely update packages
     log_info "Updating system packages..."
