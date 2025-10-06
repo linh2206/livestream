@@ -318,11 +318,16 @@ fi
 # Check if running as root
 if [ "$(id -u)" = "0" ]; then
     log_warning "Running as root. This is not recommended for security reasons."
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Exiting..."
-        exit 1
+    # Auto-continue if running from Makefile (non-interactive)
+    if [ -t 0 ]; then
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Exiting..."
+            exit 1
+        fi
+    else
+        log_info "Non-interactive mode detected, continuing automatically..."
     fi
 fi
 
