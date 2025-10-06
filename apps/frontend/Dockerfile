@@ -42,9 +42,7 @@ COPY package*.json ./
 # Install production dependencies only with network resilience
 RUN npm config set registry https://registry.npmjs.org/ && \
     npm config set fetch-timeout 300000 && \
-    (npm ci --only=production --no-audit --no-fund --prefer-offline || \
-     (npm cache clean --force && npm ci --only=production --no-audit --no-fund) || \
-     npm install --only=production --no-audit --no-fund) && \
+    npm install --only=production --no-audit --no-fund && \
     npm cache clean --force
 
 # Copy built application
