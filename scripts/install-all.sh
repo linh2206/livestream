@@ -26,19 +26,28 @@ echo "Installing system dependencies..."
 if command -v apt &> /dev/null; then
     log_info "Ubuntu/Debian detected - installing essentials..."
     
-    # Fix APT issues first
+    # Fix APT issues first - wait for completion
+    log_info "Cleaning up APT processes..."
     sudo pkill -9 -f apt 2>/dev/null || true
     sudo pkill -9 -f dpkg 2>/dev/null || true
+    sleep 5  # Wait for processes to fully terminate
+    
+    log_info "Removing lock files..."
     sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
     sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
     sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
+    
+    log_info "Cleaning APT cache..."
     sudo apt clean 2>/dev/null || true
     sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
     sudo mkdir -p /var/lib/apt/lists/partial
+    
+    log_info "Fixing broken packages..."
     sudo dpkg --configure -a 2>/dev/null || true
     sudo apt --fix-broken install -y 2>/dev/null || true
     
     # Remove conflicting containerd packages
+    log_info "Removing conflicting packages..."
     sudo apt remove -y containerd containerd.io 2>/dev/null || true
     
     sudo apt update -y
