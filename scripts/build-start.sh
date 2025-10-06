@@ -10,6 +10,53 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export TERM=xterm-256color
 
+# Additional terminal fixes
+export LC_CTYPE=en_US.UTF-8
+export LC_NUMERIC=en_US.UTF-8
+export LC_TIME=en_US.UTF-8
+export LC_COLLATE=en_US.UTF-8
+export LC_MONETARY=en_US.UTF-8
+export LC_MESSAGES=en_US.UTF-8
+export LC_PAPER=en_US.UTF-8
+export LC_NAME=en_US.UTF-8
+export LC_ADDRESS=en_US.UTF-8
+export LC_TELEPHONE=en_US.UTF-8
+export LC_MEASUREMENT=en_US.UTF-8
+export LC_IDENTIFICATION=en_US.UTF-8
+
+# Disable color output for cleaner logs
+export NO_COLOR=1
+export FORCE_COLOR=0
+
+# Function to fix terminal display
+fix_terminal_display() {
+    # Clear screen and reset terminal
+    clear
+    reset
+    
+    # Set terminal to raw mode for better control
+    stty raw -echo 2>/dev/null || true
+    
+    # Reset terminal settings
+    stty sane 2>/dev/null || true
+    
+    # Clear any pending input
+    read -t 0.1 -n 10000 discard 2>/dev/null || true
+    
+    # Set line buffering for stdout
+    if command -v stdbuf >/dev/null 2>&1; then
+        exec stdbuf -oL -eL "$0" "$@"
+    fi
+}
+
+# Apply terminal fix immediately
+fix_terminal_display
+
+# Set line buffering for cleaner output
+if command -v stdbuf >/dev/null 2>&1; then
+    exec stdbuf -oL -eL "$0" "$@"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
