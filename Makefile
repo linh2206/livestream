@@ -1,5 +1,5 @@
 # LiveStream Platform - Optimized Makefile
-.PHONY: help start stop clean setup reset-password logs
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh
 
 .DEFAULT_GOAL := help
 
@@ -11,6 +11,10 @@ help:
 	@echo "  make logs       - View service logs"
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make reset-password - Reset admin password"
+	@echo "  make setup-ssh  - Install & configure SSH server (password + key)"
+	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
+	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
+	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
 	@echo ""
 	@echo "Access URLs:"
 	@echo "  Frontend: http://localhost:3000"
@@ -37,6 +41,24 @@ reset-password:
 logs:
 	@echo "Viewing logs..."
 	docker-compose logs -f
+
+# SSH server setup
+setup-ssh:
+	@echo "Installing and configuring SSH server..."
+	./scripts/setup-ssh-server.sh
+
+# FFmpeg
+install-ffmpeg:
+	@echo "Installing FFmpeg (quick)..."
+	./scripts/install-ffmpeg-quick.sh
+
+compile-ffmpeg:
+	@echo "Compiling FFmpeg from source (this may take a long time)..."
+	./scripts/compile-ffmpeg.sh
+
+check-ffmpeg:
+	@echo "FFmpeg version:"
+	ffmpeg -version || echo "FFmpeg not found"
 
 setup:
 	@echo "Setting up LiveStream Platform..."
