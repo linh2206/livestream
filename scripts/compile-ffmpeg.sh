@@ -75,7 +75,8 @@ install_dependencies() {
         git-core \
         libass-dev \
         libfreetype6-dev \
-        libgnutls28-dev \
+        # Prefer OpenSSL over GnuTLS to avoid mutual exclusion during configure
+        libssl-dev \
         libmp3lame-dev \
         libsdl2-dev \
         libtool \
@@ -167,7 +168,6 @@ configure_ffmpeg() {
         --cc=gcc \
         --enable-fontconfig \
         --enable-frei0r \
-        --enable-gnutls \
         --enable-gpl \
         --enable-libaom \
         --enable-libass \
@@ -184,6 +184,7 @@ configure_ffmpeg() {
         --enable-libzimg \
         --enable-nonfree \
         --enable-openssl \
+        --disable-gnutls \
         --enable-pic \
         --enable-pthreads \
         --enable-shared \
