@@ -31,7 +31,7 @@ start:
 
 stop:
 	@echo "Stopping all services..."
-	docker-compose down
+	docker-compose down --remove-orphans
 
 # Maintenance
 clean:
