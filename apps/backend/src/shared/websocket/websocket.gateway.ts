@@ -16,8 +16,11 @@ import { APP_CONSTANTS } from '../constants';
   cors: {
     origin: [
       'http://localhost:9000',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ],
+      'http://localhost:3000',
+      process.env.FRONTEND_URL,
+      process.env.API_BASE_URL,
+      process.env.NGINX_URL
+    ].filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST'],
   },

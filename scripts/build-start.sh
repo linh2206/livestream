@@ -26,9 +26,9 @@ fi
 
 # Build and start services
 log_info "Building and starting services..."
-docker-compose down --remove-orphans
-docker-compose build --no-cache
-docker-compose up -d
+docker-compose down --remove-orphans > /dev/null 2>&1
+docker-compose build --no-cache > /dev/null 2>&1
+docker-compose up -d > /dev/null 2>&1
 
 # Wait for services
 log_info "Waiting for services to start..."
@@ -36,7 +36,7 @@ sleep 30
 
 # Check status
 log_info "Service status:"
-docker-compose ps
+docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 
 log_success "Build and start completed!"
 echo "Frontend: http://localhost:3000"

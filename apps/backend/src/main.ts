@@ -47,13 +47,17 @@ async function bootstrap() {
     },
   }));
 
-  // Enable CORS with optimization
+  // Enable CORS with environment configuration
+  const corsOrigins = [
+    'http://localhost:3000',
+    'http://localhost:9000',
+    process.env.FRONTEND_URL,
+    process.env.API_BASE_URL,
+    process.env.NGINX_URL
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:9000',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ],
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

@@ -22,7 +22,11 @@ if command -v apt &> /dev/null; then
     # Fix APT issues first - wait for completion to avoid log chaos
     sudo pkill -9 -f apt 2>/dev/null || true
     sudo pkill -9 -f dpkg 2>/dev/null || true
-    sleep 5  # Wait for processes to fully terminate
+    sleep 10  # Wait longer for processes to fully terminate
+    # Double check no processes are running
+    while pgrep -f "apt|dpkg" > /dev/null; do
+        sleep 2
+    done
     
     sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
     sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
@@ -36,8 +40,8 @@ if command -v apt &> /dev/null; then
     # Remove conflicting containerd packages
     sudo apt remove -y containerd containerd.io 2>/dev/null || true
     
-    sudo apt update -y
-    sudo apt install -y docker.io docker-compose nodejs npm git curl wget
+    sudo apt update -y > /dev/null 2>&1
+    sudo apt install -y docker.io docker-compose nodejs npm git curl wget > /dev/null 2>&1
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER
