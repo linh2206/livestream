@@ -42,11 +42,6 @@ fix_terminal_display() {
     
     # Clear any pending input
     read -t 0.1 -n 10000 discard 2>/dev/null || true
-    
-    # Set line buffering for stdout
-    if command -v stdbuf >/dev/null 2>&1; then
-        exec stdbuf -oL -eL "$0" "$@"
-    fi
 }
 
 # Apply terminal fix immediately
@@ -55,6 +50,12 @@ fix_terminal_display
 # Set line buffering for cleaner output
 if command -v stdbuf >/dev/null 2>&1; then
     exec stdbuf -oL -eL "$0" "$@"
+fi
+
+# Alternative: Use script command for clean output
+if command -v script >/dev/null 2>&1; then
+    # If script command is available, use it for cleaner output
+    exec script -q -c "$0" /dev/null
 fi
 
 # Colors for output
