@@ -54,7 +54,7 @@ EOF
             echo "Unholding packages: $HELD_PACKAGES"
             echo "$HELD_PACKAGES" | xargs -r sudo apt-mark unhold 2>/dev/null || true
         fi
-        sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null || true
+        sudo apt update -y 2>/dev/null || true
         echo "✅ APT resolver fixed"
     }
     fix_ubuntu_mirror
@@ -70,11 +70,11 @@ YELLOW=''
 BLUE=''
 NC=''
 
-# Logging functions
-log_info() { echo "[INFO] $1"; }
-log_success() { echo "[SUCCESS] $1"; }
-log_warning() { echo "[WARNING] $1"; }
-log_error() { echo "[ERROR] $1"; }
+# Simple logging functions
+log_info() { echo "INFO: $1"; }
+log_success() { echo "SUCCESS: $1"; }
+log_warning() { echo "WARNING: $1"; }
+log_error() { echo "ERROR: $1"; }
 
 # Function to install Docker Compose with version compatibility check
 install_docker_compose() {
@@ -335,18 +335,8 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     echo "Starting Ubuntu system setup..."
     
-    # Fix Ubuntu mirror issues first
-    echo "Step 1/4: Fixing Ubuntu mirror issues..."
-    fix_ubuntu_mirror
-    echo "Mirror fix completed"
-    
-    # Fix APT resolver breaks
-    echo "Step 2/4: Fixing APT resolver breaks..."
-    fix_apt_resolver
-    echo "APT resolver fix completed"
-    
-    # Now we can safely update packages
-    echo "Step 3/4: Updating system packages..."
+    # Update system packages
+    echo "Step 1/2: Updating system packages..."
     sudo apt update -y || log_warning "Package update failed, but continuing..."
     echo "Package update completed"
 elif [ "$OS" = "macos" ]; then
@@ -363,7 +353,7 @@ fi
 
 # Install Docker based on OS
 if [ "$OS" = "ubuntu" ]; then
-    echo "Step 4/4: Installing Docker and dependencies..."
+    echo "Step 2/2: Installing Docker and dependencies..."
     log_info "Installing Docker..."
     sudo apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
     echo "Docker installed"
@@ -374,12 +364,9 @@ if [ "$OS" = "ubuntu" ]; then
     sudo usermod -aG docker $USER
     echo "Docker service started"
     
-    # Install Docker Compose  plugin
+    # Install Docker Compose
     echo "Installing Docker Compose..."
-    # Fix DNS issues before installing Docker Compose
-    fix_dns_issues
-    
-    install_docker_compose
+    sudo apt install -y docker-compose || log_warning "Docker Compose installation failed, but continuing..."
     echo "Docker Compose installed"
     
     log_success "Docker and Docker Compose  installed and configured"
