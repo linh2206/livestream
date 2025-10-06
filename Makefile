@@ -7,26 +7,27 @@
 .DEFAULT_GOAL := help
 
 help:
-	@echo "🚀 LiveStream Platform - Available Commands:"
+	@echo "LiveStream Platform - Available Commands:"
 	@echo ""
-	@echo "📦 Development:"
+	@echo "Development:"
 	@echo "  make install    - Install system dependencies only"
 	@echo "  make build      - Build and start all services"
 	@echo "  make start      - Start all services"
 	@echo "  make stop       - Stop all services"
-	@echo "  make setup      - Complete setup (install + build)"
+	@echo "  make setup      - Complete setup (install + build, logs to files)"
+	@echo "  make setup-verbose - Complete setup with verbose output"
 	@echo ""
-	@echo "🧹 Maintenance:"
+	@echo "Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make reset-password - Reset admin password to default"
 	@echo "  make logs       - View service logs"
 	@echo ""
-	@echo "🔧 System Setup:"
+	@echo "System Setup:"
 	@echo "  make setup-ssh  - Setup SSH server configuration"
 	@echo "  make fix-apt    - Fix APT HTTPS issues"
 	@echo "  make fix-docker - Fix Docker connectivity issues"
 	@echo ""
-	@echo "📊 Quick Access:"
+	@echo "Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
 	@echo "  Backend:   \$${API_BASE_URL}"
 	@echo "  Grafana:   \$${GRAFANA_URL} (admin/admin123)"
@@ -70,12 +71,12 @@ setup-ssh:
 
 fix-apt:
 	@echo "Fixing APT HTTPS issues..."
-	@echo "⚠️  This requires sudo privileges"
+	@echo "This requires sudo privileges"
 	sudo ./scripts/fix-apt.sh
 
 fix-docker:
 	@echo "Fixing Docker connectivity issues..."
-	@echo "⚠️  This requires sudo privileges - please enter your password when prompted"
+	@echo "This requires sudo privileges - please enter your password when prompted"
 	@echo "Configuring Docker daemon for better connectivity..."
 	@sudo mkdir -p /etc/docker
 	@echo '{' | sudo tee /etc/docker/daemon.json > /dev/null
@@ -87,11 +88,11 @@ fix-docker:
 	@echo '    "dns": ["8.8.8.8", "8.8.4.4"]' | sudo tee -a /etc/docker/daemon.json > /dev/null
 	@echo '}' | sudo tee -a /etc/docker/daemon.json > /dev/null
 	@sudo systemctl restart docker || true
-	@echo "✅ Docker daemon configured with registry mirrors"
+	@echo "Docker daemon configured with registry mirrors"
 
 fix-apt-resolver:
 	@echo "Fixing APT package resolver breaks..."
-	@echo "⚠️  This requires sudo privileges"
+	@echo "This requires sudo privileges"
 	@sudo ./scripts/install-all.sh --fix-apt-only || echo "APT fix completed"
 
 
@@ -99,6 +100,17 @@ fix-apt-resolver:
 # Quick setup
 setup:
 	@echo "Setting up LiveStream Platform..."
+	@echo "Step 1: Installing system dependencies..."
+	./scripts/install-all.sh > install.log 2>&1
+	@echo "Step 2: Building and starting services..."
+	./scripts/build-start.sh > build.log 2>&1
+	@echo "Setup complete! Access at \$${FRONTEND_URL}"
+	@echo "Check install.log and build.log for details"
+
+setup-verbose:
+	@echo "Setting up LiveStream Platform (verbose mode)..."
+	@echo "Step 1: Installing system dependencies..."
 	./scripts/install-all.sh
+	@echo "Step 2: Building and starting services..."
 	./scripts/build-start.sh
 	@echo "Setup complete! Access at \$${FRONTEND_URL}"
