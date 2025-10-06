@@ -5,6 +5,11 @@
 
 set -e  # Exit on any error
 
+# Fix terminal encoding and font issues
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export TERM=xterm-256color
+
 # Check for special flags
 if [ "$1" = "--fix-apt-only" ]; then
     echo "🔧 APT Fix Only Mode"

@@ -37,11 +37,12 @@ cd livestream
 ```
 
 4. **Access the application**
-   - Frontend: ${FRONTEND_URL:-http://localhost:3000}
-   - Backend API: ${API_BASE_URL:-http://183.182.104.226:24190/api/v1}
-   - Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)
-   - Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}
-   - RTMP Server: ${RTMP_BASE_URL:-rtmp://localhost:1935}
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:9000/api/v1
+   - HLS Streaming: http://localhost:9000/api/v1/hls
+   - RTMP Server: rtmp://localhost:1935/live
+   - Grafana: http://localhost:8000 (admin/admin123)
+   - Prometheus: http://localhost:9090
 
 ## 🏗️ Architecture
 
@@ -121,6 +122,11 @@ make stop       # Stop services
 make clean      # Clean up containers
 make logs       # View service logs
 
+# System fixes
+make fix-apt    # Fix APT package issues
+make fix-apt-resolver # Fix APT resolver breaks
+make fix-docker # Fix Docker connectivity
+
 # Admin operations
 make reset-password # Reset admin password to default
 ```
@@ -135,10 +141,11 @@ cp .env.example .env
 ```
 
 Key configuration options:
-- **Ports**: Customize service ports
+- **Ports**: Customize service ports (Backend: 9000, Frontend: 3000, Nginx: 8080)
 - **JWT Secret**: Auto-generated if not set
-- **Google OAuth**: Optional authentication
-- **URLs**: Auto-configured from ports
+- **MongoDB**: Authentication enabled (admin/admin123)
+- **URLs**: All configured for localhost development
+- **HLS Streaming**: Backend serves HLS at /api/v1/hls
 
 ### Development Workflow
 
@@ -198,7 +205,7 @@ Available dashboards:
 - **Streaming Performance**: RTMP and HLS metrics
 
 ### Prometheus Metrics
-Access Prometheus at ${PROMETHEUS_URL:-http://localhost:9090}
+Access Prometheus at http://localhost:9090
 
 Key metrics:
 - HTTP request rates and latencies
@@ -258,20 +265,34 @@ The platform supports horizontal scaling:
 docker-compose logs [service-name]
 ```
 
-2. **Port conflicts**
+2. **MongoDB container restarting (exit code 62)**
+```bash
+# Clean MongoDB data and restart
+docker-compose down
+docker volume rm livestream_mongodb_data
+docker-compose up -d
+```
+
+3. **APT package resolver breaks**
+```bash
+# Fix package issues
+make fix-apt-resolver
+```
+
+4. **Port conflicts**
 ```bash
 # Check port usage
 netstat -tulpn | grep :PORT
 # Update .env file with different ports
 ```
 
-3. **Database connection issues**
+5. **Database connection issues**
 ```bash
 # Check MongoDB container
 docker-compose logs mongodb
 ```
 
-4. **Reset admin user**
+6. **Reset admin user**
 ```bash
 make reset-password
 ```
@@ -284,6 +305,30 @@ All services include health checks:
 docker-compose ps
 ```
 
+## 🔄 Recent Updates
+
+### Version 2.0 - Localhost Development Setup
+
+**Major Changes:**
+- ✅ **MongoDB**: Downgraded to 4.4 for stability, added authentication
+- ✅ **URLs**: All external IPs converted to localhost for development
+- ✅ **HLS Streaming**: Backend now serves HLS at `/api/v1/hls`
+- ✅ **APT Fixes**: Added comprehensive package resolver fixes
+- ✅ **Docker**: Updated to Node.js 20, improved health checks
+- ✅ **Environment**: Standardized all configuration files
+
+**Fixed Issues:**
+- MongoDB exit code 62 (container restarting)
+- APT package resolver breaks
+- Vietnamese Ubuntu mirror 404 errors
+- Docker container dependency issues
+- URL inconsistencies across services
+
+**New Commands:**
+- `make fix-apt-resolver` - Fix APT package issues
+- `make fix-docker` - Fix Docker connectivity
+- Enhanced `make setup` with automatic fixes
+
 ## 📝 API Documentation
 
 ### Authentication Endpoints
@@ -295,6 +340,7 @@ docker-compose ps
 - `GET /api/v1/streams` - List streams
 - `POST /api/v1/streams` - Create stream
 - `GET /api/v1/streams/:id` - Get stream details
+- `GET /api/v1/hls/:streamKey` - HLS stream endpoint
 
 ### Chat Endpoints
 - WebSocket connection for real-time chat

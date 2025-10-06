@@ -5,6 +5,11 @@
 
 set -e  # Exit on any error
 
+# Fix terminal encoding and font issues
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export TERM=xterm-256color
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
