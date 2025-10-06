@@ -14,14 +14,13 @@ if [ -f ".env.example" ]; then cp .env.example .env; fi
 if [ -f "apps/backend/.env.example" ]; then cp apps/backend/.env.example apps/backend/.env; fi
 if [ -f "apps/frontend/.env.example" ]; then cp apps/frontend/.env.example apps/frontend/.env; fi
 
-# Generate JWT secret if needed
+# Generate JWT secret if needed (inline, no backup/tmp)
 if grep -q "your-super-secret-jwt-key-change-in-production" .env; then
     random_secret=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)
-    sed -i.bak "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" .env
+    sed -i "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" .env
     if [ -f "apps/backend/.env" ]; then
-        sed -i.bak "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" apps/backend/.env
+        sed -i "s|your-super-secret-jwt-key-change-in-production|${random_secret}|g" apps/backend/.env
     fi
-    rm -f .env.bak apps/backend/.env.bak
 fi
 
 # Build and start services
