@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg restart-nginx
 
 # Default target
 .DEFAULT_GOAL := help
@@ -19,6 +19,7 @@ help:
 	@echo "Utilities:"
 	@echo "  make reset-password - Reset admin password"
 	@echo "  make install-ffmpeg - Install FFmpeg"
+	@echo "  make restart-nginx - Restart nginx container"
 	@echo ""
 	@echo "Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -52,6 +53,11 @@ install-ffmpeg:
 	@echo "Installing FFmpeg from repositories (quick method)..."
 	@echo "This requires sudo privileges"
 	sudo ./scripts/install-ffmpeg-quick.sh
+
+restart-nginx:
+	@echo "Restarting nginx container..."
+	docker-compose restart nginx
+	@echo "Nginx restarted"
 
 setup:
 	@echo "Setting up LiveStream Platform..."

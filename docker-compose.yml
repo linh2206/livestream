@@ -131,7 +131,7 @@ services:
       - BACKEND_PORT=9000
       - RTMP_PORT=${RTMP_PORT:-1935}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

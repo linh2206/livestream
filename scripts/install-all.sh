@@ -63,18 +63,18 @@ EOF
     exit 0
 fi
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Simple output without colors
+RED=''
+GREEN=''
+YELLOW=''
+BLUE=''
+NC=''
 
 # Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_info() { echo "[INFO] $1"; }
+log_success() { echo "[SUCCESS] $1"; }
+log_warning() { echo "[WARNING] $1"; }
+log_error() { echo "[ERROR] $1"; }
 
 # Function to install Docker Compose with version compatibility check
 install_docker_compose() {
@@ -338,17 +338,17 @@ if [ "$OS" = "ubuntu" ]; then
     # Fix Ubuntu mirror issues first
     echo "Step 1/4: Fixing Ubuntu mirror issues..."
     fix_ubuntu_mirror
-    echo "✅ Mirror fix completed"
+    echo "Mirror fix completed"
     
     # Fix APT resolver breaks
     echo "Step 2/4: Fixing APT resolver breaks..."
     fix_apt_resolver
-    echo "✅ APT resolver fix completed"
+    echo "APT resolver fix completed"
     
     # Now we can safely update packages
     echo "Step 3/4: Updating system packages..."
     sudo DEBIAN_FRONTEND=noninteractive apt update -y || log_warning "Package update failed, but continuing..."
-    echo "✅ Package update completed"
+    echo "Package update completed"
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
     if command -v brew &> /dev/null; then
@@ -366,13 +366,13 @@ if [ "$OS" = "ubuntu" ]; then
     echo "Step 4/4: Installing Docker and dependencies..."
     log_info "Installing Docker..."
     sudo DEBIAN_FRONTEND=noninteractive apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
-    echo "✅ Docker installed"
+    echo "Docker installed"
     
     echo "Enabling Docker service..."
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER
-    echo "✅ Docker service started"
+    echo "Docker service started"
     
     # Install Docker Compose  plugin
     echo "Installing Docker Compose..."
@@ -380,7 +380,7 @@ if [ "$OS" = "ubuntu" ]; then
     fix_dns_issues
     
     install_docker_compose
-    echo "✅ Docker Compose installed"
+    echo "Docker Compose installed"
     
     log_success "Docker and Docker Compose  installed and configured"
 elif [ "$OS" = "macos" ]; then
@@ -399,7 +399,7 @@ if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js directly via apt to avoid version upgrade..."
     echo "Installing Node.js and npm..."
     sudo DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
-    echo "✅ Node.js and npm installed"
+    echo "Node.js and npm installed"
 
     # Verify installation
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -561,11 +561,11 @@ log_info "System dependencies installed. Services will be built and started by b
 echo ""
 log_success "System installation completed successfully!"
 echo "=========================================================="
-echo "📋 Next steps:"
+echo "Next steps:"
 echo "  1. Run './scripts/build-start.sh' to build and start services"
 echo "  2. Or run 'make build' for quick setup"
 echo ""
-echo "ℹ️  Note: If npm dependencies failed to install (common with native modules),"
+echo "Note: If npm dependencies failed to install (common with native modules),"
 echo "    they will be installed automatically when building Docker containers."
 echo "    This is normal and expected behavior."
 echo ""
@@ -573,20 +573,19 @@ echo "=== INSTALLATION COMPLETED ==="
 echo "System dependencies installed successfully!"
 echo ""
 echo "Next steps:"
-echo "1. Run: make build"
-echo "2. Run: make start"
+echo "1. Run: make start"
 echo ""
 echo "Access URLs:"
-echo "  • Frontend: ${FRONTEND_URL:-http://localhost}"
-echo "  • API: ${API_BASE_URL:-http://localhost/api/v1}"
-echo "  • Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)"
-echo "  • Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}"
+echo "  Frontend: ${FRONTEND_URL:-http://localhost}"
+echo "  API: ${API_BASE_URL:-http://localhost/api/v1}"
+echo "  Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)"
+echo "  Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}"
 echo ""
 echo "Default login:"
 echo "   Username: admin"
 echo "   Password: admin123"
 echo ""
-echo "🔄 To restart services: make start"
-echo "🛑 To stop services: make stop"
-echo "📊 To view logs: make logs"
+echo "To restart services: make start"
+echo "To stop services: make stop"
+echo "To view logs: make logs"
 echo "=========================================================="
