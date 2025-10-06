@@ -31,7 +31,7 @@ EOF
             sudo apt clean 2>/dev/null || true
             sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
             sudo mkdir -p /var/lib/apt/lists/partial
-            sudo apt update 2>/dev/null || true
+            sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null || true
             echo "✅ Package repositories fixed"
         fi
     }
@@ -54,7 +54,7 @@ EOF
             echo "Unholding packages: $HELD_PACKAGES"
             echo "$HELD_PACKAGES" | xargs -r sudo apt-mark unhold 2>/dev/null || true
         fi
-        sudo apt update 2>/dev/null || true
+        sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null || true
         echo "✅ APT resolver fixed"
     }
     fix_ubuntu_mirror
@@ -183,7 +183,7 @@ EOF
         sudo mkdir -p /var/lib/apt/lists/partial
         
         # Update package lists
-        if sudo apt update 2>/dev/null; then
+        if sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null; then
             log_success "✅ Package lists updated successfully"
         else
             log_warning "Package list update failed, but continuing..."
@@ -234,7 +234,7 @@ fix_apt_resolver() {
     
     # Update package lists
     log_info "Updating package lists..."
-    if sudo apt update 2>/dev/null; then
+    if sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null; then
         log_success "✅ APT resolver fixed successfully"
     else
         log_warning "APT update still failing, but continuing..."
@@ -333,15 +333,22 @@ fi
 
 # Update system based on OS
 if [ "$OS" = "ubuntu" ]; then
+    echo "Starting Ubuntu system setup..."
+    
     # Fix Ubuntu mirror issues first
+    echo "Step 1/4: Fixing Ubuntu mirror issues..."
     fix_ubuntu_mirror
+    echo "✅ Mirror fix completed"
     
     # Fix APT resolver breaks
+    echo "Step 2/4: Fixing APT resolver breaks..."
     fix_apt_resolver
+    echo "✅ APT resolver fix completed"
     
     # Now we can safely update packages
-    log_info "Updating system packages..."
-    sudo apt update || log_warning "Package update failed, but continuing..."
+    echo "Step 3/4: Updating system packages..."
+    sudo DEBIAN_FRONTEND=noninteractive apt update -y || log_warning "Package update failed, but continuing..."
+    echo "✅ Package update completed"
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
     if command -v brew &> /dev/null; then
@@ -356,17 +363,24 @@ fi
 
 # Install Docker based on OS
 if [ "$OS" = "ubuntu" ]; then
+    echo "Step 4/4: Installing Docker and dependencies..."
     log_info "Installing Docker..."
-    sudo apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
+    echo "✅ Docker installed"
+    
+    echo "Enabling Docker service..."
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER
+    echo "✅ Docker service started"
     
     # Install Docker Compose  plugin
+    echo "Installing Docker Compose..."
     # Fix DNS issues before installing Docker Compose
     fix_dns_issues
     
     install_docker_compose
+    echo "✅ Docker Compose installed"
     
     log_success "Docker and Docker Compose  installed and configured"
 elif [ "$OS" = "macos" ]; then
@@ -383,7 +397,9 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
     log_info "Installing Node.js directly via apt to avoid version upgrade..."
-    sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+    echo "Installing Node.js and npm..."
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+    echo "✅ Node.js and npm installed"
 
     # Verify installation
     if command -v node &> /dev/null && command -v npm &> /dev/null; then
@@ -391,7 +407,7 @@ if [ "$OS" = "ubuntu" ]; then
     else
         log_error "Failed to install Node.js or npm"
         log_info "Trying alternative installation method..."
-        sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
         if command -v node &> /dev/null && command -v npm &> /dev/null; then
             log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
         else
@@ -553,13 +569,20 @@ echo "ℹ️  Note: If npm dependencies failed to install (common with native mo
 echo "    they will be installed automatically when building Docker containers."
 echo "    This is normal and expected behavior."
 echo ""
-echo "🌐 Once started, access:"
+echo "=== INSTALLATION COMPLETED ==="
+echo "System dependencies installed successfully!"
+echo ""
+echo "Next steps:"
+echo "1. Run: make build"
+echo "2. Run: make start"
+echo ""
+echo "Access URLs:"
 echo "  • Frontend: ${FRONTEND_URL:-http://localhost}"
 echo "  • API: ${API_BASE_URL:-http://localhost/api/v1}"
 echo "  • Grafana: ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)"
 echo "  • Prometheus: ${PROMETHEUS_URL:-http://localhost:9090}"
 echo ""
-echo "👤 Default login:"
+echo "Default login:"
 echo "   Username: admin"
 echo "   Password: admin123"
 echo ""
