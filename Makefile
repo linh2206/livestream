@@ -1,5 +1,5 @@
 # LiveStream Platform - Optimized Makefile
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg
 
 .DEFAULT_GOAL := help
 
@@ -59,6 +59,12 @@ compile-ffmpeg:
 check-ffmpeg:
 	@echo "FFmpeg version:"
 	ffmpeg -version || echo "FFmpeg not found"
+
+# Cleanup FFmpeg build artifacts (does not uninstall system packages)
+clean-ffmpeg:
+	@echo "Cleaning FFmpeg build artifacts..."
+	rm -rf /tmp/ffmpeg-build
+	@echo "FFmpeg build artifacts removed."
 
 setup:
 	@echo "Setting up LiveStream Platform..."

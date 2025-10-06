@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 FFMPEG_VERSION="6.1.1"
 INSTALL_DIR="/usr/local"
 BUILD_DIR="/tmp/ffmpeg-build"
-THREADS=$(nproc)
+THREADS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 # Function to print colored output
 print_status() {
@@ -55,8 +55,11 @@ detect_os() {
         . /etc/os-release
         OS=$NAME
         VER=$VERSION_ID
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macOS"
+        VER=$(sw_vers -productVersion)
     else
-        print_error "Cannot detect OS. This script is designed for Ubuntu/Debian/Mint."
+        print_error "Cannot detect OS. This script is designed for Ubuntu/Debian/Mint/macOS."
         exit 1
     fi
     
@@ -66,56 +69,72 @@ detect_os() {
 # Function to install dependencies
 install_dependencies() {
     print_status "Installing build dependencies..."
-    # Prefer OpenSSL over GnuTLS to avoid mutual exclusion during configure
-    # Essential build tools and headers
-    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
-        apt-get -o Dpkg::Use-Pty=0 install -y \
-        autoconf \
-        automake \
-        build-essential \
-        cmake \
-        git-core \
-        libass-dev \
-        libfreetype6-dev \
-        libssl-dev \
-        libmp3lame-dev \
-        libsdl2-dev \
-        libtool \
-        libva-dev \
-        libvdpau-dev \
-        libvorbis-dev \
-        libxcb1-dev \
-        libxcb-shm0-dev \
-        libxcb-xfixes0-dev \
-        meson \
-        ninja-build \
-        pkg-config \
-        texinfo \
-        wget \
-        yasm \
-        zlib1g-dev
     
-    # Install additional codec libraries
-    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
-        apt-get -o Dpkg::Use-Pty=0 install -y \
-        libaom-dev \
-        libdav1d-dev \
-        libfdk-aac-dev \
-        libmp3lame-dev \
-        libopus-dev \
-        libvpx-dev \
-        libx264-dev \
-        libx265-dev \
-        libxvidcore-dev
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS dependencies
+        if ! command -v brew &> /dev/null; then
+            print_error "Homebrew is required for macOS. Please install it first."
+            exit 1
+        fi
+        brew install autoconf automake cmake git pkg-config yasm
+        brew install libass freetype openssl lame sdl2 libtool
+        brew install libvorbis meson ninja wget zlib
+    else
+        # Linux dependencies
+        # Prefer OpenSSL over GnuTLS to avoid mutual exclusion during configure
+        # Essential build tools and headers
+        sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+            apt-get -o Dpkg::Use-Pty=0 install -y \
+            autoconf \
+            automake \
+            build-essential \
+            cmake \
+            git-core \
+            libass-dev \
+            libfreetype6-dev \
+            libssl-dev \
+            libmp3lame-dev \
+            libsdl2-dev \
+            libtool \
+            libva-dev \
+            libvdpau-dev \
+            libvorbis-dev \
+            libxcb1-dev \
+            libxcb-shm0-dev \
+            libxcb-xfixes0-dev \
+            meson \
+            ninja-build \
+            pkg-config \
+            texinfo \
+            wget \
+            yasm \
+            zlib1g-dev
+    fi
     
-    # Install optional libraries for better performance
-    sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
-        apt-get -o Dpkg::Use-Pty=0 install -y \
-        libavcodec-extra \
-        libavformat-dev \
-        libavutil-dev \
-        libswscale-dev \
-        libswresample-dev
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        # Install additional codec libraries (Linux only)
+        sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+            apt-get -o Dpkg::Use-Pty=0 install -y \
+            libaom-dev \
+            libdav1d-dev \
+            libfdk-aac-dev \
+            libmp3lame-dev \
+            libopus-dev \
+            libvpx-dev \
+            libx264-dev \
+            libx265-dev \
+            libxvidcore-dev
+        
+        # Install optional libraries for better performance
+        sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+            apt-get -o Dpkg::Use-Pty=0 install -y \
+            libavcodec-extra \
+            libavformat-dev \
+            libavutil-dev
+    else
+        # macOS additional libraries
+        brew install aom dav1d fdk-aac lame opus libvpx x264 x265 xvid
+    fi
     
     print_success "Dependencies installed successfully"
 }
@@ -170,7 +189,7 @@ configure_ffmpeg() {
         --disable-outdev=sndio \
         --cc=gcc \
         --enable-fontconfig \
-        --enable-frei0r \
+        --disable-frei0r \
         --enable-gpl \
         --enable-libaom \
         --enable-libass \
