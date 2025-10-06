@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker
+.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker install-ffmpeg compile-ffmpeg check-ffmpeg
 
 # Default target
 .DEFAULT_GOAL := help
@@ -26,6 +26,11 @@ help:
 	@echo "  make setup-ssh  - Setup SSH server configuration"
 	@echo "  make fix-apt    - Fix APT HTTPS issues"
 	@echo "  make fix-docker - Fix Docker connectivity issues"
+	@echo ""
+	@echo "FFmpeg Installation:"
+	@echo "  make install-ffmpeg - Quick FFmpeg installation from repositories"
+	@echo "  make compile-ffmpeg - Compile FFmpeg from source (slower but optimized)"
+	@echo "  make check-ffmpeg  - Check FFmpeg installation status"
 	@echo ""
 	@echo "Quick Access:"
 	@echo "  Frontend:  \$${FRONTEND_URL}"
@@ -94,6 +99,26 @@ fix-apt-resolver:
 	@echo "Fixing APT package resolver breaks..."
 	@echo "This requires sudo privileges"
 	@sudo ./scripts/install-all.sh --fix-apt-only || echo "APT fix completed"
+
+# FFmpeg Installation
+install-ffmpeg:
+	@echo "Installing FFmpeg from repositories (quick method)..."
+	@echo "This requires sudo privileges"
+	sudo ./scripts/install-ffmpeg-quick.sh
+
+compile-ffmpeg:
+	@echo "Compiling FFmpeg from source (optimized method)..."
+	@echo "This requires sudo privileges and will take longer"
+	sudo ./scripts/compile-ffmpeg.sh
+
+check-ffmpeg:
+	@echo "Checking FFmpeg installation..."
+	@if command -v ffmpeg >/dev/null 2>&1; then \
+		echo "FFmpeg is installed:"; \
+		ffmpeg -version | head -1; \
+	else \
+		echo "FFmpeg is not installed. Run 'make install-ffmpeg' or 'make compile-ffmpeg'"; \
+	fi
 
 
 
