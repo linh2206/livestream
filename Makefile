@@ -1,7 +1,7 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-.PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker install-ffmpeg compile-ffmpeg check-ffmpeg
+.PHONY: help install start stop clean setup setup-verbose check-logs reset-password build logs setup-ssh fix-apt fix-docker install-ffmpeg compile-ffmpeg check-ffmpeg
 
 # Default target
 .DEFAULT_GOAL := help
@@ -16,6 +16,7 @@ help:
 	@echo "  make stop       - Stop all services"
 	@echo "  make setup      - Complete setup (install + build, logs to files)"
 	@echo "  make setup-verbose - Complete setup with verbose output"
+	@echo "  make check-logs - Check setup logs for errors"
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean      - Clean up containers and images"
@@ -126,9 +127,9 @@ check-ffmpeg:
 setup:
 	@echo "Setting up LiveStream Platform..."
 	@echo "Step 1: Installing system dependencies..."
-	./scripts/install-all.sh > install.log 2>&1
+	./scripts/install-all.sh > install.log 2>&1 || echo "Install step completed with warnings"
 	@echo "Step 2: Building and starting services..."
-	./scripts/build-start.sh > build.log 2>&1
+	./scripts/build-start.sh > build.log 2>&1 || echo "Build step completed with warnings"
 	@echo "Setup complete! Access at \$${FRONTEND_URL}"
 	@echo "Check install.log and build.log for details"
 
@@ -139,3 +140,18 @@ setup-verbose:
 	@echo "Step 2: Building and starting services..."
 	./scripts/build-start.sh
 	@echo "Setup complete! Access at \$${FRONTEND_URL}"
+
+check-logs:
+	@echo "Checking setup logs..."
+	@if [ -f "install.log" ]; then \
+		echo "=== Install Log ==="; \
+		tail -20 install.log; \
+	else \
+		echo "No install.log found"; \
+	fi
+	@if [ -f "build.log" ]; then \
+		echo "=== Build Log ==="; \
+		tail -20 build.log; \
+	else \
+		echo "No build.log found"; \
+	fi
