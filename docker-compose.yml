@@ -76,6 +76,8 @@ services:
       retries: 3
       start_period: 60s
     depends_on:
+      hls-manager:
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       redis:
@@ -115,6 +117,34 @@ services:
     networks:
       - livestream-network
 
+  # HLS Manager Service
+  hls-manager:
+    image: alpine:latest
+    container_name: livestream-hls-manager
+    restart: unless-stopped
+    volumes:
+      - hls_data:/app/hls
+    command: |
+      sh -c "
+        echo 'Starting HLS Manager...' &&
+        mkdir -p /app/hls/stream &&
+        chmod -R 777 /app/hls &&
+        echo 'HLS directory ready' &&
+        while true; do
+          find /app/hls/stream -name '*.ts' -mmin +10 -delete 2>/dev/null || true
+          find /app/hls/stream -name '*.m3u8' -mmin +10 -delete 2>/dev/null || true
+          sleep 300
+        done
+      "
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ls /app/hls/stream"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - livestream-network
+
   # Nginx RTMP
   nginx:
     build:
@@ -137,9 +167,9 @@ services:
       retries: 3
       start_period: 60s
     depends_on:
-      backend:
+      hls-manager:
         condition: service_healthy
-      frontend:
+      backend:
         condition: service_healthy
     networks:
       - livestream-network

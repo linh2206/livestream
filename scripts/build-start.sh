@@ -33,14 +33,29 @@ docker-compose up -d
 log_info "Waiting for services to start..."
 sleep 30
 
-# Fix HLS permissions
-log_info "Fixing HLS permissions..."
-docker-compose exec -T --user root nginx mkdir -p /app/hls/stream/ 2>/dev/null || true
-docker-compose exec -T --user root nginx chmod -R 777 /app/hls/ 2>/dev/null || true
-docker-compose exec -T --user root nginx chown -R 1001:1001 /app/hls/ 2>/dev/null || true
-docker-compose exec -T --user root backend chmod -R 755 /app/hls/ 2>/dev/null || true
-docker-compose exec -T --user root backend chown -R nestjs:nodejs /app/hls/ 2>/dev/null || true
-log_success "HLS permissions fixed for both nginx and backend"
+# Wait for HLS manager to initialize and setup
+log_info "Setting up HLS manager..."
+sleep 10
+
+# Ensure HLS manager is running and setup properly
+if docker-compose ps hls-manager | grep -q "Up"; then
+    log_success "HLS manager is running"
+    
+    # Verify HLS directory is accessible
+    if docker-compose exec -T hls-manager ls /app/hls/stream &>/dev/null; then
+        log_success "HLS directory is ready - permissions automatically managed"
+    else
+        log_warning "HLS directory not accessible, restarting HLS manager..."
+        docker-compose restart hls-manager
+        sleep 5
+        log_success "HLS manager restarted"
+    fi
+else
+    log_warning "HLS manager not running, starting it..."
+    docker-compose up -d hls-manager
+    sleep 10
+    log_success "HLS manager started"
+fi
 
 # Check status
 log_info "Service status:"
@@ -61,7 +76,9 @@ echo "  Webcam Stream: ffmpeg -f v4l2 -i /dev/video0 -f alsa -i default -c:v lib
 echo ""
 echo "🔧 Troubleshooting:"
 echo "  Check logs: docker-compose logs [service_name]"
-echo "  Fix nginx permissions: docker-compose exec -T --user root nginx chmod -R 777 /app/hls/"
-echo "  Fix backend permissions: docker-compose exec -T --user root backend chmod -R 755 /app/hls/"
-echo "  Restart services: docker-compose restart"
+echo "  Check HLS manager: docker-compose logs hls-manager"
+echo "  Restart HLS manager: docker-compose restart hls-manager"
+echo "  Restart all services: docker-compose restart"
 echo "  Update stream status: docker-compose exec mongodb mongo livestream -u admin -p admin123 --authenticationDatabase admin --eval \"db.streams.updateOne({streamKey: 'stream'}, {\\\$set: {status: 'active', isLive: true}})\""
+echo "  Manual HLS cleanup: docker-compose exec hls-manager find /app/hls/stream -name '*.ts' -mmin +10 -delete"
+echo "  Check HLS directory: docker-compose exec hls-manager ls -la /app/hls/stream/"

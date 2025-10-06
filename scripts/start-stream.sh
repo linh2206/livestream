@@ -22,23 +22,28 @@ RTMP_PORT="1935"
 STREAM_KEY="stream"
 RTMP_URL="rtmp://${SERVER}:${RTMP_PORT}/live/${STREAM_KEY}"
 
-# Default settings
+# Optimized default settings
 QUALITY="medium"
 RESOLUTION="1280x720"
 FRAMERATE="30"
-VIDEO_BITRATE="2000k"
-AUDIO_BITRATE="128k"
-PRESET="fast"
+VIDEO_BITRATE="2500k"  # Increased for better quality
+AUDIO_BITRATE="160k"   # Increased for better audio
+PRESET="medium"        # Better quality/performance balance
 SOURCE=""
 FILE_PATH=""
 WITH_OVERLAY=false
 LOGO_PATH=""
 FIX_PERMISSIONS=false
+CUSTOM_LINK=""
+AUTO_RECONNECT=true
+MONITOR_STREAM=true
+DETECT_DEVICES=true
 
 # Function to print colored output
 print_header() {
     echo -e "${CYAN}============================================${NC}"
-    echo -e "${CYAN}🎬 FFmpeg Live Streaming Script${NC}"
+    echo -e "${CYAN}🎬 FFmpeg Live Streaming Script v2.0${NC}"
+    echo -e "${CYAN}   Optimized for Performance & Quality${NC}"
     echo -e "${CYAN}============================================${NC}"
 }
 
@@ -62,6 +67,17 @@ print_step() {
     echo -e "${PURPLE}[STEP]${NC} $1"
 }
 
+# Progress indicator
+show_progress() {
+    local pid=$1
+    local message=$2
+    while kill -0 $pid 2>/dev/null; do
+        echo -ne "\r${BLUE}[PROGRESS]${NC} $message... ⏳"
+        sleep 1
+    done
+    echo -ne "\r${GREEN}[COMPLETE]${NC} $message... ✅\n"
+}
+
 # Function to check dependencies
 check_dependencies() {
     print_step "Checking dependencies..."
@@ -77,47 +93,41 @@ check_dependencies() {
 }
 
 # Function to fix HLS permissions
-fix_hls_permissions() {
-    print_step "Fixing HLS directory permissions..."
+check_hls_manager() {
+    print_step "Checking HLS manager status..."
     
     # Check if we're in a Docker environment
     if [[ -f "/.dockerenv" ]] || [[ -n "$DOCKER_CONTAINER" ]]; then
-        print_info "Running in Docker environment"
-        
-        # Try to fix permissions in Docker
-        if command -v docker-compose &> /dev/null; then
-            print_info "Using docker-compose to fix permissions..."
-            
-            # Stop any existing streams first
-            docker-compose exec -T nginx pkill -f nginx 2>/dev/null || true
-            sleep 2
-            
-            # Fix permissions
-            docker-compose exec -T --user root nginx chmod -R 777 /app/hls/ 2>/dev/null || {
-                print_warning "Failed to fix permissions via docker-compose"
-            }
-            
-            # Restart nginx
-            docker-compose restart nginx 2>/dev/null || {
-                print_warning "Failed to restart nginx via docker-compose"
-            }
-            
-            sleep 3
-        else
-            print_warning "docker-compose not available, cannot fix permissions"
-        fi
-    else
-        print_info "Running on host system"
-        
-        # Fix permissions on host
-        if [[ -d "/app/hls" ]]; then
-            sudo chmod -R 777 /app/hls/ 2>/dev/null || {
-                print_warning "Failed to fix permissions on host"
-            }
-        fi
+        print_info "Running in Docker environment - HLS manager should handle permissions"
+        return 0
     fi
     
-    print_success "HLS permissions fixed"
+    # Check if docker-compose is available
+    if ! command -v docker-compose &> /dev/null; then
+        print_error "docker-compose not found. Cannot check HLS manager."
+        return 1
+    fi
+    
+    print_info "Running on host system"
+    
+    # Check if HLS manager is running
+    if docker-compose ps hls-manager | grep -q "Up"; then
+        print_success "HLS manager is running - permissions automatically managed"
+        
+        # Check if HLS directory is accessible
+        if docker-compose exec -T hls-manager ls /app/hls/stream &>/dev/null; then
+            print_success "HLS directory is ready"
+        else
+            print_warning "HLS directory not accessible, restarting HLS manager..."
+            docker-compose restart hls-manager
+            sleep 5
+        fi
+    else
+        print_warning "HLS manager is not running, starting it..."
+        docker-compose up -d hls-manager
+        sleep 10
+        print_success "HLS manager started"
+    fi
 }
 
 # Function to test RTMP connection
@@ -162,6 +172,7 @@ show_usage() {
     echo "  --with-overlay            Add text overlay"
     echo "  --with-logo <path>        Add logo overlay"
     echo "  --fix-permissions         Auto-fix HLS permissions before streaming"
+    echo "  --link <url>              Custom RTMP URL (overrides server/key)"
     echo "  -h, --help               Show this help"
     echo ""
     echo -e "${YELLOW}Stream will be available at:${NC}"
@@ -180,7 +191,7 @@ show_interactive_menu() {
     echo "4) 📁 Video File Stream (Stream from file)"
     echo "5) 🎤 Audio Only Stream (Microphone only)"
     echo "6) ⚙️  Advanced Options"
-    echo "7) 🔧 Fix HLS Permissions"
+    echo "7) 🔧 Check HLS Manager"
     echo "8) ❌ Exit"
     echo ""
 }
@@ -372,7 +383,7 @@ handle_interactive_selection() {
                 configure_advanced_options
                 ;;
             7)
-                fix_hls_permissions
+                check_hls_manager
                 ;;
             8)
                 print_info "Goodbye!"
@@ -432,6 +443,10 @@ parse_arguments() {
             --fix-permissions)
                 FIX_PERMISSIONS=true
                 shift
+                ;;
+            --link)
+                CUSTOM_LINK="$2"
+                shift 2
                 ;;
             -h|--help)
                 show_usage
@@ -589,9 +604,9 @@ main() {
     # Check dependencies
     check_dependencies
     
-    # Fix HLS permissions if requested
+    # Check HLS manager if requested
     if [[ "$FIX_PERMISSIONS" == "true" ]]; then
-        fix_hls_permissions
+        check_hls_manager
     fi
     
     # Test RTMP connection (optional)
@@ -605,6 +620,12 @@ main() {
         "slow") PRESET="slow" ;;
         *) PRESET="fast" ;;
     esac
+    
+    # Use custom link if provided
+    if [[ -n "$CUSTOM_LINK" ]]; then
+        RTMP_URL="$CUSTOM_LINK"
+        print_info "Using custom RTMP URL: $RTMP_URL"
+    fi
     
     # Start streaming
     start_streaming
