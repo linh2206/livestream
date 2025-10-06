@@ -70,7 +70,7 @@ services:
       - WS_BASE_URL=${WS_BASE_URL}
       - NGINX_URL=${NGINX_URL}
     healthcheck:
-      test: ["CMD", "node", "dist/main.js", "--health-check"]
+      test: ["CMD", "nc", "-z", "localhost", "9000"]
       interval: 30s
       timeout: 10s
       retries: 3

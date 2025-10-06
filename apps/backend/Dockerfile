@@ -28,10 +28,10 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install curl for health checks with network resilience
+# Install curl and netcat for health checks with network resilience
 RUN apk update --no-cache && \
-    apk add --no-cache curl || \
-    (sleep 5 && apk update --no-cache && apk add --no-cache curl)
+    apk add --no-cache curl netcat-openbsd || \
+    (sleep 5 && apk update --no-cache && apk add --no-cache curl netcat-openbsd)
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

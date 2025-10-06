@@ -5,59 +5,6 @@
 
 set -e  # Exit on any error
 
-# Fix terminal encoding and font issues
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export TERM=xterm-256color
-
-# Additional terminal fixes
-export LC_CTYPE=en_US.UTF-8
-export LC_NUMERIC=en_US.UTF-8
-export LC_TIME=en_US.UTF-8
-export LC_COLLATE=en_US.UTF-8
-export LC_MONETARY=en_US.UTF-8
-export LC_MESSAGES=en_US.UTF-8
-export LC_PAPER=en_US.UTF-8
-export LC_NAME=en_US.UTF-8
-export LC_ADDRESS=en_US.UTF-8
-export LC_TELEPHONE=en_US.UTF-8
-export LC_MEASUREMENT=en_US.UTF-8
-export LC_IDENTIFICATION=en_US.UTF-8
-
-# Disable color output for cleaner logs
-export NO_COLOR=1
-export FORCE_COLOR=0
-
-# Function to fix terminal display
-fix_terminal_display() {
-    # Clear screen and reset terminal
-    clear
-    reset
-    
-    # Set terminal to raw mode for better control
-    stty raw -echo 2>/dev/null || true
-    
-    # Reset terminal settings
-    stty sane 2>/dev/null || true
-    
-    # Clear any pending input
-    read -t 0.1 -n 10000 discard 2>/dev/null || true
-}
-
-# Apply terminal fix immediately
-fix_terminal_display
-
-# Set line buffering for cleaner output
-if command -v stdbuf >/dev/null 2>&1; then
-    exec stdbuf -oL -eL "$0" "$@"
-fi
-
-# Alternative: Use script command for clean output
-if command -v script >/dev/null 2>&1; then
-    # If script command is available, use it for cleaner output
-    exec script -q -c "$0" /dev/null
-fi
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -190,13 +137,13 @@ echo "🔨 Building and starting all services..."
 echo "  • Building Docker images..."
 
 # Try to build, if it fails due to network issues, fix and retry
-if ! $COMPOSE_CMD build --no-cache; then
+if ! $COMPOSE_CMD build --no-cache --parallel 1; then
     log_warning "Build failed, likely due to network/Docker connectivity issues"
     log_info "Attempting to fix Docker connectivity..."
     
     if fix_docker_connectivity; then
         log_info "Retrying build after Docker fix..."
-        if ! $COMPOSE_CMD build --no-cache; then
+        if ! $COMPOSE_CMD build --no-cache --parallel 1; then
             log_error "Build still failing after Docker fix. Manual intervention required."
             exit 1
         fi

@@ -5,29 +5,6 @@
 
 set -e  # Exit on any error
 
-# Fix terminal encoding and font issues
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export TERM=xterm-256color
-
-# Additional terminal fixes
-export LC_CTYPE=en_US.UTF-8
-export LC_NUMERIC=en_US.UTF-8
-export LC_TIME=en_US.UTF-8
-export LC_COLLATE=en_US.UTF-8
-export LC_MONETARY=en_US.UTF-8
-export LC_MESSAGES=en_US.UTF-8
-export LC_PAPER=en_US.UTF-8
-export LC_NAME=en_US.UTF-8
-export LC_ADDRESS=en_US.UTF-8
-export LC_TELEPHONE=en_US.UTF-8
-export LC_MEASUREMENT=en_US.UTF-8
-export LC_IDENTIFICATION=en_US.UTF-8
-
-# Disable color output for cleaner logs
-export NO_COLOR=1
-export FORCE_COLOR=0
-
 # Check for special flags
 if [ "$1" = "--fix-apt-only" ]; then
     echo "🔧 APT Fix Only Mode"

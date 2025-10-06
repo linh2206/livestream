@@ -1,11 +1,6 @@
 # LiveStream Platform Makefile
 # Optimized for Docker-based deployment
 
-# Fix terminal encoding and font issues
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export TERM=xterm-256color
-
 .PHONY: help install start stop clean setup reset-password build logs setup-ssh fix-apt fix-docker
 
 # Default target
