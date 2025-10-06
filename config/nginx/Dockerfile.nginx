@@ -1,5 +1,5 @@
 # Use nginx with RTMP module
-FROM nginx:alpine
+FROM nginx:1.25-alpine
 
 # Install nginx-rtmp module and dependencies with network resilience
 RUN apk update --no-cache && \

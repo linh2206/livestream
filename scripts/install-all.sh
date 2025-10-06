@@ -92,6 +92,26 @@ install_docker_compose() {
     fi
 }
 
+# Function to fix Ubuntu mirror issues
+fix_ubuntu_mirror() {
+    log_info "Fixing Ubuntu mirror issues..."
+    
+    # Check if sources.list contains Vietnamese mirror
+    if grep -q "vn.archive.ubuntu.com" /etc/apt/sources.list 2>/dev/null; then
+        log_warning "Vietnamese Ubuntu mirror detected, replacing with stable mirrors..."
+        
+        # Backup sources.list
+        sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+        
+        # Replace Vietnamese mirror with stable mirrors
+        sudo sed -i 's|http://vn.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true
+        
+        log_success "Updated sources.list with stable mirrors"
+    else
+        log_info "No Vietnamese mirror detected, sources.list looks good"
+    fi
+}
+
 # Function to fix DNS and network connectivity issues
 fix_dns_issues() {
     log_info "Checking DNS and network connectivity..."
@@ -179,6 +199,9 @@ fi
 
 # Update system based on OS
 if [ "$OS" = "ubuntu" ]; then
+    # Fix Ubuntu mirror issues first
+    fix_ubuntu_mirror
+    
     # Skip apt update to avoid HTTPS issues
     log_info "Skipping apt update to avoid HTTPS issues..."
     log_info "If you need to update packages, run: make fix-apt"
