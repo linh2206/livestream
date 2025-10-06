@@ -3,18 +3,11 @@
 # LiveStream Platform - Optimized System Installation Script
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+# Simple logging
+log_info() { echo "INFO: $1"; }
+log_success() { echo "SUCCESS: $1"; }
+log_warning() { echo "WARNING: $1"; }
+log_error() { echo "ERROR: $1"; }
 
 # Quick system setup
 echo "Installing system dependencies..."
@@ -26,28 +19,19 @@ echo "Installing system dependencies..."
 if command -v apt &> /dev/null; then
     log_info "Ubuntu/Debian detected - installing essentials..."
     
-    # Fix APT issues first - wait for completion
-    log_info "Cleaning up APT processes..."
+    # Fix APT issues first
     sudo pkill -9 -f apt 2>/dev/null || true
     sudo pkill -9 -f dpkg 2>/dev/null || true
-    sleep 5  # Wait for processes to fully terminate
-    
-    log_info "Removing lock files..."
     sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
     sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
     sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
-    
-    log_info "Cleaning APT cache..."
     sudo apt clean 2>/dev/null || true
     sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
     sudo mkdir -p /var/lib/apt/lists/partial
-    
-    log_info "Fixing broken packages..."
     sudo dpkg --configure -a 2>/dev/null || true
     sudo apt --fix-broken install -y 2>/dev/null || true
     
     # Remove conflicting containerd packages
-    log_info "Removing conflicting packages..."
     sudo apt remove -y containerd containerd.io 2>/dev/null || true
     
     sudo apt update -y
