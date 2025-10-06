@@ -18,6 +18,22 @@ echo "Installing system dependencies..."
 # Detect OS and install essentials
 if command -v apt &> /dev/null; then
     log_info "Ubuntu/Debian detected - installing essentials..."
+    
+    # Fix APT issues first
+    sudo pkill -9 -f apt 2>/dev/null || true
+    sudo pkill -9 -f dpkg 2>/dev/null || true
+    sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
+    sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
+    sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
+    sudo apt clean 2>/dev/null || true
+    sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+    sudo mkdir -p /var/lib/apt/lists/partial
+    sudo dpkg --configure -a 2>/dev/null || true
+    sudo apt --fix-broken install -y 2>/dev/null || true
+    
+    # Remove conflicting containerd packages
+    sudo apt remove -y containerd containerd.io 2>/dev/null || true
+    
     sudo apt update -y
     sudo apt install -y docker.io docker-compose nodejs npm git curl wget
     sudo systemctl enable docker
