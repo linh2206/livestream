@@ -6,7 +6,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://183.182.104.226:24190/api/v1',
+      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
       timeout: 10000,
       withCredentials: false, // No cookies needed
     });

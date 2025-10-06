@@ -213,9 +213,10 @@ services:
     ports:
       - "9216:9216"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/livestream
+      - MONGODB_URI=mongodb://admin:admin123@mongodb:27017/livestream?authSource=admin
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - livestream-network
 

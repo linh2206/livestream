@@ -51,7 +51,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://183.182.104.226:24190',
+      'http://localhost:9000',
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ],
     credentials: true,
@@ -107,6 +107,14 @@ async function bootstrap() {
   logger.log(`🚀 API Server running on: http://localhost:${port}/api/v1`);
   logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.log(`🔒 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  
+  // Handle health check for Docker
+  if (process.argv.includes('--health-check')) {
+    logger.log('🏥 Health check mode - server will exit after startup');
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000);
+  }
 }
 
 bootstrap();

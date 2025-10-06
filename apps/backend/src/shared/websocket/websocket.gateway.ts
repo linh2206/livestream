@@ -15,7 +15,7 @@ import { APP_CONSTANTS } from '../constants';
 @WSGateway({
   cors: {
     origin: [
-      'http://183.182.104.226:24190',
+      'http://localhost:9000',
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ],
     credentials: true,

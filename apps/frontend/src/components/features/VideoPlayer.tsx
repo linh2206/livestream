@@ -31,7 +31,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
   // Memoize HLS URL to prevent unnecessary re-renders
   const finalHlsUrl = useMemo(() => {
       if (streamKey) {
-        const hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1';
+        const hlsBaseUrl = process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://localhost:9000/api/v1';
         return `${hlsBaseUrl}/hls/${streamKey}`;
       }
     return null;

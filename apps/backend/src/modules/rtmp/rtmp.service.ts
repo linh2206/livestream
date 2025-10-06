@@ -28,7 +28,7 @@ export class RtmpService {
           description: 'Auto-created stream from OBS',
           userId: null,
           streamKey,
-          hlsUrl: `${process.env.HLS_BASE_URL || 'http://183.182.104.226:24190/api/v1'}/hls/${streamKey}`,
+          hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${streamKey}`,
           rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${streamKey}`,
           status: 'inactive',
           isLive: false,

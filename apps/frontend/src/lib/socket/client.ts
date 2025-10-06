@@ -26,7 +26,7 @@ class SocketClient {
     this.isConnecting = true;
     this.error = null;
 
-    const socketUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://183.182.104.226:24190';
+    const socketUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000';
     
     this.socket = io(socketUrl, {
       auth: options?.auth,
