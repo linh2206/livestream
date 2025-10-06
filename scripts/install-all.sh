@@ -19,24 +19,17 @@ echo "Installing system dependencies..."
 if command -v apt &> /dev/null; then
     log_info "Ubuntu/Debian detected - installing essentials..."
     
-    # Fix APT issues first - be more specific to avoid killing our own script
-    sudo pkill -9 -f "apt-get\|apt install\|dpkg --configure" 2>/dev/null || true
-    sleep 5  # Wait for processes to terminate
+    # Wait for APT locks to be released
+    while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+          sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+          sudo fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        echo "[INFO] Waiting for other apt/dpkg processes to finish..."
+        sleep 2
+    done
     
-    sudo rm -f /var/lib/dpkg/lock* 2>/dev/null || true
-    sudo rm -f /var/cache/apt/archives/lock* 2>/dev/null || true
-    sudo rm -f /var/lib/apt/lists/lock* 2>/dev/null || true
-    sudo apt clean 2>/dev/null || true
-    sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
-    sudo mkdir -p /var/lib/apt/lists/partial
-    sudo dpkg --configure -a 2>/dev/null || true
-    sudo apt --fix-broken install -y 2>/dev/null || true
-    
-    # Remove conflicting containerd packages
-    sudo apt remove -y containerd containerd.io 2>/dev/null || true
-    
-    sudo apt update -y > /dev/null 2>&1
-    sudo apt install -y docker.io docker-compose nodejs npm git curl wget > /dev/null 2>&1
+    sudo dpkg --configure -a || true
+    sudo apt-get -o Dpkg::Use-Pty=0 -y -qq update
+    sudo apt-get -o Dpkg::Use-Pty=0 -y install docker.io docker-compose nodejs npm git curl wget
     sudo systemctl enable docker
     sudo systemctl start docker
     sudo usermod -aG docker $USER

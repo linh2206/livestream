@@ -26,9 +26,10 @@ fi
 
 # Build and start services
 log_info "Building and starting services..."
-docker-compose down --remove-orphans > /dev/null 2>&1
-docker-compose build --no-cache > /dev/null 2>&1
-docker-compose up -d > /dev/null 2>&1
+export DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0
+docker-compose down --remove-orphans
+docker-compose build --no-cache
+docker-compose up -d
 
 # Wait for services
 log_info "Waiting for services to start..."
