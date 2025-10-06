@@ -31,7 +31,7 @@ EOF
             sudo apt clean 2>/dev/null || true
             sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
             sudo mkdir -p /var/lib/apt/lists/partial
-            sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null || true
+            sudo apt update -y 2>/dev/null || true
             echo "✅ Package repositories fixed"
         fi
     }
@@ -183,8 +183,8 @@ EOF
         sudo mkdir -p /var/lib/apt/lists/partial
         
         # Update package lists
-        if sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null; then
-            log_success "✅ Package lists updated successfully"
+        if sudo apt update -y 2>/dev/null; then
+            log_success "Package lists updated successfully"
         else
             log_warning "Package list update failed, but continuing..."
         fi
@@ -234,8 +234,8 @@ fix_apt_resolver() {
     
     # Update package lists
     log_info "Updating package lists..."
-    if sudo DEBIAN_FRONTEND=noninteractive apt update -y 2>/dev/null; then
-        log_success "✅ APT resolver fixed successfully"
+    if sudo apt update -y 2>/dev/null; then
+        log_success "APT resolver fixed successfully"
     else
         log_warning "APT update still failing, but continuing..."
     fi
@@ -347,7 +347,7 @@ if [ "$OS" = "ubuntu" ]; then
     
     # Now we can safely update packages
     echo "Step 3/4: Updating system packages..."
-    sudo DEBIAN_FRONTEND=noninteractive apt update -y || log_warning "Package update failed, but continuing..."
+    sudo apt update -y || log_warning "Package update failed, but continuing..."
     echo "Package update completed"
 elif [ "$OS" = "macos" ]; then
     log_info "Updating macOS packages..."
@@ -365,7 +365,7 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     echo "Step 4/4: Installing Docker and dependencies..."
     log_info "Installing Docker..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
+    sudo apt install -y docker.io || log_warning "Docker installation failed, but continuing..."
     echo "Docker installed"
     
     echo "Enabling Docker service..."
@@ -398,7 +398,7 @@ if [ "$OS" = "ubuntu" ]; then
     log_info "Installing Node.js 18..."
     log_info "Installing Node.js directly via apt to avoid version upgrade..."
     echo "Installing Node.js and npm..."
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+    sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
     echo "Node.js and npm installed"
 
     # Verify installation
@@ -407,7 +407,7 @@ if [ "$OS" = "ubuntu" ]; then
     else
         log_error "Failed to install Node.js or npm"
         log_info "Trying alternative installation method..."
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
+        sudo apt install -y nodejs npm || log_warning "Node.js installation failed, but continuing..."
         if command -v node &> /dev/null && command -v npm &> /dev/null; then
             log_success "Node.js $(node --version) and npm $(npm --version) installed via apt"
         else
