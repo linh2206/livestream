@@ -12,10 +12,8 @@ RUN npm config set registry https://registry.npmjs.org/ && \
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (need dev deps for build) with retry
-RUN npm ci --no-audit --no-fund --prefer-offline || \
-    (npm cache clean --force && npm ci --no-audit --no-fund) || \
-    npm install --no-audit --no-fund
+# Install ALL dependencies - fix package-lock sync issue
+RUN rm -f package-lock.json && npm install --no-audit --no-fund
 
 # Copy source code
 COPY . .

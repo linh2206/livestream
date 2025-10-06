@@ -26,7 +26,6 @@ fi
 
 # Build and start services
 log_info "Building and starting services..."
-export DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0
 docker-compose down --remove-orphans
 docker-compose build --no-cache
 docker-compose up -d

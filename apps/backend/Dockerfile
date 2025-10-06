@@ -12,10 +12,8 @@ RUN npm config set registry https://registry.npmjs.org/ && \
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (need dev deps for build) with retry
-RUN npm ci --no-audit --no-fund --prefer-offline || \
-    (npm cache clean --force && npm ci --no-audit --no-fund) || \
-    npm install --no-audit --no-fund
+# Install ALL dependencies - fix package-lock sync issue
+RUN rm -f package-lock.json && npm install --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -43,9 +41,7 @@ COPY package*.json ./
 # Install production dependencies only with network resilience
 RUN npm config set registry https://registry.npmjs.org/ && \
     npm config set fetch-timeout 300000 && \
-    (npm ci --only=production --no-audit --no-fund --prefer-offline || \
-     (npm cache clean --force && npm ci --only=production --no-audit --no-fund) || \
-     npm install --only=production --no-audit --no-fund) && \
+    (rm -f package-lock.json && npm install --only=production --no-audit --no-fund) && \
     npm cache clean --force
 
 # Copy built application
