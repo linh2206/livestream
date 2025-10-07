@@ -36,7 +36,7 @@ jobs:
             docker-compose ps
             docker-compose logs --tail=50
             docker system prune -af --volumes
-          EOF
+            EOF
 
       - name: Health Check
         run: |
@@ -73,7 +73,7 @@ jobs:
             docker-compose ps
             docker-compose logs --tail=50
             docker system prune -af --volumes
-          EOF
+            EOF
 
       - name: Health Check
         run: |
@@ -96,4 +96,4 @@ jobs:
             git reset --hard HEAD~1
             docker-compose down
             docker-compose up -d --build
-          EOF
+            EOF
