@@ -71,9 +71,14 @@ if [[ "$EUID" -eq 0 && "${ALLOW_ROOT:-0}" != "1" ]]; then
 fi
 
 ensure_deps() {
-  if ! command -v curl >/dev/null 2>&1; then
-    print_header "Installing curl"
-    sudo apt-get update -y && sudo apt-get install -y curl ca-certificates
+  local to_install=()
+  command -v curl >/dev/null 2>&1 || to_install+=(curl)
+  command -v tar >/dev/null 2>&1 || to_install+=(tar)
+  command -v gzip >/dev/null 2>&1 || to_install+=(gzip)
+  command -v file >/dev/null 2>&1 || to_install+=(file)
+  if [[ ${#to_install[@]} -gt 0 ]]; then
+    print_header "Installing dependencies: ${to_install[*]}"
+    sudo apt-get update -y && sudo apt-get install -y ca-certificates "${to_install[@]}"
   fi
 }
 
@@ -164,9 +169,9 @@ install_runner() {
     cd "$dir"
 
     print_header "Tải runner v${RUNNER_VERSION}"
-    curl -fL -o runner.tgz "$url"
-    file runner.tgz | grep -qi gzip || { echo "Tệp tải về không phải gzip. URL có thể sai."; exit 1; }
-    tar -xzf runner.tgz
+    curl -fL -H 'Accept: application/octet-stream' -o runner.tgz "$url" || { echo "Tải runner thất bại từ $url"; exit 1; }
+    tar -tzf runner.tgz >/dev/null 2>&1 || { echo "runner.tgz không phải tar.gz hợp lệ (có thể do URL sai hoặc mạng)."; exit 1; }
+    tar -xzf runner.tgz || { echo "Giải nén runner.tgz thất bại."; exit 1; }
     chmod +x config.sh run.sh svc.sh
 
     print_header "Cấu hình runner #$i"
