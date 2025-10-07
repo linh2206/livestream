@@ -1,6 +1,7 @@
 name: CD
 
 on:
+    workflow_dispatch:
     workflow_run:
         workflows: ["CI"]
         types: [completed]
@@ -25,7 +26,11 @@ jobs:
 
             - name: Add known hosts
               run: |
-                  ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+                  mkdir -p ~/.ssh
+                  touch ~/.ssh/known_hosts
+                  chmod 700 ~/.ssh
+                  chmod 600 ~/.ssh/known_hosts
+                  ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
             - name: Create deploy bundle (exclude dev files)
               run: |
@@ -33,20 +38,24 @@ jobs:
 
             - name: Upload bundle to server
               run: |
-                  scp -P ${{ secrets.SSH_PORT }} release.tgz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/livestream-release.tgz
+                  scp -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} release.tgz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/livestream-release.tgz
 
             - name: Deploy on server
-              env:
-                  APP_DIR: ${{ secrets.APP_DIR }}
               run: |
-                  ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
+                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
                     set -euo pipefail; \
-                    mkdir -p \"$APP_DIR\"; \
-                    tar -xzf /tmp/livestream-release.tgz -C \"$APP_DIR\"; \
+                    TARGET_DIR=\"$HOME/workspace/livestream\"; \
+                    case \"$TARGET_DIR\" in \
+                      /*) ;; \
+                      *) TARGET_DIR=\"$HOME/$TARGET_DIR\" ;; \
+                    esac; \
+                    mkdir -p \"$TARGET_DIR\"; \
+                    tar -xzf /tmp/livestream-release.tgz -C \"$TARGET_DIR\"; \
                     rm -f /tmp/livestream-release.tgz; \
-                    cd \"$APP_DIR\"; \
-                    echo 'Writing .env from secrets'; \
-                    cat > .env << 'EOF'\n${{ secrets.ENV_FILE }}\nEOF\n; \
+                    cd \"$TARGET_DIR\"; \
+                    if [ -f .env ]; then echo '.env exists, keeping it'; \
+                    elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env; \
+                    else echo 'No .env or .env.example found'; fi; \
                     docker compose pull || true; \
                     docker compose build --no-cache; \
                     docker compose up -d --remove-orphans; \
@@ -54,18 +63,19 @@ jobs:
                     docker system df; \
                   "
 
-            - name: Health check Backend
+            - name: Health check services via Docker
               run: |
-                  for i in {1..15}; do \
-                    if curl -fsS ${{ secrets.BACKEND_HEALTH_URL }} >/dev/null; then echo "Backend OK"; exit 0; fi; \
-                    sleep 10; \
-                  done; \
-                  echo "Backend health check failed"; exit 1
-
-            - name: Health check Frontend
-              run: |
-                  for i in {1..15}; do \
-                    if curl -fsS ${{ secrets.FRONTEND_HEALTH_URL }} >/dev/null; then echo "Frontend OK"; exit 0; fi; \
-                    sleep 10; \
-                  done; \
-                  echo "Frontend health check failed"; exit 1
+                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
+                      set -e; \
+                      check_health() { \
+                        name=\"$1\"; \
+                        for i in $(seq 1 20); do \
+                          status=\$(docker inspect --format='{{{{.State.Health.Status}}}}' \"$name\" 2>/dev/null || echo 'unknown'); \
+                          echo \"$name: $status\"; \
+                          if [ \"$status\" = healthy ]; then return 0; fi; \
+                          sleep 6; \
+                        done; \
+                        return 1; \
+                      }; \
+                      check_health livestream-backend && check_health livestream-frontend && echo 'All services healthy'; \
+                    "
