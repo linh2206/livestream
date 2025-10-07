@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
 
 jobs:
   # Lint, Type Check, và Build - chạy song song
@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         app: [frontend, backend]
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
 
       - name: Install dependencies
@@ -62,7 +62,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,16 +70,16 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
   # Docker build test - chỉ chạy khi push
   docker:
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     if: github.event_name == 'push'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, security, docker]
     if: always()
-    
+
     steps:
       - name: Check CI status
         run: |
