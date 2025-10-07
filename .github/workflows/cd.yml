@@ -1,11 +1,14 @@
 name: CD
 
+# CD tạm tắt - SSH logs quá lộn xộn
+# Deploy thủ công trên VPS: cd /root/workspace/livestream && git pull && docker-compose up -d --build
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
-    branches: [main, develop]
+  workflow_dispatch:
+  # workflow_run:
+  #   workflows: ["CI"]
+  #   types:
+  #     - completed
+  #   branches: [main, develop]
 
 jobs:
   # Deploy to Staging (develop branch)
@@ -24,21 +27,30 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
           script: |
-            set -e
             sudo -i bash << 'EOF'
-            set -ex
             cd /root/workspace/livestream-staging
+            echo "================================"
+            echo "📥 Pulling code..."
             git pull origin develop
+            echo "================================"
+            echo "🛑 Stopping containers..."
             docker-compose down
-            docker-compose build --progress=plain
+            echo "================================"
+            echo "🏗️ Building images..."
+            docker-compose build 2>&1 | tail -50
+            echo "================================"
+            echo "🚀 Starting containers..."
             docker-compose up -d
-            docker-compose logs --tail=100
+            echo "================================"
+            echo "📊 Container status:"
             docker-compose ps
-            docker system prune -af --volumes
-            EOF
-          script_stop: true
-          command_timeout: 30m
-          debug: true
+            echo "================================"
+            echo "📋 Container logs:"
+            docker-compose logs --tail=50
+            echo "================================"
+            docker system prune -af --volumes > /dev/null 2>&1
+            echo "✅ Deployment done!"
+          EOF
 
       - name: Health Check
         run: |
@@ -63,21 +75,30 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
-            set -e
             sudo -i bash << 'EOF'
-            set -ex
             cd /root/workspace/livestream
+            echo "================================"
+            echo "📥 Pulling code..."
             git pull origin main
+            echo "================================"
+            echo "🛑 Stopping containers..."
             docker-compose down
-            docker-compose build --progress=plain
+            echo "================================"
+            echo "🏗️ Building images..."
+            docker-compose build 2>&1 | tail -50
+            echo "================================"
+            echo "🚀 Starting containers..."
             docker-compose up -d
-            docker-compose logs --tail=100
+            echo "================================"
+            echo "📊 Container status:"
             docker-compose ps
-            docker system prune -af --volumes
-            EOF
-          script_stop: true
-          command_timeout: 30m
-          debug: true
+            echo "================================"
+            echo "📋 Container logs:"
+            docker-compose logs --tail=50
+            echo "================================"
+            docker system prune -af --volumes > /dev/null 2>&1
+            echo "✅ Deployment done!"
+          EOF
 
       - name: Health Check
         run: |
@@ -88,20 +109,14 @@ jobs:
 
       - name: Rollback on Failure
         if: failure()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_PORT || 22 }}
-          script: |
-            set -e
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USERNAME }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             sudo -i bash << 'EOF'
-            set -e
             cd /root/workspace/livestream
+            echo "⚠️ Rolling back..."
             git reset --hard HEAD~1
             docker-compose down
             docker-compose up -d --build
-            EOF
-          script_stop: true
-          debug: true
+            echo "✅ Rollback completed"
+          EOF
+          ENDSSH
