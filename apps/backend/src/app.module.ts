@@ -17,6 +17,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { VodModule } from './modules/vod/vod.module';
 
 import { DatabaseModule } from './shared/database/database.module';
 import { RedisModule } from './shared/redis/redis.module';
@@ -50,6 +51,7 @@ import { databaseConfig } from './shared/database/database.config';
     MetricsModule,
     AlertsModule,
     AnalyticsModule,
+    VodModule,
   ],
 })
 export class AppModule {}

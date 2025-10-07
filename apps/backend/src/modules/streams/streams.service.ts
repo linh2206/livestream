@@ -14,6 +14,7 @@ import { User, UserDocument } from '../../shared/database/schemas/user.schema';
 import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 import { RedisService } from '../../shared/redis/redis.service';
 import { WebSocketService } from '../../shared/websocket/websocket.service';
+import { VodService } from '../vod/vod.service';
 
 @Injectable()
 export class StreamsService {
@@ -21,7 +22,8 @@ export class StreamsService {
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private redisService: RedisService,
-    private webSocketService: WebSocketService
+    private webSocketService: WebSocketService,
+    private vodService: VodService,
   ) {}
 
   async create(
@@ -338,6 +340,16 @@ export class StreamsService {
 
     // Broadcast stream stop
     this.webSocketService.broadcastStreamStop((stream as any)._id.toString());
+
+    // Automatically process stream to VOD after a short delay
+    // This allows HLS segments to be finalized
+    setTimeout(async () => {
+      try {
+        await this.vodService.processStreamToVod((stream as any)._id.toString());
+      } catch (error) {
+        console.error('Failed to process VOD:', error);
+      }
+    }, 5000); // 5 second delay
 
     return stream;
   }

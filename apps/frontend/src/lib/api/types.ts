@@ -72,6 +72,16 @@ export interface Stream extends BaseEntity {
   user?: User;
   startTime?: string;
   endTime?: string;
+  
+  // VOD (Video on Demand) fields
+  isVod: boolean;
+  vodUrl?: string;
+  vodDuration?: number; // in seconds
+  vodFileSize?: number; // in bytes
+  vodThumbnail?: string;
+  vodProcessing: boolean;
+  vodProcessingStatus?: 'processing' | 'completed' | 'failed';
+  vodProcessingError?: string;
 }
 
 // Chat Types

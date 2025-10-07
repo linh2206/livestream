@@ -62,6 +62,31 @@ export class Stream {
 
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   likedBy: Types.ObjectId[];
+
+  // VOD (Video on Demand) fields
+  @Prop({ default: false })
+  isVod: boolean;
+
+  @Prop({ default: null })
+  vodUrl?: string;
+
+  @Prop({ default: null })
+  vodDuration?: number; // in seconds
+
+  @Prop({ default: null })
+  vodFileSize?: number; // in bytes
+
+  @Prop({ default: null })
+  vodThumbnail?: string;
+
+  @Prop({ default: false })
+  vodProcessing: boolean;
+
+  @Prop({ default: null })
+  vodProcessingStatus?: string; // 'processing', 'completed', 'failed'
+
+  @Prop({ default: null })
+  vodProcessingError?: string;
 }
 
 export const StreamSchema = SchemaFactory.createForClass(Stream);
