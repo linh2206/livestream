@@ -18,6 +18,7 @@ help:
 	@echo "  make runner-purge   - Remove existing self-hosted runner (inline)"
 	@echo "  make runner-install - Install/register self-hosted runner(s) (inline)"
 	@echo "  make runner-reinstall - Purge then install runner(s) (inline)"
+	@echo "  make runner-install-script - Install runner(s) via scripts/runner-install.sh"
 	@echo "  make runner-start   - Start runner service(s)"
 	@echo "  make runner-status  - Status of runner service(s)"
 	@echo "  make runner-user    - Create 'runner' user if missing"
@@ -100,6 +101,15 @@ runner-install:
 		$$( [ -n "$(PREFIX)" ] && echo --prefix $(PREFIX) ) \
 		$$( [ -n "$(RUNNER_BASE)" ] && echo --base $(RUNNER_BASE) ) \
 		$$( [ -n "$(VERSION)" ] && echo --version $(VERSION) )'
+
+runner-install-script:
+	@echo "Installing runner(s) via scripts/runner-install.sh..."
+	RUNNER_USER=${RUNNER_USER} bash -c '\
+	  USERNAME="$${RUNNER_USER:-runner}"; id $$USERNAME >/dev/null 2>&1 || sudo useradd -m -s /bin/bash $$USERNAME; \
+	  sudo -u $$USERNAME -H env \
+	    GH_URL="$(GH_URL)" GH_TOKEN="$(GH_TOKEN)" COUNT="$(COUNT)" VERSION="$(VERSION)" \
+	    PREFIX="$(PREFIX)" RUNNER_BASE="$(RUNNER_BASE)" NAME="$(NAME)" LABELS="$(LABELS)" \
+	    bash scripts/runner-install.sh'
 
 runner-reinstall: runner-purge runner-install
 
