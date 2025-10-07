@@ -1,14 +1,11 @@
 name: CD
 
-# CD tắt - chỉ bật khi đã setup VPS xong
-# Để bật lại: uncomment workflow_run và comment workflow_dispatch
 on:
-  workflow_dispatch:
-  # workflow_run:
-  #   workflows: ["CI"]
-  #   types:
-  #     - completed
-  #   branches: [main, develop]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main, develop]
 
 jobs:
   # Deploy to Staging (develop branch)
