@@ -26,11 +26,14 @@ jobs:
           script: |
             set -e
             sudo -i bash << 'EOF'
-            set -e
+            set -ex
             cd /root/workspace/livestream-staging
             git pull origin develop
             docker-compose down
-            docker-compose up -d --build
+            docker-compose build --progress=plain
+            docker-compose up -d
+            docker-compose logs --tail=100
+            docker-compose ps
             docker system prune -af --volumes
             EOF
           script_stop: true
@@ -62,11 +65,14 @@ jobs:
           script: |
             set -e
             sudo -i bash << 'EOF'
-            set -e
+            set -ex
             cd /root/workspace/livestream
             git pull origin main
             docker-compose down
-            docker-compose up -d --build
+            docker-compose build --progress=plain
+            docker-compose up -d
+            docker-compose logs --tail=100
+            docker-compose ps
             docker system prune -af --volumes
             EOF
           script_stop: true
