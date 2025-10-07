@@ -1,13 +1,11 @@
 name: CD
 
-# Tắt CD tạm thời - bật lại khi có VPS
 on:
-  workflow_dispatch:
-  # workflow_run:
-  #   workflows: ["CI"]
-  #   types:
-  #     - completed
-  #   branches: [main, develop]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main, develop]
 
 jobs:
   # Deploy to Staging (develop branch)
