@@ -32,32 +32,20 @@ jobs:
 
       - name: Install dependencies
         working-directory: apps/${{ matrix.app }}
-        run: |
-          echo "📦 Installing dependencies for ${{ matrix.app }}..."
-          npm ci
-          echo "✅ Dependencies installed successfully"
+        run: npm ci
 
       - name: Lint
         working-directory: apps/${{ matrix.app }}
-        run: |
-          echo "🔍 Running linter for ${{ matrix.app }}..."
-          npm run lint || echo "⚠️ Lint warnings found (non-blocking)"
-          echo "✅ Lint check completed"
+        run: npm run lint || true
         continue-on-error: true
 
       - name: Type check
         working-directory: apps/${{ matrix.app }}
-        run: |
-          echo "🔎 Type checking ${{ matrix.app }}..."
-          npm run type-check
-          echo "✅ Type check passed"
+        run: npm run type-check
 
       - name: Build
         working-directory: apps/${{ matrix.app }}
-        run: |
-          echo "🏗️ Building ${{ matrix.app }}..."
-          npm run build
-          echo "✅ Build completed successfully"
+        run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -81,9 +69,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         run: |
-          echo "🔒 Running security scan..."
           docker run --rm -v ${{ github.workspace }}:/workspace aquasec/trivy:latest fs /workspace --severity HIGH,CRITICAL || true
-          echo "✅ Security scan completed"
         continue-on-error: true
 
   # Docker build test - chỉ chạy khi push
@@ -102,39 +88,23 @@ jobs:
 
       - name: Install Docker Compose
         run: |
-          echo "📦 Installing Docker Compose..."
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
-          echo "✅ Docker Compose installed"
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - name: Build Docker images
-        run: |
-          echo "🐳 Building Docker images..."
-          docker-compose build
-          echo "✅ Docker images built successfully"
+        run: docker-compose build
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Test containers
         run: |
-          echo "🧪 Testing containers..."
           docker-compose up -d
           sleep 30
-          echo "📊 Container status:"
           docker-compose ps
-          echo "✅ Containers started successfully"
+          docker-compose logs --tail=50
           docker-compose down -v
-          echo "✅ Cleanup completed"
 
   # Summary job
   ci-success:
