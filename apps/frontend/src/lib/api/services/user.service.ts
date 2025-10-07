@@ -46,6 +46,16 @@ class UserService {
   async searchUsers(query: string): Promise<User[]> {
     return apiClient.get<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
   }
+
+  async createUser(data: {
+    username: string;
+    email: string;
+    fullName: string;
+    password: string;
+    role?: 'user' | 'admin' | 'manager';
+  }): Promise<User> {
+    return apiClient.post<User>('/users', data);
+  }
 }
 
 export const userService = new UserService();

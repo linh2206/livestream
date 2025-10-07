@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { useUsersList } from '@/lib/hooks/useUsersList';
 import { userService } from '@/lib/api/services/user.service';
 import { User } from '@/lib/api/types';
+import { AddUserModal } from '@/components/admin/AddUserModal';
+import { EditUserModal } from '@/components/admin/EditUserModal';
 
 export default function AdminUsersPage() {
   // ALL HOOKS MUST BE AT THE TOP - NEVER AFTER CONDITIONAL RETURNS!
@@ -15,6 +17,9 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Define callbacks BEFORE any conditional returns
   const handleToggleUserStatus = useCallback(async (userId: string, currentStatus: boolean) => {
@@ -34,6 +39,19 @@ export default function AdminUsersPage() {
       console.error('❌ [AdminUsers] Error changing user role:', err);
     }
   }, [mutate]);
+
+  const handleUserCreated = useCallback(() => {
+    mutate(); // Refresh the users list
+  }, [mutate]);
+
+  const handleUserUpdated = useCallback(() => {
+    mutate(); // Refresh the users list
+  }, [mutate]);
+
+  const handleEditUser = useCallback((user: User) => {
+    setSelectedUser(user);
+    setIsEditUserModalOpen(true);
+  }, []);
 
   // NOW conditional returns are safe
   if (isLoading) {
@@ -102,7 +120,7 @@ export default function AdminUsersPage() {
             <div className="text-sm text-gray-400">
               Total Users: {users.length}
             </div>
-            <Button onClick={() => alert('Add User Modal - To be implemented')}>
+            <Button onClick={() => setIsAddUserModalOpen(true)}>
               + Add User
             </Button>
           </div>
@@ -131,7 +149,7 @@ export default function AdminUsersPage() {
                 <option value="all">All Roles</option>
                 <option value="admin">Admin</option>
                 <option value="user">User</option>
-                <option value="moderator">Moderator</option>
+                <option value="manager">Manager</option>
               </select>
             </div>
             <div>
@@ -198,7 +216,7 @@ export default function AdminUsersPage() {
                         className="px-2 py-1 bg-gray-600 border border-gray-500 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="user">User</option>
-                        <option value="moderator">Moderator</option>
+                        <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                       </select>
                     </td>
@@ -223,7 +241,7 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => alert(`Edit user ${user.username} - Modal to be implemented`)}
+                          onClick={() => handleEditUser(user)}
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium"
                         >
                           Edit
@@ -268,6 +286,24 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
+        onUserCreated={handleUserCreated}
+      />
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={isEditUserModalOpen}
+        onClose={() => {
+          setIsEditUserModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onUserUpdated={handleUserUpdated}
+        user={selectedUser}
+      />
     </div>
   );
 }
