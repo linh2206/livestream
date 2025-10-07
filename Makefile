@@ -15,6 +15,9 @@ help:
 	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
+	@echo "  make runner-purge   - Remove existing self-hosted runner"
+	@echo "  make runner-install - Install/register self-hosted runner(s)"
+	@echo "  make runner-reinstall - Purge then install runner(s)"
 	@echo ""
 	@echo "Access URLs:"
 	@echo "  Frontend: http://localhost:3000"
@@ -71,3 +74,22 @@ setup:
 	./scripts/install-all.sh
 	./scripts/build-start.sh
 	@echo "Setup complete! Access at http://localhost:3000"
+
+# ===== Self-hosted Runner =====
+# Variables (override when calling):
+# GH_URL=<repo_or_org_url> GH_TOKEN=<registration_token> COUNT=1 NAME=runner LABELS=prod,linux PREFIX=actions-runner VERSION=2.316.1
+
+runner-purge:
+	@echo "Purging existing runner..."
+	bash scripts/runner.sh --purge || true
+
+runner-install:
+	@echo "Installing runner(s)..."
+	GH_URL="$(GH_URL)" GH_TOKEN="$(GH_TOKEN)" bash scripts/runner.sh --install \
+		$$( [ -n "$(COUNT)" ] && echo --count $(COUNT) ) \
+		$$( [ -n "$(NAME)" ] && echo --name $(NAME) ) \
+		$$( [ -n "$(LABELS)" ] && echo --labels $(LABELS) ) \
+		$$( [ -n "$(PREFIX)" ] && echo --prefix $(PREFIX) ) \
+		$$( [ -n "$(VERSION)" ] && echo --version $(VERSION) )
+
+runner-reinstall: runner-purge runner-install
