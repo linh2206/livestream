@@ -66,12 +66,14 @@ jobs:
     steps:
       - name: Setup SSH Key
         run: |
-          mkdir -p ~/.ssh
+          sudo -i bash << 'INNER_EOF'
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
           ls -la ~/.ssh/
+          INNER_EOF
+          EOF
           echo "SSH key setup complete"
 
       - name: Deploy to Production Server
