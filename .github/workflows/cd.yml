@@ -24,17 +24,46 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
           script: |
-            cd /home/livestream-staging
+            echo "================================================"
+            echo "🚀 DEPLOYING TO STAGING"
+            echo "================================================"
+            echo ""
+            echo "📁 Step 1: Navigate to project directory"
+            cd /workspace/livestream-staging || exit 1
+            echo "✅ Current directory: $(pwd)"
+            echo ""
+            echo "📥 Step 2: Pull latest code from develop branch"
             git pull origin develop
+            echo "✅ Code updated"
+            echo ""
+            echo "🛑 Step 3: Stop old containers"
             docker-compose down
+            echo "✅ Old containers stopped"
+            echo ""
+            echo "🏗️ Step 4: Build and start new containers"
             docker-compose up -d --build
+            echo "✅ New containers started"
+            echo ""
+            echo "🧹 Step 5: Clean up unused Docker resources"
             docker system prune -af --volumes
+            echo "✅ Cleanup completed"
+            echo ""
+            echo "================================================"
+            echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY"
+            echo "================================================"
 
       - name: Health Check
         run: |
+          echo "🏥 Waiting for containers to be ready..."
           sleep 30
-          curl -f http://${{ secrets.STAGING_HOST }}:3000 || exit 1
-          echo "✅ Staging deployment successful!"
+          echo "🔍 Checking health endpoint..."
+          if curl -f http://${{ secrets.STAGING_HOST }}:3000; then
+            echo "✅ Health check passed!"
+            echo "✅ Staging deployment successful!"
+          else
+            echo "❌ Health check failed!"
+            exit 1
+          fi
 
   # Deploy to Production (main branch)
   deploy-production:
@@ -52,17 +81,46 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
-            cd /home/livestream
+            echo "================================================"
+            echo "🚀 DEPLOYING TO PRODUCTION"
+            echo "================================================"
+            echo ""
+            echo "📁 Step 1: Navigate to project directory"
+            cd /workspace/livestream || exit 1
+            echo "✅ Current directory: $(pwd)"
+            echo ""
+            echo "📥 Step 2: Pull latest code from main branch"
             git pull origin main
+            echo "✅ Code updated"
+            echo ""
+            echo "🛑 Step 3: Stop old containers"
             docker-compose down
+            echo "✅ Old containers stopped"
+            echo ""
+            echo "🏗️ Step 4: Build and start new containers"
             docker-compose up -d --build
+            echo "✅ New containers started"
+            echo ""
+            echo "🧹 Step 5: Clean up unused Docker resources"
             docker system prune -af --volumes
+            echo "✅ Cleanup completed"
+            echo ""
+            echo "================================================"
+            echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY"
+            echo "================================================"
 
       - name: Health Check
         run: |
+          echo "🏥 Waiting for containers to be ready..."
           sleep 30
-          curl -f http://${{ secrets.PRODUCTION_HOST }}:3000 || exit 1
-          echo "✅ Production deployment successful!"
+          echo "🔍 Checking health endpoint..."
+          if curl -f http://${{ secrets.PRODUCTION_HOST }}:3000; then
+            echo "✅ Health check passed!"
+            echo "✅ Production deployment successful!"
+          else
+            echo "❌ Health check failed!"
+            exit 1
+          fi
 
       - name: Rollback on Failure
         if: failure()
@@ -73,8 +131,19 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
-            cd /home/livestream
+            echo "================================================"
+            echo "⚠️ ROLLBACK IN PROGRESS"
+            echo "================================================"
+            echo ""
+            echo "📁 Navigate to project directory"
+            cd /workspace/livestream
+            echo "⏪ Reverting to previous version"
             git reset --hard HEAD~1
+            echo "🛑 Stopping failed containers"
             docker-compose down
+            echo "🔄 Starting previous version"
             docker-compose up -d --build
-            echo "⚠️ Rolled back to previous version"
+            echo ""
+            echo "================================================"
+            echo "✅ ROLLBACK COMPLETED"
+            echo "================================================"

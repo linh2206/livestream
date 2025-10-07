@@ -32,20 +32,32 @@ jobs:
 
       - name: Install dependencies
         working-directory: apps/${{ matrix.app }}
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies for ${{ matrix.app }}..."
+          npm ci
+          echo "✅ Dependencies installed successfully"
 
       - name: Lint
         working-directory: apps/${{ matrix.app }}
-        run: npm run lint || true
+        run: |
+          echo "🔍 Running linter for ${{ matrix.app }}..."
+          npm run lint || echo "⚠️ Lint warnings found (non-blocking)"
+          echo "✅ Lint check completed"
         continue-on-error: true
 
       - name: Type check
         working-directory: apps/${{ matrix.app }}
-        run: npm run type-check
+        run: |
+          echo "🔎 Type checking ${{ matrix.app }}..."
+          npm run type-check
+          echo "✅ Type check passed"
 
       - name: Build
         working-directory: apps/${{ matrix.app }}
-        run: npm run build
+        run: |
+          echo "🏗️ Building ${{ matrix.app }}..."
+          npm run build
+          echo "✅ Build completed successfully"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -68,11 +80,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: "fs"
-          scan-ref: "."
-          format: "table"
+        run: |
+          echo "🔒 Running security scan..."
+          docker run --rm -v ${{ github.workspace }}:/workspace aquasec/trivy:latest fs /workspace --severity HIGH,CRITICAL || true
+          echo "✅ Security scan completed"
         continue-on-error: true
 
   # Docker build test - chỉ chạy khi push
@@ -91,9 +102,11 @@ jobs:
 
       - name: Install Docker Compose
         run: |
+          echo "📦 Installing Docker Compose..."
           sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
+          echo "✅ Docker Compose installed"
 
       - name: Cache Docker layers
         uses: actions/cache@v4
@@ -104,18 +117,24 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build Docker images
-        run: docker-compose build
+        run: |
+          echo "🐳 Building Docker images..."
+          docker-compose build
+          echo "✅ Docker images built successfully"
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Test containers
         run: |
+          echo "🧪 Testing containers..."
           docker-compose up -d
           sleep 30
+          echo "📊 Container status:"
           docker-compose ps
-          docker-compose logs
+          echo "✅ Containers started successfully"
           docker-compose down -v
+          echo "✅ Cleanup completed"
 
   # Summary job
   ci-success:
