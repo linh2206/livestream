@@ -32,13 +32,15 @@ jobs:
                   chmod 600 ~/.ssh/known_hosts
                   ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-            - name: Create deploy bundle (exclude dev files)
+            - name: Sync files to server (rsync)
               run: |
-                  tar --exclude-vcs --exclude='.github' --exclude='node_modules' -czf release.tgz .
-
-            - name: Upload bundle to server
-              run: |
-                  scp -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} release.tgz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/livestream-release.tgz
+                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p \"$HOME/workspace/livestream\""
+                  rsync -az --delete \
+                    --exclude='.git' \
+                    --exclude='.github' \
+                    --exclude='node_modules' \
+                    -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+                    ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/workspace/livestream/
 
             - name: Deploy on server
               run: |
@@ -50,8 +52,6 @@ jobs:
                       *) TARGET_DIR=\"$HOME/$TARGET_DIR\" ;; \
                     esac; \
                     mkdir -p \"$TARGET_DIR\"; \
-                    tar -xzf /tmp/livestream-release.tgz -C \"$TARGET_DIR\"; \
-                    rm -f /tmp/livestream-release.tgz; \
                     cd \"$TARGET_DIR\"; \
                     if [ -f .env ]; then echo '.env exists, keeping it'; \
                     elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env; \
