@@ -24,6 +24,12 @@ jobs:
               with:
                   ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+            - name: Mask sensitive values in logs
+              run: |
+                  echo "::add-mask::${{ secrets.SSH_HOST }}"
+                  echo "::add-mask::${{ secrets.SSH_USER }}"
+                  echo "::add-mask::${{ secrets.SSH_PORT }}"
+
             - name: Add known hosts
               run: |
                   mkdir -p ~/.ssh
@@ -34,17 +40,19 @@ jobs:
 
             - name: Sync files to server (rsync)
               run: |
-                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p \"$HOME/workspace/livestream\""
-                  rsync -az --delete \
+                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
+                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p \"$HOME/workspace/livestream\""
+                  retry rsync -azq --delete \
                     --exclude='.git' \
                     --exclude='.github' \
                     --exclude='node_modules' \
-                    -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+                    -e "ssh -q -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
                     ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/workspace/livestream/
 
             - name: Deploy on server
               run: |
-                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
+                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
+                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
                     set -euo pipefail; \
                     TARGET_DIR=\"$HOME/workspace/livestream\"; \
                     case \"$TARGET_DIR\" in \
@@ -65,7 +73,8 @@ jobs:
 
             - name: Health check services via Docker
               run: |
-                  ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
+                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
+                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
                       set -e; \
                       check_health() { \
                         name=\"$1\"; \
