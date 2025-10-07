@@ -87,12 +87,13 @@ purge_runner() {
     for dir in "$dir1" "$dir2"; do
       if [[ -d "$dir" ]]; then
         print_header "Removing runner at $dir"
-        pushd "$dir" >/dev/null || exit 1
-        chmod +x svc.sh config.sh || true
-        ./svc.sh stop 2>/dev/null || true
-        ./svc.sh uninstall 2>/dev/null || true
-        ./config.sh remove --token invalid 2>/dev/null || true
-        popd >/dev/null || true
+        (
+          cd "$dir" || exit 0
+          chmod +x svc.sh config.sh || true
+          [ -f svc.sh ] && ./svc.sh stop 2>/dev/null || true
+          [ -f svc.sh ] && ./svc.sh uninstall 2>/dev/null || true
+          [ -f config.sh ] && ./config.sh remove --token invalid 2>/dev/null || true
+        )
         rm -rf "$dir"
       fi
     done
@@ -101,12 +102,13 @@ purge_runner() {
       local dir="$HOME/${prefix}${i}"
       if [[ -d "$dir" ]]; then
         print_header "Removing runner #$i at $dir"
-        pushd "$dir" >/dev/null || exit 1
-        chmod +x svc.sh config.sh || true
-        ./svc.sh stop 2>/dev/null || true
-        ./svc.sh uninstall 2>/dev/null || true
-        ./config.sh remove --token invalid 2>/dev/null || true
-        popd >/dev/null || true
+        (
+          cd "$dir" || exit 0
+          chmod +x svc.sh config.sh || true
+          [ -f svc.sh ] && ./svc.sh stop 2>/dev/null || true
+          [ -f svc.sh ] && ./svc.sh uninstall 2>/dev/null || true
+          [ -f config.sh ] && ./config.sh remove --token invalid 2>/dev/null || true
+        )
         rm -rf "$dir"
       fi
     done
