@@ -1,15 +1,17 @@
 import { apiClient } from '../client';
-import { 
-  Stream, 
-  CreateStreamRequest, 
+import {
+  Stream,
+  CreateStreamRequest,
   UpdateStreamRequest,
   PaginatedResponse,
   PaginationParams,
-  ApiResponse 
+  ApiResponse,
 } from '../types';
 
 class StreamService {
-  async getStreams(params?: PaginationParams): Promise<PaginatedResponse<Stream>> {
+  async getStreams(
+    params?: PaginationParams
+  ): Promise<PaginatedResponse<Stream>> {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -60,7 +62,9 @@ class StreamService {
     return apiClient.get(`/streams/${id}/analytics`);
   }
 
-  async getStreamStatus(streamKey: string): Promise<{ isLive: boolean; viewerCount: number }> {
+  async getStreamStatus(
+    streamKey: string
+  ): Promise<{ isLive: boolean; viewerCount: number }> {
     return apiClient.get(`/rtmp/status/${streamKey}`);
   }
 
@@ -74,4 +78,3 @@ class StreamService {
 }
 
 export const streamService = new StreamService();
-

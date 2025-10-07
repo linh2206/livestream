@@ -10,4 +10,3 @@ export class CreateChatMessageDto {
   @MaxLength(500)
   content: string;
 }
-

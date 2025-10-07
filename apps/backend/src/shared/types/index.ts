@@ -178,7 +178,3 @@ export interface ICache {
   exists(key: string): Promise<boolean>;
   expire(key: string, ttl: number): Promise<void>;
 }
-
-
-
-

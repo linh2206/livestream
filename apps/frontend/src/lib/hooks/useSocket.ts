@@ -12,13 +12,13 @@ export function useSocket(options?: SocketOptions) {
     console.log('useSocket effect triggered:', {
       hasUser: !!options?.auth?.user,
       hasToken: !!options?.auth?.token,
-      userId: options?.auth?.user?.id
+      userId: options?.auth?.user?.id,
     });
 
     if (options?.auth?.user && options?.auth?.token) {
       setIsConnecting(true);
       socketClient.connect(options);
-      
+
       // Listen to connection events
       const handleConnect = () => {
         setIsConnected(true);
@@ -55,26 +55,29 @@ export function useSocket(options?: SocketOptions) {
     }
   }, [options?.auth?.user?.id, options?.auth?.token]);
 
-  const emit = useCallback(<K extends keyof SocketEmitEvents>(
-    event: K,
-    data: Parameters<SocketEmitEvents[K]>[0]
-  ) => {
-    socketClient.emit(event, data);
-  }, []);
+  const emit = useCallback(
+    <K extends keyof SocketEmitEvents>(
+      event: K,
+      data: Parameters<SocketEmitEvents[K]>[0]
+    ) => {
+      socketClient.emit(event, data);
+    },
+    []
+  );
 
-  const on = useCallback(<K extends keyof SocketEvents>(
-    event: K,
-    callback: SocketEvents[K]
-  ) => {
-    socketClient.on(event, callback);
-  }, []);
+  const on = useCallback(
+    <K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) => {
+      socketClient.on(event, callback);
+    },
+    []
+  );
 
-  const off = useCallback(<K extends keyof SocketEvents>(
-    event: K,
-    callback?: SocketEvents[K]
-  ) => {
-    socketClient.off(event, callback);
-  }, []);
+  const off = useCallback(
+    <K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]) => {
+      socketClient.off(event, callback);
+    },
+    []
+  );
 
   return {
     socket: socketRef.current,
@@ -86,4 +89,3 @@ export function useSocket(options?: SocketOptions) {
     off,
   };
 }
-

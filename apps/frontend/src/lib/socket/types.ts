@@ -7,14 +7,20 @@ export interface SocketEvents {
 
   // Chat events
   'chat:new_message': (message: ChatMessage) => void;
-  'chat:message_deleted': (data: { messageId: string; streamId: string }) => void;
+  'chat:message_deleted': (data: {
+    messageId: string;
+    streamId: string;
+  }) => void;
   'chat:user_joined': (data: { streamId: string; user: User }) => void;
   'chat:user_left': (data: { streamId: string; userId: string }) => void;
 
   // Stream events
   'stream:started': (stream: Stream) => void;
   'stream:ended': (data: { streamId: string; streamKey: string }) => void;
-  'stream:viewer_count_update': (data: { streamId: string; viewerCount: number }) => void;
+  'stream:viewer_count_update': (data: {
+    streamId: string;
+    viewerCount: number;
+  }) => void;
   'stream:like_update': (data: { streamId: string; likeCount: number }) => void;
 
   // User events
@@ -30,9 +36,9 @@ export interface SocketEvents {
 
   // System events
   'system:maintenance': (data: { message: string; duration?: number }) => void;
-  
+
   // Alert events
-  'alert': (alertData: {
+  alert: (alertData: {
     name: string;
     severity: 'critical' | 'warning' | 'info';
     status: 'firing' | 'resolved';
@@ -46,20 +52,29 @@ export interface SocketEvents {
 // Socket Emit Events
 export interface SocketEmitEvents {
   // Chat events
-  'join_stream_chat': (data: { streamId: string; userId: string; username: string }) => void;
-  'leave_stream_chat': (data: { streamId: string; userId: string }) => void;
-  'send_message': (data: { streamId: string; content: string; userId: string; username: string }) => void;
-  'delete_message': (data: { messageId: string; streamId: string }) => void;
+  join_stream_chat: (data: {
+    streamId: string;
+    userId: string;
+    username: string;
+  }) => void;
+  leave_stream_chat: (data: { streamId: string; userId: string }) => void;
+  send_message: (data: {
+    streamId: string;
+    content: string;
+    userId: string;
+    username: string;
+  }) => void;
+  delete_message: (data: { messageId: string; streamId: string }) => void;
 
   // Stream events
-  'stream_like': (data: { streamId: string; userId: string }) => void;
-  'stream_unlike': (data: { streamId: string; userId: string }) => void;
-  'join_stream': (data: { streamId: string; userId: string }) => void;
-  'leave_stream': (data: { streamId: string; userId: string }) => void;
+  stream_like: (data: { streamId: string; userId: string }) => void;
+  stream_unlike: (data: { streamId: string; userId: string }) => void;
+  join_stream: (data: { streamId: string; userId: string }) => void;
+  leave_stream: (data: { streamId: string; userId: string }) => void;
 
   // User events
-  'user_heartbeat': (data: { userId: string }) => void;
-  'user_status_update': (data: { userId: string; status: string }) => void;
+  user_heartbeat: (data: { userId: string }) => void;
+  user_status_update: (data: { userId: string; status: string }) => void;
 
   // Admin events
   'admin:get_online_users': () => void;
@@ -139,4 +154,3 @@ export interface UseSocketReturn {
     callback?: SocketEvents[K]
   ) => void;
 }
-

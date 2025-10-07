@@ -3,14 +3,14 @@ export * from './api';
 
 // Export Socket layer
 export { socketClient } from './socket/client';
-export type { 
-  SocketEvents, 
+export type {
+  SocketEvents,
   SocketEmitEvents,
   ChatMessage,
   User,
   Stream,
   SocketOptions,
-  UseSocketReturn
+  UseSocketReturn,
 } from './socket/types';
 
 // Export Hooks (only for lists/tables)

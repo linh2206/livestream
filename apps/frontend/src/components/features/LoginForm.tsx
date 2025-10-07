@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useToast } from '@/lib/contexts/ToastContext';
-import { useFormValidation, commonValidationRules } from '@/lib/hooks/useFormValidation';
+import {
+  useFormValidation,
+  commonValidationRules,
+} from '@/lib/hooks/useFormValidation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -34,15 +37,16 @@ export const LoginForm: React.FC = () => {
     password: commonValidationRules.password,
   };
 
-  const { errors, validateField, validateForm, clearErrors, clearFieldError } = useFormValidation(
-    isRegister ? registerValidationRules : loginValidationRules
-  );
+  const { errors, validateField, validateForm, clearErrors, clearFieldError } =
+    useFormValidation(
+      isRegister ? registerValidationRules : loginValidationRules
+    );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Prepare form data
-    const formData = isRegister 
+    const formData = isRegister
       ? { username, email, password, fullName }
       : { usernameOrEmail, password };
 
@@ -75,10 +79,14 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  const handleFieldChange = (field: string, value: string, setter: (value: string) => void) => {
+  const handleFieldChange = (
+    field: string,
+    value: string,
+    setter: (value: string) => void
+  ) => {
     setter(value);
     clearFieldError(field);
-    
+
     // Real-time validation
     const error = validateField(field, value);
     if (error) {
@@ -87,84 +95,97 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+    <div className='bg-gray-800 rounded-lg border border-gray-700 p-6'>
+      <div className='text-center mb-6'>
+        <h2 className='text-2xl font-bold text-white mb-2'>
           {isRegister ? 'Create Account' : 'Sign In'}
         </h2>
-        <p className="text-gray-400">
+        <p className='text-gray-400'>
           {isRegister ? 'Join the livestream community' : 'Welcome back!'}
         </p>
       </div>
 
-
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className='space-y-4' noValidate>
         {isRegister && (
           <>
             <Input
-              label="Username"
+              label='Username'
               value={username}
-              onChange={(e) => handleFieldChange('username', e.target.value, setUsername)}
+              onChange={e =>
+                handleFieldChange('username', e.target.value, setUsername)
+              }
               error={errors.username}
               required
-              placeholder="Enter your username"
+              placeholder='Enter your username'
             />
             <Input
-              label="Full Name"
+              label='Full Name'
               value={fullName}
-              onChange={(e) => handleFieldChange('fullName', e.target.value, setFullName)}
+              onChange={e =>
+                handleFieldChange('fullName', e.target.value, setFullName)
+              }
               error={errors.fullName}
-              placeholder="Enter your full name"
+              placeholder='Enter your full name'
             />
           </>
         )}
-        
+
         <Input
-          label={isRegister ? "Email" : "Username or Email"}
-          type={isRegister ? "email" : "text"}
+          label={isRegister ? 'Email' : 'Username or Email'}
+          type={isRegister ? 'email' : 'text'}
           value={isRegister ? email : usernameOrEmail}
-          onChange={(e) => isRegister 
-            ? handleFieldChange('email', e.target.value, setEmail)
-            : handleFieldChange('usernameOrEmail', e.target.value, setUsernameOrEmail)
+          onChange={e =>
+            isRegister
+              ? handleFieldChange('email', e.target.value, setEmail)
+              : handleFieldChange(
+                  'usernameOrEmail',
+                  e.target.value,
+                  setUsernameOrEmail
+                )
           }
           error={isRegister ? errors.email : errors.usernameOrEmail}
           required
-          placeholder={isRegister ? "Enter your email" : "Enter your username or email"}
-        />
-        
-        <Input
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => handleFieldChange('password', e.target.value, setPassword)}
-          error={errors.password}
-          required
-          placeholder="Enter your password"
+          placeholder={
+            isRegister ? 'Enter your email' : 'Enter your username or email'
+          }
         />
 
-        <div className="mt-6">
+        <Input
+          label='Password'
+          type='password'
+          value={password}
+          onChange={e =>
+            handleFieldChange('password', e.target.value, setPassword)
+          }
+          error={errors.password}
+          required
+          placeholder='Enter your password'
+        />
+
+        <div className='mt-6'>
           <Button
-            type="button"
+            type='button'
             onClick={handleSubmit}
             loading={loading}
             fullWidth
-            size="lg"
+            size='lg'
           >
             {isRegister ? 'Create Account' : 'Sign In'}
           </Button>
         </div>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className='mt-6 text-center'>
         <button
-          type="button"
+          type='button'
           onClick={() => setIsRegister(!isRegister)}
-          className="text-blue-400 hover:text-blue-300 text-sm"
+          className='text-blue-400 hover:text-blue-300 text-sm'
         >
-          {isRegister ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+          {isRegister
+            ? 'Already have an account? Sign in'
+            : "Don't have an account? Sign up"}
         </button>
       </div>
     </div>
   );
 };
-

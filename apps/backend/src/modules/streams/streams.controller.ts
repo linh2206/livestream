@@ -1,14 +1,14 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
-  UseGuards, 
-  Req 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -23,7 +23,10 @@ export class StreamsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() createStreamDto: CreateStreamDto, @Req() req: Request) {
-    return this.streamsService.create(createStreamDto, (req['user'] as any).sub);
+    return this.streamsService.create(
+      createStreamDto,
+      (req['user'] as any).sub
+    );
   }
 
   @Get('create')
@@ -36,7 +39,7 @@ export class StreamsController {
   @Get()
   async findAll(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('limit') limit: string = '10'
   ) {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -79,9 +82,12 @@ export class StreamsController {
     // This endpoint is for creating a new stream via GET (for testing)
     const createStreamDto = {
       title: 'Test Stream',
-      description: 'Auto-created test stream'
+      description: 'Auto-created test stream',
     };
-    return this.streamsService.create(createStreamDto, (req['user'] as any).sub);
+    return this.streamsService.create(
+      createStreamDto,
+      (req['user'] as any).sub
+    );
   }
 
   @Put(':id')
@@ -89,9 +95,13 @@ export class StreamsController {
   async update(
     @Param('id') id: string,
     @Body() updateStreamDto: UpdateStreamDto,
-    @Req() req: Request,
+    @Req() req: Request
   ) {
-    return this.streamsService.update(id, updateStreamDto, (req['user'] as any).sub);
+    return this.streamsService.update(
+      id,
+      updateStreamDto,
+      (req['user'] as any).sub
+    );
   }
 
   @Delete(':id')
@@ -121,7 +131,7 @@ export class StreamsController {
   @Put('viewer-count/:streamKey')
   async updateViewerCount(
     @Param('streamKey') streamKey: string,
-    @Body('count') count: number,
+    @Body('count') count: number
   ) {
     await this.streamsService.updateViewerCount(streamKey, count);
     return { message: 'Viewer count updated successfully' };

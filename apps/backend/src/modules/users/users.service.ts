@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -8,9 +13,7 @@ import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async getAllUsers(currentUserId: string) {
     const currentUser = await this.userModel.findById(currentUserId);
@@ -18,7 +21,9 @@ export class UsersService {
       throw new ForbiddenException('Admin access required');
     }
 
-    const users = await this.userModel.find({}, { password: 0 }).sort({ createdAt: -1 });
+    const users = await this.userModel
+      .find({}, { password: 0 })
+      .sort({ createdAt: -1 });
     return { data: users };
   }
 
@@ -30,7 +35,10 @@ export class UsersService {
 
     // Check if user already exists
     const existingUser = await this.userModel.findOne({
-      $or: [{ email: createUserDto.email }, { username: createUserDto.username }],
+      $or: [
+        { email: createUserDto.email },
+        { username: createUserDto.username },
+      ],
     });
 
     if (existingUser) {
@@ -63,7 +71,11 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUserId: string) {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    currentUserId: string
+  ) {
     const currentUser = await this.userModel.findById(currentUserId);
     if (!currentUser || currentUser.role !== 'admin') {
       throw new ForbiddenException('Admin access required');
@@ -80,7 +92,9 @@ export class UsersService {
         _id: { $ne: id },
         $or: [
           ...(updateUserDto.email ? [{ email: updateUserDto.email }] : []),
-          ...(updateUserDto.username ? [{ username: updateUserDto.username }] : []),
+          ...(updateUserDto.username
+            ? [{ username: updateUserDto.username }]
+            : []),
         ],
       });
 
@@ -142,9 +156,9 @@ export class UsersService {
     user.isActive = !user.isActive;
     await user.save();
 
-    return { 
+    return {
       message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
-      isActive: user.isActive 
+      isActive: user.isActive,
     };
   }
 
@@ -167,9 +181,9 @@ export class UsersService {
     user.role = role as 'user' | 'admin' | 'moderator';
     await user.save();
 
-    return { 
+    return {
       message: `User role changed to ${role} successfully`,
-      role: user.role 
+      role: user.role,
     };
   }
 }

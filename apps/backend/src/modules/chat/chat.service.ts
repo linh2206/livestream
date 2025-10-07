@@ -2,22 +2,34 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { ChatMessage, ChatMessageDocument } from '../../shared/database/schemas/chat-message.schema';
+import {
+  ChatMessage,
+  ChatMessageDocument,
+} from '../../shared/database/schemas/chat-message.schema';
 import { User, UserDocument } from '../../shared/database/schemas/user.schema';
-import { Stream, StreamDocument } from '../../shared/database/schemas/stream.schema';
+import {
+  Stream,
+  StreamDocument,
+} from '../../shared/database/schemas/stream.schema';
 import { CreateChatMessageDto } from './dto/chat.dto';
 
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectModel(ChatMessage.name) private chatMessageModel: Model<ChatMessageDocument>,
+    @InjectModel(ChatMessage.name)
+    private chatMessageModel: Model<ChatMessageDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
+    @InjectModel(Stream.name) private streamModel: Model<StreamDocument>
   ) {}
 
-  async createMessage(createChatMessageDto: CreateChatMessageDto, userId: string): Promise<ChatMessage> {
+  async createMessage(
+    createChatMessageDto: CreateChatMessageDto,
+    userId: string
+  ): Promise<ChatMessage> {
     // Verify stream exists
-    const stream = await this.streamModel.findById(createChatMessageDto.streamId);
+    const stream = await this.streamModel.findById(
+      createChatMessageDto.streamId
+    );
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
@@ -41,13 +53,17 @@ export class ChatService {
     return message;
   }
 
-  async getMessagesByStream(streamId: string, page: number = 1, limit: number = 50): Promise<ChatMessage[]> {
+  async getMessagesByStream(
+    streamId: string,
+    page: number = 1,
+    limit: number = 50
+  ): Promise<ChatMessage[]> {
     const skip = (page - 1) * limit;
-    
+
     return this.chatMessageModel
-      .find({ 
+      .find({
         streamId: new Types.ObjectId(streamId),
-        isDeleted: false 
+        isDeleted: false,
       })
       .populate('userId', 'username avatar')
       .sort({ createdAt: -1 })
@@ -56,11 +72,14 @@ export class ChatService {
       .exec();
   }
 
-  async getRecentMessages(streamId: string, limit: number = 20): Promise<ChatMessage[]> {
+  async getRecentMessages(
+    streamId: string,
+    limit: number = 20
+  ): Promise<ChatMessage[]> {
     return this.chatMessageModel
-      .find({ 
+      .find({
         streamId: new Types.ObjectId(streamId),
-        isDeleted: false 
+        isDeleted: false,
       })
       .populate('userId', 'username avatar')
       .sort({ createdAt: -1 })
@@ -70,7 +89,7 @@ export class ChatService {
 
   async deleteMessage(messageId: string, userId: string): Promise<void> {
     const message = await this.chatMessageModel.findById(messageId);
-    
+
     if (!message) {
       throw new NotFoundException('Message not found');
     }
@@ -87,22 +106,29 @@ export class ChatService {
     await message.save();
   }
 
-  async getMessageStats(streamId: string): Promise<{ totalMessages: number; uniqueUsers: number }> {
+  async getMessageStats(
+    streamId: string
+  ): Promise<{ totalMessages: number; uniqueUsers: number }> {
     const [totalMessages, uniqueUsers] = await Promise.all([
-      this.chatMessageModel.countDocuments({ 
+      this.chatMessageModel.countDocuments({
         streamId: new Types.ObjectId(streamId),
-        isDeleted: false 
+        isDeleted: false,
       }),
-      this.chatMessageModel.distinct('userId', { 
-        streamId: new Types.ObjectId(streamId),
-        isDeleted: false 
-      }).then(users => users.length),
+      this.chatMessageModel
+        .distinct('userId', {
+          streamId: new Types.ObjectId(streamId),
+          isDeleted: false,
+        })
+        .then(users => users.length),
     ]);
 
     return { totalMessages, uniqueUsers };
   }
 
-  async getTopChatters(streamId: string, limit: number = 10): Promise<Array<{ user: any; messageCount: number }>> {
+  async getTopChatters(
+    streamId: string,
+    limit: number = 10
+  ): Promise<Array<{ user: any; messageCount: number }>> {
     const pipeline = [
       {
         $match: {

@@ -12,15 +12,5 @@ export default function StreamRedirectPage() {
     router.replace('/streams');
   }, [router]);
 
-  return <Loading fullScreen text="Redirecting to streams..." />;
+  return <Loading fullScreen text='Redirecting to streams...' />;
 }
-
-
-
-
-
-
-
-
-
-

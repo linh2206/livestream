@@ -1,13 +1,13 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
-  UseGuards, 
-  Req 
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -21,15 +21,21 @@ export class ChatController {
 
   @Post('messages')
   @UseGuards(JwtAuthGuard)
-  async createMessage(@Body() createChatMessageDto: CreateChatMessageDto, @Req() req: Request) {
-    return this.chatService.createMessage(createChatMessageDto, (req['user'] as any).sub);
+  async createMessage(
+    @Body() createChatMessageDto: CreateChatMessageDto,
+    @Req() req: Request
+  ) {
+    return this.chatService.createMessage(
+      createChatMessageDto,
+      (req['user'] as any).sub
+    );
   }
 
   @Get('messages/stream/:streamId')
   async getMessagesByStream(
     @Param('streamId') streamId: string,
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '50',
+    @Query('limit') limit: string = '50'
   ) {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -39,7 +45,7 @@ export class ChatController {
   @Get('messages/stream/:streamId/recent')
   async getRecentMessages(
     @Param('streamId') streamId: string,
-    @Query('limit') limit: string = '20',
+    @Query('limit') limit: string = '20'
   ) {
     const limitNum = parseInt(limit, 10);
     return this.chatService.getRecentMessages(streamId, limitNum);
@@ -53,7 +59,7 @@ export class ChatController {
   @Get('messages/stream/:streamId/top-chatters')
   async getTopChatters(
     @Param('streamId') streamId: string,
-    @Query('limit') limit: string = '10',
+    @Query('limit') limit: string = '10'
   ) {
     const limitNum = parseInt(limit, 10);
     return this.chatService.getTopChatters(streamId, limitNum);
@@ -61,7 +67,10 @@ export class ChatController {
 
   @Delete('messages/:messageId')
   @UseGuards(JwtAuthGuard)
-  async deleteMessage(@Param('messageId') messageId: string, @Req() req: Request) {
+  async deleteMessage(
+    @Param('messageId') messageId: string,
+    @Req() req: Request
+  ) {
     await this.chatService.deleteMessage(messageId, (req['user'] as any).sub);
     return { message: 'Message deleted successfully' };
   }

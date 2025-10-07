@@ -3,13 +3,14 @@ import { streamService } from '../api/services/stream.service';
 import { Stream, PaginatedResponse, PaginationParams } from '../api/types';
 
 // Fetcher function for streams list
-const fetcher = (url: string, params?: PaginationParams) => 
+const fetcher = (url: string, params?: PaginationParams) =>
   streamService.getStreams(params);
 
 export function useStreamsList(params?: PaginationParams) {
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Stream>>(
     ['/streams', params],
-    ([, params]: [string, PaginationParams | undefined]) => fetcher('/streams', params),
+    ([, params]: [string, PaginationParams | undefined]) =>
+      fetcher('/streams', params),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,

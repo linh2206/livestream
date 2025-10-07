@@ -14,10 +14,10 @@ export class Stream {
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   userId?: Types.ObjectId;
 
-  @Prop({ 
-    type: String, 
-    enum: ['active', 'inactive', 'ended'], 
-    default: 'inactive' 
+  @Prop({
+    type: String,
+    enum: ['active', 'inactive', 'ended'],
+    default: 'inactive',
   })
   status: string;
 

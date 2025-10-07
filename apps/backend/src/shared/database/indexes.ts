@@ -2,7 +2,11 @@ import { Model } from 'mongoose';
 
 // Database indexes for performance optimization
 export class DatabaseIndexes {
-  static async createIndexes(userModel: Model<any>, streamModel: Model<any>, chatModel: Model<any>) {
+  static async createIndexes(
+    userModel: Model<any>,
+    streamModel: Model<any>,
+    chatModel: Model<any>
+  ) {
     try {
       // User indexes
       await userModel.collection.createIndex({ username: 1 }, { unique: true });
@@ -11,7 +15,10 @@ export class DatabaseIndexes {
       await userModel.collection.createIndex({ isActive: 1 });
 
       // Stream indexes
-      await streamModel.collection.createIndex({ streamKey: 1 }, { unique: true });
+      await streamModel.collection.createIndex(
+        { streamKey: 1 },
+        { unique: true }
+      );
       await streamModel.collection.createIndex({ userId: 1 });
       await streamModel.collection.createIndex({ isLive: 1, createdAt: -1 });
       await streamModel.collection.createIndex({ status: 1 });
@@ -19,9 +26,13 @@ export class DatabaseIndexes {
       await streamModel.collection.createIndex({ likeCount: -1 });
       await streamModel.collection.createIndex({ startTime: -1 });
       await streamModel.collection.createIndex({ endTime: -1 });
-      
+
       // Compound indexes for common queries
-      await streamModel.collection.createIndex({ isLive: 1, status: 1, createdAt: -1 });
+      await streamModel.collection.createIndex({
+        isLive: 1,
+        status: 1,
+        createdAt: -1,
+      });
       await streamModel.collection.createIndex({ userId: 1, isLive: 1 });
       await streamModel.collection.createIndex({ status: 1, viewerCount: -1 });
 
@@ -30,9 +41,13 @@ export class DatabaseIndexes {
       await chatModel.collection.createIndex({ userId: 1 });
       await chatModel.collection.createIndex({ createdAt: -1 });
       await chatModel.collection.createIndex({ isDeleted: 1 });
-      
+
       // Compound indexes for chat
-      await chatModel.collection.createIndex({ streamId: 1, isDeleted: 1, createdAt: -1 });
+      await chatModel.collection.createIndex({
+        streamId: 1,
+        isDeleted: 1,
+        createdAt: -1,
+      });
       await chatModel.collection.createIndex({ userId: 1, createdAt: -1 });
 
       // Database indexes created successfully
@@ -41,4 +56,3 @@ export class DatabaseIndexes {
     }
   }
 }
-

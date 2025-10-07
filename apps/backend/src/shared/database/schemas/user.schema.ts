@@ -20,17 +20,17 @@ export class User {
   @Prop({ default: null })
   fullName?: string;
 
-  @Prop({ 
-    type: String, 
-    enum: ['admin', 'manager', 'user'], 
-    default: 'user' 
+  @Prop({
+    type: String,
+    enum: ['admin', 'manager', 'user'],
+    default: 'user',
   })
   role: string;
 
-  @Prop({ 
-    type: String, 
-    enum: ['local', 'google', 'facebook'], 
-    default: 'local' 
+  @Prop({
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local',
   })
   provider: string;
 
@@ -51,4 +51,3 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-

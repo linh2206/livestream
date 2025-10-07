@@ -96,7 +96,3 @@ export class ServiceUnavailableException extends HttpException {
     super(message, HttpStatus.SERVICE_UNAVAILABLE);
   }
 }
-
-
-
-

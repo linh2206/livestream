@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Injectable()
@@ -21,4 +26,3 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
     return true;
   }
 }
-

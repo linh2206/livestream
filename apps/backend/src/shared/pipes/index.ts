@@ -26,7 +26,7 @@ export class ValidationPipe implements PipeTransform<any> {
         property: error.property,
         constraints: error.constraints,
       }));
-      
+
       throw new BadRequestException({
         message: 'Validation failed',
         errors: errorMessages,
@@ -46,7 +46,9 @@ export class ValidationPipe implements PipeTransform<any> {
  * Parse ObjectId pipe
  */
 @Injectable()
-export class ParseObjectIdPipe implements PipeTransform<string, Types.ObjectId> {
+export class ParseObjectIdPipe
+  implements PipeTransform<string, Types.ObjectId>
+{
   transform(value: string): Types.ObjectId {
     if (!Types.ObjectId.isValid(value)) {
       throw new BadRequestException('Invalid ObjectId format');
@@ -63,15 +65,15 @@ export class ParsePaginationPipe implements PipeTransform {
   transform(value: any) {
     const page = parseInt(value.page, 10) || 1;
     const limit = parseInt(value.limit, 10) || 10;
-    
+
     if (page < 1) {
       throw new BadRequestException('Page must be greater than 0');
     }
-    
+
     if (limit < 1 || limit > 100) {
       throw new BadRequestException('Limit must be between 1 and 100');
     }
-    
+
     return {
       page: Math.max(1, page),
       limit: Math.min(100, Math.max(1, limit)),
@@ -88,7 +90,7 @@ export class SanitizeStringPipe implements PipeTransform {
     if (typeof value !== 'string') {
       return value;
     }
-    
+
     return value
       .trim()
       .replace(/[<>]/g, '') // Remove potential HTML tags
@@ -105,11 +107,11 @@ export class ParseBooleanPipe implements PipeTransform {
     if (typeof value === 'boolean') {
       return value;
     }
-    
+
     if (typeof value === 'string') {
       return value.toLowerCase() === 'true';
     }
-    
+
     return false;
   }
 }
@@ -120,20 +122,19 @@ export class ParseBooleanPipe implements PipeTransform {
 @Injectable()
 export class ParseArrayPipe implements PipeTransform {
   constructor(private readonly separator: string = ',') {}
-  
+
   transform(value: string): string[] {
     if (!value) {
       return [];
     }
-    
+
     if (Array.isArray(value)) {
       return value;
     }
-    
-    return value.split(this.separator).map(item => item.trim()).filter(Boolean);
+
+    return value
+      .split(this.separator)
+      .map(item => item.trim())
+      .filter(Boolean);
   }
 }
-
-
-
-

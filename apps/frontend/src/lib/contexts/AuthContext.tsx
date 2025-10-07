@@ -1,6 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '../api/services/auth.service';
 import { User, LoginRequest, RegisterRequest } from '../api/types';
@@ -33,25 +39,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // ONLY LOCALSTORAGE - simpler and more reliable
       const token = localStorage.getItem('auth_token');
-      
+
       if (!token) {
         setUser(null);
         setIsLoading(false);
         return;
       }
-      
+
       const userData = await authService.getProfile();
       setUser(userData);
     } catch (error: any) {
       setUser(null);
       // Clear invalid token from localStorage
       localStorage.removeItem('auth_token');
-      
+
       // Redirect to login for ALL routes that need auth
       const publicRoutes = ['/login', '/register', '/'];
-      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-      const isPublicRoute = publicRoutes.some(route => currentPath === route || currentPath.startsWith(route));
-      
+      const currentPath =
+        typeof window !== 'undefined' ? window.location.pathname : '';
+      const isPublicRoute = publicRoutes.some(
+        route => currentPath === route || currentPath.startsWith(route)
+      );
+
       // Only redirect on 401 (unauthorized), not 404 (not found)
       if (!isPublicRoute && error.response?.status === 401) {
         router.push('/login');
@@ -68,12 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginRequest) => {
     try {
       const { user: userData, token } = await authService.login(credentials);
-      
+
       // Store token in localStorage
       if (token) {
         localStorage.setItem('auth_token', token);
       }
-      
+
       setUser(userData);
       setIsLoading(false);
     } catch (error) {
@@ -86,12 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: RegisterRequest) => {
     try {
       const { user: newUser, token } = await authService.register(userData);
-      
+
       // Store token in localStorage
       if (token) {
         localStorage.setItem('auth_token', token);
       }
-      
+
       setUser(newUser);
     } catch (error) {
       // Clear any invalid token on registration failure
@@ -123,11 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

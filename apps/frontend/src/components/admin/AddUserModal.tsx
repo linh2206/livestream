@@ -75,7 +75,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -93,17 +93,18 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
       showToast({
         type: 'success',
         title: 'Success',
-        message: 'User created successfully!'
+        message: 'User created successfully!',
       });
       onUserCreated();
       handleClose();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to create user';
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to create user';
       showToast({
         type: 'error',
         title: 'Error',
-        message: errorMessage
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -124,94 +125,91 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Add New User" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Modal isOpen={isOpen} onClose={handleClose} title='Add New User' size='md'>
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Input
-            label="Username"
+            label='Username'
             value={formData.username}
-            onChange={(e) => handleInputChange('username', e.target.value)}
+            onChange={e => handleInputChange('username', e.target.value)}
             error={errors.username}
             required
-            placeholder="Enter username"
+            placeholder='Enter username'
             disabled={isLoading}
           />
-          
+
           <Input
-            label="Email"
-            type="email"
+            label='Email'
+            type='email'
             value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
+            onChange={e => handleInputChange('email', e.target.value)}
             error={errors.email}
             required
-            placeholder="Enter email address"
+            placeholder='Enter email address'
             disabled={isLoading}
           />
         </div>
 
         <Input
-          label="Full Name"
+          label='Full Name'
           value={formData.fullName}
-          onChange={(e) => handleInputChange('fullName', e.target.value)}
+          onChange={e => handleInputChange('fullName', e.target.value)}
           error={errors.fullName}
           required
-          placeholder="Enter full name"
+          placeholder='Enter full name'
           disabled={isLoading}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Input
-            label="Password"
-            type="password"
+            label='Password'
+            type='password'
             value={formData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
+            onChange={e => handleInputChange('password', e.target.value)}
             error={errors.password}
             required
-            placeholder="Enter password"
+            placeholder='Enter password'
             disabled={isLoading}
           />
-          
+
           <Input
-            label="Confirm Password"
-            type="password"
+            label='Confirm Password'
+            type='password'
             value={formData.confirmPassword}
-            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            onChange={e => handleInputChange('confirmPassword', e.target.value)}
             error={errors.confirmPassword}
             required
-            placeholder="Confirm password"
+            placeholder='Confirm password'
             disabled={isLoading}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className='block text-sm font-medium text-gray-300 mb-2'>
             Role
           </label>
           <select
             value={formData.role}
-            onChange={(e) => handleInputChange('role', e.target.value)}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            onChange={e => handleInputChange('role', e.target.value)}
+            className='w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white'
             disabled={isLoading}
           >
-            <option value="user">User</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
+            <option value='user'>User</option>
+            <option value='manager'>Manager</option>
+            <option value='admin'>Admin</option>
           </select>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className='flex justify-end space-x-3 pt-4'>
           <Button
-            type="button"
-            variant="secondary"
+            type='button'
+            variant='secondary'
             onClick={handleClose}
             disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-          >
+          <Button type='submit' disabled={isLoading}>
             {isLoading ? 'Creating...' : 'Create User'}
           </Button>
         </div>

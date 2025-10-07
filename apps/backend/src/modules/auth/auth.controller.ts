@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards, Req, Res, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Res,
+  Get,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -13,22 +21,22 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
     const result = await this.authService.register(registerDto);
-    
+
     // Return token for localStorage - no cookie needed
     return res.json({
       ...result,
-      message: 'Store this token in localStorage'
+      message: 'Store this token in localStorage',
     });
   }
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
     const result = await this.authService.login(loginDto);
-    
+
     // Return token for localStorage - no cookie needed
     return res.json({
       ...result,
-      message: 'Store this token in localStorage'
+      message: 'Store this token in localStorage',
     });
   }
 
@@ -36,9 +44,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async logout(@Req() req: Request, @Res() res: Response) {
     await this.authService.logout((req['user'] as any).sub);
-    
+
     // No need to clear cookie - frontend will clear localStorage
-    return res.json({ message: 'Logged out successfully - clear localStorage token' });
+    return res.json({
+      message: 'Logged out successfully - clear localStorage token',
+    });
   }
 
   @Post('refresh')
@@ -53,5 +63,4 @@ export class AuthController {
     const userId = (req['user'] as any).sub;
     return this.authService.getUserProfile(userId);
   }
-
 }

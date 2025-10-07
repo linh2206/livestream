@@ -6,7 +6,8 @@ import { ToastProvider } from '@/lib/contexts/ToastContext';
 
 export const metadata: Metadata = {
   title: 'Livestream Platform',
-  description: 'Professional livestreaming platform with real-time chat and analytics',
+  description:
+    'Professional livestreaming platform with real-time chat and analytics',
   icons: {
     icon: '/favicon.ico',
   },
@@ -18,13 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="font-sans">
+    <html lang='en'>
+      <body className='font-sans'>
         <ToastProvider>
           <AuthProvider>
-            <SocketProvider>
-              {children}
-            </SocketProvider>
+            <SocketProvider>{children}</SocketProvider>
           </AuthProvider>
         </ToastProvider>
       </body>

@@ -23,12 +23,15 @@ export class DatabaseModule implements OnModuleInit {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Stream.name) private streamModel: Model<Stream>,
-    @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessage>,
+    @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessage>
   ) {}
 
   async onModuleInit() {
     // Create database indexes on module initialization
-    await DatabaseIndexes.createIndexes(this.userModel, this.streamModel, this.chatModel);
+    await DatabaseIndexes.createIndexes(
+      this.userModel,
+      this.streamModel,
+      this.chatModel
+    );
   }
 }
-

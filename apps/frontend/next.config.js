@@ -4,18 +4,18 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
   poweredByHeader: false,
-  
+
   // Disable telemetry for Docker builds
   telemetry: false,
-  
+
   // Build optimizations
   output: 'standalone',
-  
+
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', 'axios', '@tanstack/react-table'],
   },
-  
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -23,7 +23,7 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  
+
   // Bundle optimization
   webpack: (config, { dev, isServer }) => {
     // Optimize for production builds
@@ -52,7 +52,7 @@ const nextConfig = {
           },
         },
       };
-      
+
       // Enable build cache
       config.cache = {
         type: 'filesystem',
@@ -61,16 +61,19 @@ const nextConfig = {
         },
       };
     }
-    
+
     return config;
   },
-  
+
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
-    NEXT_PUBLIC_HLS_BASE_URL: process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://localhost:9000/api/v1',
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
+    NEXT_PUBLIC_HLS_BASE_URL:
+      process.env.NEXT_PUBLIC_HLS_BASE_URL || 'http://localhost:9000/api/v1',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000',
-    NEXT_PUBLIC_RTMP_URL: process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935/live',
+    NEXT_PUBLIC_RTMP_URL:
+      process.env.NEXT_PUBLIC_RTMP_URL || 'rtmp://localhost:1935/live',
   },
 };
 

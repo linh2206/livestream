@@ -27,59 +27,67 @@ export interface UseFormValidationReturn {
   hasErrors: boolean;
 }
 
-export function useFormValidation(rules: ValidationRules): UseFormValidationReturn {
+export function useFormValidation(
+  rules: ValidationRules
+): UseFormValidationReturn {
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const validateField = useCallback((name: string, value: string): string | null => {
-    const rule = rules[name];
-    if (!rule) return null;
+  const validateField = useCallback(
+    (name: string, value: string): string | null => {
+      const rule = rules[name];
+      if (!rule) return null;
 
-    // Required validation
-    if (rule.required && (!value || value.trim() === '')) {
-      return `${name} is required`;
-    }
-
-    // Skip other validations if value is empty and not required
-    if (!value || value.trim() === '') return null;
-
-    // Min length validation
-    if (rule.minLength && value.length < rule.minLength) {
-      return `${name} must be at least ${rule.minLength} characters`;
-    }
-
-    // Max length validation
-    if (rule.maxLength && value.length > rule.maxLength) {
-      return `${name} must be no more than ${rule.maxLength} characters`;
-    }
-
-    // Pattern validation
-    if (rule.pattern && !rule.pattern.test(value)) {
-      return `${name} format is invalid`;
-    }
-
-    // Custom validation
-    if (rule.custom) {
-      return rule.custom(value);
-    }
-
-    return null;
-  }, [rules]);
-
-  const validateForm = useCallback((data: Record<string, string>): boolean => {
-    const newErrors: ValidationErrors = {};
-    let isValid = true;
-
-    Object.keys(rules).forEach(field => {
-      const error = validateField(field, data[field] || '');
-      if (error) {
-        newErrors[field] = error;
-        isValid = false;
+      // Required validation
+      if (rule.required && (!value || value.trim() === '')) {
+        return `${name} is required`;
       }
-    });
 
-    setErrors(newErrors);
-    return isValid;
-  }, [rules, validateField]);
+      // Skip other validations if value is empty and not required
+      if (!value || value.trim() === '') return null;
+
+      // Min length validation
+      if (rule.minLength && value.length < rule.minLength) {
+        return `${name} must be at least ${rule.minLength} characters`;
+      }
+
+      // Max length validation
+      if (rule.maxLength && value.length > rule.maxLength) {
+        return `${name} must be no more than ${rule.maxLength} characters`;
+      }
+
+      // Pattern validation
+      if (rule.pattern && !rule.pattern.test(value)) {
+        return `${name} format is invalid`;
+      }
+
+      // Custom validation
+      if (rule.custom) {
+        return rule.custom(value);
+      }
+
+      return null;
+    },
+    [rules]
+  );
+
+  const validateForm = useCallback(
+    (data: Record<string, string>): boolean => {
+      const newErrors: ValidationErrors = {};
+      let isValid = true;
+
+      Object.keys(rules).forEach(field => {
+        const error = validateField(field, data[field] || '');
+        if (error) {
+          newErrors[field] = error;
+          isValid = false;
+        }
+      });
+
+      setErrors(newErrors);
+      return isValid;
+    },
+    [rules, validateField]
+  );
 
   const clearErrors = useCallback(() => {
     setErrors({});
@@ -133,7 +141,11 @@ export const commonValidationRules = {
       }
       // Check if it's a valid username
       const usernamePattern = /^[a-zA-Z0-9_]+$/;
-      if (usernamePattern.test(value) && value.length >= 3 && value.length <= 20) {
+      if (
+        usernamePattern.test(value) &&
+        value.length >= 3 &&
+        value.length <= 20
+      ) {
         return null; // Valid username
       }
       return 'Please enter a valid email or username';
@@ -159,5 +171,3 @@ export const commonValidationRules = {
     maxLength: 1000,
   },
 };
-
-

@@ -19,16 +19,23 @@ export class WebSocketService {
   private server: Server;
   private connectedUsers: Map<string, SocketUser> = new Map();
   private roomUsers: Map<string, Set<string>> = new Map();
-  
+
   // Rate limiting
-  private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-  private readonly RATE_LIMIT_WINDOW = APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_WINDOW;
-  private readonly RATE_LIMIT_MAX_REQUESTS = APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_MAX_REQUESTS;
-  
+  private rateLimitMap = new Map<
+    string,
+    { count: number; resetTime: number }
+  >();
+  private readonly RATE_LIMIT_WINDOW =
+    APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_WINDOW;
+  private readonly RATE_LIMIT_MAX_REQUESTS =
+    APP_CONSTANTS.WEBSOCKET.RATE_LIMIT_MAX_REQUESTS;
+
   // Connection pooling
-  private readonly MAX_CONNECTIONS_PER_USER = APP_CONSTANTS.WEBSOCKET.MAX_CONNECTIONS_PER_USER;
-  private readonly MAX_TOTAL_CONNECTIONS = APP_CONSTANTS.WEBSOCKET.MAX_TOTAL_CONNECTIONS;
-  
+  private readonly MAX_CONNECTIONS_PER_USER =
+    APP_CONSTANTS.WEBSOCKET.MAX_CONNECTIONS_PER_USER;
+  private readonly MAX_TOTAL_CONNECTIONS =
+    APP_CONSTANTS.WEBSOCKET.MAX_TOTAL_CONNECTIONS;
+
   // Cleanup intervals
   private cleanupInterval: NodeJS.Timeout;
   private readonly CLEANUP_INTERVAL = APP_CONSTANTS.WEBSOCKET.CLEANUP_INTERVAL;
@@ -45,17 +52,20 @@ export class WebSocketService {
   private checkRateLimit(userId: string): boolean {
     const now = Date.now();
     const userLimit = this.rateLimitMap.get(userId);
-    
+
     if (!userLimit || now > userLimit.resetTime) {
-      this.rateLimitMap.set(userId, { count: 1, resetTime: now + this.RATE_LIMIT_WINDOW });
+      this.rateLimitMap.set(userId, {
+        count: 1,
+        resetTime: now + this.RATE_LIMIT_WINDOW,
+      });
       return true;
     }
-    
+
     if (userLimit.count >= this.RATE_LIMIT_MAX_REQUESTS) {
       this.logger.warn(`Rate limit exceeded for user ${userId}`);
       return false;
     }
-    
+
     userLimit.count++;
     return true;
   }
@@ -67,19 +77,27 @@ export class WebSocketService {
       this.logger.warn('Maximum total connections reached');
       return false;
     }
-    
+
     // Check per-user connections
     const existingUser = this.connectedUsers.get(userId);
-    if (existingUser && existingUser.connectionCount >= this.MAX_CONNECTIONS_PER_USER) {
+    if (
+      existingUser &&
+      existingUser.connectionCount >= this.MAX_CONNECTIONS_PER_USER
+    ) {
       this.logger.warn(`Maximum connections per user reached for ${userId}`);
       return false;
     }
-    
+
     return true;
   }
 
   // User management
-  addUser(userId: string, username: string, socketId: string, room?: string): boolean {
+  addUser(
+    userId: string,
+    username: string,
+    socketId: string,
+    room?: string
+  ): boolean {
     if (!this.canAcceptConnection(userId)) {
       return false;
     }
@@ -105,8 +123,10 @@ export class WebSocketService {
     // Update Redis
     this.redisService.sadd('online_users', userId);
     this.redisService.hset('user_sessions', userId, JSON.stringify(user));
-    
-    this.logger.log(`User ${userId} connected (${user.connectionCount} connections)`);
+
+    this.logger.log(
+      `User ${userId} connected (${user.connectionCount} connections)`
+    );
     return true;
   }
 
@@ -115,7 +135,7 @@ export class WebSocketService {
     if (user) {
       // Decrease connection count
       user.connectionCount--;
-      
+
       if (user.connectionCount <= 0) {
         // Remove from room
         if (user.room) {
@@ -125,10 +145,12 @@ export class WebSocketService {
         this.connectedUsers.delete(userId);
         this.redisService.srem('online_users', userId);
         this.redisService.hdel('user_sessions', userId);
-        
+
         this.logger.log(`User ${userId} disconnected completely`);
       } else {
-        this.logger.log(`User ${userId} disconnected (${user.connectionCount} connections remaining)`);
+        this.logger.log(
+          `User ${userId} disconnected (${user.connectionCount} connections remaining)`
+        );
       }
     }
   }
@@ -180,7 +202,6 @@ export class WebSocketService {
     return roomUsers ? Array.from(roomUsers) : [];
   }
 
-
   // Cleanup methods
   private startCleanupInterval(): void {
     this.cleanupInterval = setInterval(() => {
@@ -192,7 +213,7 @@ export class WebSocketService {
   private cleanupInactiveUsers(): void {
     const now = new Date();
     const inactiveThreshold = 5 * 60 * 1000; // 5 minutes
-    
+
     for (const [userId, user] of this.connectedUsers.entries()) {
       if (now.getTime() - user.lastActivity.getTime() > inactiveThreshold) {
         this.logger.warn(`Removing inactive user ${userId}`);
@@ -219,13 +240,18 @@ export class WebSocketService {
   }
 
   // Broadcasting with rate limiting
-  broadcastToRoom(room: string, event: string, data: any, userId?: string): void {
+  broadcastToRoom(
+    room: string,
+    event: string,
+    data: any,
+    userId?: string
+  ): void {
     if (userId && !this.checkRateLimit(userId)) {
       return;
     }
-    
+
     this.server.to(room).emit(event, data);
-    
+
     if (userId) {
       this.updateUserActivity(userId);
     }
@@ -235,9 +261,9 @@ export class WebSocketService {
     if (userId && !this.checkRateLimit(userId)) {
       return;
     }
-    
+
     this.server.emit(event, data);
-    
+
     if (userId) {
       this.updateUserActivity(userId);
     }
@@ -247,7 +273,7 @@ export class WebSocketService {
     if (!this.checkRateLimit(userId)) {
       return;
     }
-    
+
     const user = this.connectedUsers.get(userId);
     if (user) {
       this.server.to(user.socketId).emit(event, data);
@@ -291,7 +317,6 @@ export class WebSocketService {
     this.streamUpdateThrottle.set(streamId, timeout);
   }
 
-
   broadcastViewerCount(streamId: string, count: number): void {
     this.broadcastToAll('stream:viewer_count_update', {
       streamId,
@@ -302,7 +327,7 @@ export class WebSocketService {
 
   async getRoomUserCount(room: string): Promise<number> {
     if (!this.server) return 0;
-    
+
     const roomSockets = await this.server.in(room).fetchSockets();
     return roomSockets.length;
   }
@@ -358,16 +383,16 @@ export class WebSocketService {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
-    
+
     // Clear all timeouts
     for (const timeout of this.streamUpdateThrottle.values()) {
       clearTimeout(timeout);
     }
     this.streamUpdateThrottle.clear();
-    
+
     // Clear rate limit map
     this.rateLimitMap.clear();
-    
+
     this.logger.log('WebSocket service cleaned up');
   }
 
@@ -381,4 +406,3 @@ export class WebSocketService {
     };
   }
 }
-

@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import { Stream, StreamDocument } from '../../shared/database/schemas/stream.schema';
+import {
+  Stream,
+  StreamDocument,
+} from '../../shared/database/schemas/stream.schema';
 import { User, UserDocument } from '../../shared/database/schemas/user.schema';
 import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 import { RedisService } from '../../shared/redis/redis.service';
@@ -14,10 +21,13 @@ export class StreamsService {
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private redisService: RedisService,
-    private webSocketService: WebSocketService,
+    private webSocketService: WebSocketService
   ) {}
 
-  async create(createStreamDto: CreateStreamDto, userId: string): Promise<Stream> {
+  async create(
+    createStreamDto: CreateStreamDto,
+    userId: string
+  ): Promise<Stream> {
     // Validate user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
@@ -25,7 +35,7 @@ export class StreamsService {
     }
 
     const streamKey = this.generateStreamKey();
-    
+
     const stream = new this.streamModel({
       ...createStreamDto,
       userId: new Types.ObjectId(userId),
@@ -35,41 +45,47 @@ export class StreamsService {
     });
 
     await stream.save();
-    
+
     // Populate user data before returning
     return this.streamModel
       .findById(stream._id)
       .populate({
         path: 'userId',
         select: 'username avatar fullName',
-        options: { strictPopulate: false }
+        options: { strictPopulate: false },
       })
       .exec();
   }
 
-  async findAll(page: number = 1, limit: number = 10): Promise<{ data: any[]; pagination: any }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ data: any[]; pagination: any }> {
     const skip = (page - 1) * limit;
-    
+
     const [streams, total] = await Promise.all([
       this.streamModel
-        .find({}, {
-          _id: 1,
-          title: 1,
-          description: 1,
-          streamKey: 1,
-          status: 1,
-          isLive: 1,
-          viewerCount: 1,
-          likeCount: 1,
-          userId: 1,
-          createdAt: 1,
-          startTime: 1,
-          endTime: 1
-        })
+        .find(
+          {},
+          {
+            _id: 1,
+            title: 1,
+            description: 1,
+            streamKey: 1,
+            status: 1,
+            isLive: 1,
+            viewerCount: 1,
+            likeCount: 1,
+            userId: 1,
+            createdAt: 1,
+            startTime: 1,
+            endTime: 1,
+          }
+        )
         .populate({
           path: 'userId',
           select: 'username avatar',
-          options: { strictPopulate: false }
+          options: { strictPopulate: false },
         })
         .sort({ isLive: -1, createdAt: -1 }) // Live streams first
         .skip(skip)
@@ -89,56 +105,63 @@ export class StreamsService {
       isLive: stream.isLive || false,
       viewerCount: stream.viewerCount || 0,
       likeCount: stream.likeCount || 0,
-      user: stream.userId ? {
-        _id: (stream.userId as any)._id,
-        username: (stream.userId as any).username || 'Unknown User',
-        avatar: (stream.userId as any).avatar
-      } : {
-        _id: null,
-        username: 'System',
-        avatar: null
-      },
+      user: stream.userId
+        ? {
+            _id: (stream.userId as any)._id,
+            username: (stream.userId as any).username || 'Unknown User',
+            avatar: (stream.userId as any).avatar,
+          }
+        : {
+            _id: null,
+            username: 'System',
+            avatar: null,
+          },
       createdAt: (stream as any).createdAt,
       startTime: stream.startTime,
       endTime: stream.endTime,
       // Only include URLs if stream is live
       ...(stream.isLive && {
-        hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`
-      })
+        hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+      }),
     }));
 
-    return { 
-      data: processedStreams, 
+    return {
+      data: processedStreams,
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit),
         hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
-  async findById(id: string, userId?: string): Promise<Stream & { isLikedByUser?: boolean }> {
+  async findById(
+    id: string,
+    userId?: string
+  ): Promise<Stream & { isLikedByUser?: boolean }> {
     const stream = await this.streamModel
       .findById(id)
       .populate({
         path: 'userId',
         select: 'username avatar',
-        options: { strictPopulate: false }
+        options: { strictPopulate: false },
       })
       .exec();
-    
+
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
-    
+
     // Check if current user has liked this stream
-    const isLikedByUser = userId 
-      ? stream.likedBy?.some(likedUserId => likedUserId.toString() === userId) || false
+    const isLikedByUser = userId
+      ? stream.likedBy?.some(
+          likedUserId => likedUserId.toString() === userId
+        ) || false
       : false;
-    
+
     // Ensure stream has proper default values
     return {
       ...stream.toObject(),
@@ -146,8 +169,12 @@ export class StreamsService {
       status: stream.status || 'inactive',
       viewerCount: stream.viewerCount || 0,
       likeCount: stream.likeCount || 0,
-      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
-      rtmpUrl: stream.rtmpUrl || `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
+      hlsUrl:
+        stream.hlsUrl ||
+        `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+      rtmpUrl:
+        stream.rtmpUrl ||
+        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
       isLikedByUser,
     } as Stream & { isLikedByUser?: boolean };
   }
@@ -158,19 +185,19 @@ export class StreamsService {
       .populate({
         path: 'userId',
         select: 'username avatar',
-        options: { strictPopulate: false }
+        options: { strictPopulate: false },
       })
       .populate({
         path: 'allowedViewers',
         select: 'username avatar',
-        options: { strictPopulate: false }
+        options: { strictPopulate: false },
       })
       .exec();
-    
+
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
-    
+
     // Ensure stream has proper default values
     return {
       ...stream.toObject(),
@@ -179,27 +206,35 @@ export class StreamsService {
       viewerCount: stream.viewerCount || 0,
       likeCount: stream.likeCount || 0,
       isPublic: stream.isPublic !== undefined ? stream.isPublic : true,
-      requiresAuth: stream.requiresAuth !== undefined ? stream.requiresAuth : false,
-      hlsUrl: stream.hlsUrl || `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
-      rtmpUrl: stream.rtmpUrl || `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
+      requiresAuth:
+        stream.requiresAuth !== undefined ? stream.requiresAuth : false,
+      hlsUrl:
+        stream.hlsUrl ||
+        `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+      rtmpUrl:
+        stream.rtmpUrl ||
+        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
     } as Stream;
   }
 
   async findActiveStreams(): Promise<any[]> {
     return this.streamModel
-      .find({ isLive: true, status: 'active' }, {
-        _id: 1,
-        title: 1,
-        streamKey: 1,
-        viewerCount: 1,
-        likeCount: 1,
-        userId: 1,
-        startTime: 1
-      })
+      .find(
+        { isLive: true, status: 'active' },
+        {
+          _id: 1,
+          title: 1,
+          streamKey: 1,
+          viewerCount: 1,
+          likeCount: 1,
+          userId: 1,
+          startTime: 1,
+        }
+      )
       .populate({
         path: 'userId',
         select: 'username avatar',
-        options: { strictPopulate: false }
+        options: { strictPopulate: false },
       })
       .sort({ viewerCount: -1, startTime: -1 }) // Most viewed first
       .limit(20) // Limit to prevent large responses
@@ -215,9 +250,13 @@ export class StreamsService {
       .exec();
   }
 
-  async update(id: string, updateStreamDto: UpdateStreamDto, userId: string): Promise<Stream> {
+  async update(
+    id: string,
+    updateStreamDto: UpdateStreamDto,
+    userId: string
+  ): Promise<Stream> {
     const stream = await this.streamModel.findById(id);
-    
+
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
@@ -230,18 +269,20 @@ export class StreamsService {
       }
     }
 
-    const updatedStream = await this.streamModel.findByIdAndUpdate(
-      id,
-      { ...updateStreamDto, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('userId', 'username avatar');
+    const updatedStream = await this.streamModel
+      .findByIdAndUpdate(
+        id,
+        { ...updateStreamDto, updatedAt: new Date() },
+        { new: true, runValidators: true }
+      )
+      .populate('userId', 'username avatar');
 
     return updatedStream;
   }
 
   async delete(id: string, userId: string): Promise<void> {
     const stream = await this.streamModel.findById(id);
-    
+
     if (!stream) {
       throw new NotFoundException('Stream not found');
     }
@@ -259,17 +300,17 @@ export class StreamsService {
 
   async startStream(streamKey: string): Promise<Stream> {
     const stream = await this.findByStreamKey(streamKey);
-    
+
     stream.isLive = true;
     stream.status = 'active';
     stream.startTime = new Date();
     stream.viewerCount = 0;
-    
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, { 
-            isLive: true, 
-            status: 'active', 
-            startTime: new Date() 
-          });
+
+    await this.streamModel.findByIdAndUpdate((stream as any)._id, {
+      isLive: true,
+      status: 'active',
+      startTime: new Date(),
+    });
 
     // Broadcast stream start
     this.webSocketService.broadcastStreamStart((stream as any)._id.toString(), {
@@ -284,15 +325,15 @@ export class StreamsService {
 
   async stopStream(streamKey: string): Promise<Stream> {
     const stream = await this.findByStreamKey(streamKey);
-    
+
     stream.isLive = false;
     stream.status = 'ended';
     stream.endTime = new Date();
-    
-    await this.streamModel.findByIdAndUpdate((stream as any)._id, { 
-      isLive: false, 
-      status: 'ended', 
-      endTime: new Date() 
+
+    await this.streamModel.findByIdAndUpdate((stream as any)._id, {
+      isLive: false,
+      status: 'ended',
+      endTime: new Date(),
     });
 
     // Broadcast stream stop
@@ -313,7 +354,10 @@ export class StreamsService {
     }
   }
 
-  async toggleLike(streamId: string, userId: string): Promise<{ stream: Stream; isLiked: boolean }> {
+  async toggleLike(
+    streamId: string,
+    userId: string
+  ): Promise<{ stream: Stream; isLiked: boolean }> {
     const stream = await this.streamModel.findById(streamId);
     if (!stream) {
       throw new NotFoundException('Stream not found');
@@ -327,30 +371,37 @@ export class StreamsService {
 
     if (isCurrentlyLiked) {
       // Unlike: remove user from likedBy array and decrement likeCount
-      updatedStream = await this.streamModel.findByIdAndUpdate(
-        streamId,
-        { 
-          $pull: { likedBy: userObjectId },
-          $inc: { likeCount: -1 }
-        },
-        { new: true }
-      ).populate('userId', 'username avatar');
+      updatedStream = await this.streamModel
+        .findByIdAndUpdate(
+          streamId,
+          {
+            $pull: { likedBy: userObjectId },
+            $inc: { likeCount: -1 },
+          },
+          { new: true }
+        )
+        .populate('userId', 'username avatar');
       isLiked = false;
     } else {
       // Like: add user to likedBy array and increment likeCount
-      updatedStream = await this.streamModel.findByIdAndUpdate(
-        streamId,
-        { 
-          $addToSet: { likedBy: userObjectId },
-          $inc: { likeCount: 1 }
-        },
-        { new: true }
-      ).populate('userId', 'username avatar');
+      updatedStream = await this.streamModel
+        .findByIdAndUpdate(
+          streamId,
+          {
+            $addToSet: { likedBy: userObjectId },
+            $inc: { likeCount: 1 },
+          },
+          { new: true }
+        )
+        .populate('userId', 'username avatar');
       isLiked = true;
     }
 
     // Broadcast the like update via WebSocket
-    this.webSocketService.broadcastStreamLike(streamId, updatedStream.likeCount);
+    this.webSocketService.broadcastStreamLike(
+      streamId,
+      updatedStream.likeCount
+    );
 
     return { stream: updatedStream, isLiked };
   }
@@ -362,7 +413,7 @@ export class StreamsService {
           { title: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } },
           { tags: { $in: [new RegExp(query, 'i')] } },
-        ]
+        ],
       })
       .populate('userId', 'username avatar')
       .sort({ createdAt: -1 })
@@ -379,7 +430,7 @@ export class StreamsService {
   async syncStreamStatus(streamKey: string): Promise<void> {
     try {
       const stream = await this.findByStreamKey(streamKey);
-      
+
       if (!stream) {
         throw new Error(`Stream not found for key: ${streamKey}`);
       }
@@ -388,49 +439,62 @@ export class StreamsService {
       const fs = require('fs');
       const path = require('path');
       const hlsPath = path.join('/app', 'hls', streamKey, 'index.m3u8');
-      
+
       try {
         const isActuallyLive = fs.existsSync(hlsPath);
-        
+
         if (stream.isLive && !isActuallyLive) {
           // Stream is marked as live but HLS is not available, mark as offline
-          console.log(`Stream ${streamKey} marked as live but HLS not available, marking as offline`);
+          console.log(
+            `Stream ${streamKey} marked as live but HLS not available, marking as offline`
+          );
           stream.isLive = false;
           stream.status = 'ended';
           stream.endTime = new Date();
-          
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, { 
-            isLive: false, 
-            status: 'ended', 
-            endTime: new Date() 
+
+          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
+            isLive: false,
+            status: 'ended',
+            endTime: new Date(),
           });
 
           // Broadcast stream end to frontend
-          this.webSocketService.broadcastStreamStop((stream as any)._id.toString());
-          
-          console.log(`Stream status synchronized - marked as offline: ${streamKey}`);
+          this.webSocketService.broadcastStreamStop(
+            (stream as any)._id.toString()
+          );
+
+          console.log(
+            `Stream status synchronized - marked as offline: ${streamKey}`
+          );
         } else if (!stream.isLive && isActuallyLive) {
           // Stream is marked as offline but HLS is available, mark as live
-          console.log(`Stream ${streamKey} marked as offline but HLS available, marking as live`);
+          console.log(
+            `Stream ${streamKey} marked as offline but HLS available, marking as live`
+          );
           stream.isLive = true;
           stream.status = 'active';
           stream.startTime = stream.startTime || new Date();
-          
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, { 
-            isLive: true, 
-            status: 'active', 
-            startTime: stream.startTime || new Date() 
+
+          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
+            isLive: true,
+            status: 'active',
+            startTime: stream.startTime || new Date(),
           });
 
           // Broadcast stream start to frontend
-          this.webSocketService.broadcastStreamStart((stream as any)._id.toString(), {
-            id: (stream as any)._id,
-            title: stream.title,
-            userId: stream.userId,
-            streamKey: stream.streamKey,
-          });
-          
-          console.log(`Stream status synchronized - marked as live: ${streamKey}`);
+          this.webSocketService.broadcastStreamStart(
+            (stream as any)._id.toString(),
+            {
+              id: (stream as any)._id,
+              title: stream.title,
+              userId: stream.userId,
+              streamKey: stream.streamKey,
+            }
+          );
+
+          console.log(
+            `Stream status synchronized - marked as live: ${streamKey}`
+          );
         } else {
           console.log(`Stream ${streamKey} status is already correct`);
         }
@@ -441,15 +505,17 @@ export class StreamsService {
           stream.isLive = false;
           stream.status = 'ended';
           stream.endTime = new Date();
-          
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, { 
-            isLive: false, 
-            status: 'ended', 
-            endTime: new Date() 
+
+          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
+            isLive: false,
+            status: 'ended',
+            endTime: new Date(),
           });
 
           // Broadcast stream end to frontend
-          this.webSocketService.broadcastStreamStop((stream as any)._id.toString());
+          this.webSocketService.broadcastStreamStop(
+            (stream as any)._id.toString()
+          );
         }
       }
     } catch (error) {

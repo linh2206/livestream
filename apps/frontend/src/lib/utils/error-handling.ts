@@ -8,24 +8,27 @@ export interface ApiError {
 
 export const handleApiError = (error: any): ApiError => {
   console.error('API Error:', error);
-  
+
   // Network error
   if (!error.response) {
     return {
       message: 'Network error. Please check your connection.',
       statusCode: 0,
-      code: 'NETWORK_ERROR'
+      code: 'NETWORK_ERROR',
     };
   }
-  
+
   // API error with response
   const { response } = error;
-  const message = response.data?.message || response.data?.error || 'An unexpected error occurred';
-  
+  const message =
+    response.data?.message ||
+    response.data?.error ||
+    'An unexpected error occurred';
+
   return {
     message,
     statusCode: response.status,
-    code: response.data?.code || 'API_ERROR'
+    code: response.data?.code || 'API_ERROR',
   };
 };
 
@@ -58,8 +61,11 @@ export const logError = (error: any, context?: string) => {
     context,
     message: error.message || 'Unknown error',
     stack: error.stack,
-    response: error.response?.data
+    response: error.response?.data,
   };
-  
-  console.error(`[${timestamp}] Error${context ? ` in ${context}` : ''}:`, errorInfo);
+
+  console.error(
+    `[${timestamp}] Error${context ? ` in ${context}` : ''}:`,
+    errorInfo
+  );
 };

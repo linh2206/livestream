@@ -14,9 +14,9 @@ export class AppController {
         auth: '/api/v1/auth',
         streams: '/api/v1/streams',
         chat: '/api/v1/chat',
-        metrics: '/api/v1/metrics'
+        metrics: '/api/v1/metrics',
       },
-      documentation: '/api/docs'
+      documentation: '/api/docs',
     };
   }
 
@@ -31,8 +31,8 @@ export class AppController {
         auth: '/api/v1/auth',
         streams: '/api/v1/streams',
         chat: '/api/v1/chat',
-        metrics: '/api/v1/metrics'
-      }
+        metrics: '/api/v1/metrics',
+      },
     };
   }
 }

@@ -1,15 +1,12 @@
 import { apiClient } from '../client';
-import { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
-  User,
-  ApiResponse 
-} from '../types';
+import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types';
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    const response = await apiClient.post<AuthResponse>(
+      '/auth/login',
+      credentials
+    );
     if (response.token) {
       apiClient.setAuthToken(response.token);
     }
@@ -17,7 +14,10 @@ class AuthService {
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/auth/register', userData);
+    const response = await apiClient.post<AuthResponse>(
+      '/auth/register',
+      userData
+    );
     if (response.token) {
       apiClient.setAuthToken(response.token);
     }
@@ -39,7 +39,6 @@ class AuthService {
   async getProfile(): Promise<User> {
     return apiClient.get<User>('/auth/profile');
   }
-
 
   isAuthenticated(): boolean {
     return apiClient.isAuthenticated();

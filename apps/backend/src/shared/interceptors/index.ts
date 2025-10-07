@@ -31,11 +31,13 @@ export class LoggingInterceptor implements NestInterceptor {
         const { statusCode } = response;
         this.logger.log(`📤 ${method} ${url} - ${statusCode} - ${duration}ms`);
       }),
-      catchError((error) => {
+      catchError(error => {
         const duration = Date.now() - startTime;
-        this.logger.error(`❌ ${method} ${url} - ${error.status || 500} - ${duration}ms - ${error.message}`);
+        this.logger.error(
+          `❌ ${method} ${url} - ${error.status || 500} - ${duration}ms - ${error.message}`
+        );
         return throwError(() => error);
-      }),
+      })
     );
   }
 }
@@ -47,13 +49,13 @@ export class LoggingInterceptor implements NestInterceptor {
 export class TransformInterceptor<T> implements NestInterceptor<T, any> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      tap((data) => {
+      tap(data => {
         // Transform response data if needed
         if (data && typeof data === 'object') {
           // Add timestamp to response
           data.timestamp = new Date().toISOString();
         }
-      }),
+      })
     );
   }
 }
@@ -67,7 +69,7 @@ export class CacheInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
-    
+
     // Only cache GET requests
     if (request.method !== 'GET') {
       return next.handle();
@@ -97,21 +99,19 @@ export class PerformanceInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const duration = Date.now() - startTime;
-        
+
         // Log slow requests (> 1 second)
         if (duration > 1000) {
           this.logger.warn(`🐌 Slow request: ${method} ${url} - ${duration}ms`);
         }
-        
+
         // Log very slow requests (> 5 seconds)
         if (duration > 5000) {
-          this.logger.error(`🚨 Very slow request: ${method} ${url} - ${duration}ms`);
+          this.logger.error(
+            `🚨 Very slow request: ${method} ${url} - ${duration}ms`
+          );
         }
-      }),
+      })
     );
   }
 }
-
-
-
-

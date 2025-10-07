@@ -12,11 +12,11 @@ interface AuthGuardProps {
   requireAuth?: boolean;
 }
 
-export function AuthGuard({ 
-  children, 
-  fallback, 
+export function AuthGuard({
+  children,
+  fallback,
   redirectTo = '/login',
-  requireAuth = true 
+  requireAuth = true,
 }: AuthGuardProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -28,11 +28,11 @@ export function AuthGuard({
   }, [user, isLoading, router, redirectTo, requireAuth]);
 
   if (isLoading) {
-    return fallback || <Loading fullScreen text="Loading..." />;
+    return fallback || <Loading fullScreen text='Loading...' />;
   }
 
   if (requireAuth && !user) {
-    return fallback || <Loading fullScreen text="Redirecting to login..." />;
+    return fallback || <Loading fullScreen text='Redirecting to login...' />;
   }
 
   return <>{children}</>;
@@ -40,18 +40,14 @@ export function AuthGuard({
 
 // Specific auth components for common use cases
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthGuard requireAuth={true}>
-      {children}
-    </AuthGuard>
-  );
+  return <AuthGuard requireAuth={true}>{children}</AuthGuard>;
 }
 
-export function AuthRequired({ 
-  title = "Authentication Required",
-  message = "Please log in to access this page.",
-  buttonText = "Go to Login",
-  onLoginClick
+export function AuthRequired({
+  title = 'Authentication Required',
+  message = 'Please log in to access this page.',
+  buttonText = 'Go to Login',
+  onLoginClick,
 }: {
   title?: string;
   message?: string;
@@ -59,7 +55,7 @@ export function AuthRequired({
   onLoginClick?: () => void;
 }) {
   const router = useRouter();
-  
+
   const handleLoginClick = () => {
     if (onLoginClick) {
       onLoginClick();
@@ -69,13 +65,13 @@ export function AuthRequired({
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">{title}</h1>
-        <p className="text-gray-400 mb-6">{message}</p>
+    <div className='min-h-screen bg-gray-900 flex items-center justify-center'>
+      <div className='text-center'>
+        <h1 className='text-4xl font-bold text-white mb-4'>{title}</h1>
+        <p className='text-gray-400 mb-6'>{message}</p>
         <button
           onClick={handleLoginClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+          className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors'
         >
           {buttonText}
         </button>

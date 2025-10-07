@@ -63,7 +63,10 @@ export function extractStreamKeyFromUrl(url: string): string | null {
 /**
  * Extract JWT token from request
  */
-export function extractTokenFromRequest(authHeader?: string, queryToken?: string): string | null {
+export function extractTokenFromRequest(
+  authHeader?: string,
+  queryToken?: string
+): string | null {
   // Try Authorization header first
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
@@ -115,7 +118,7 @@ export function validatePagination(page?: number, limit?: number) {
     APP_CONSTANTS.PAGINATION.MAX_LIMIT,
     Math.max(1, limit || APP_CONSTANTS.PAGINATION.DEFAULT_LIMIT)
   );
-  
+
   return { page: validPage, limit: validLimit };
 }
 
@@ -135,7 +138,7 @@ export async function retry<T>(
   delay: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
@@ -146,7 +149,7 @@ export async function retry<T>(
       }
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -164,7 +167,10 @@ export function safeJsonParse<T>(json: string, defaultValue: T): T {
 /**
  * Safe JSON stringify
  */
-export function safeJsonStringify(obj: any, defaultValue: string = '{}'): string {
+export function safeJsonStringify(
+  obj: any,
+  defaultValue: string = '{}'
+): string {
   try {
     return JSON.stringify(obj);
   } catch {

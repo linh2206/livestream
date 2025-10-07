@@ -12,24 +12,27 @@ export class WebhookService {
 
     // Extract alert information
     const alerts = alertData.alerts || [];
-    
+
     for (const alert of alerts) {
       const alertName = alert.labels?.alertname || 'Unknown';
       const severity = alert.labels?.severity || 'info';
       const status = alert.status || 'unknown';
-      
+
       const alertInfo = {
         name: alertName,
         severity,
         status,
         summary: alert.annotations?.summary || 'No summary available',
-        description: alert.annotations?.description || 'No description available',
+        description:
+          alert.annotations?.description || 'No description available',
         timestamp: new Date().toISOString(),
-        labels: alert.labels || {}
+        labels: alert.labels || {},
       };
 
       // Log the alert
-      this.logger.warn(`Alert ${status.toUpperCase()}: ${alertName} - ${alertInfo.summary}`);
+      this.logger.warn(
+        `Alert ${status.toUpperCase()}: ${alertName} - ${alertInfo.summary}`
+      );
 
       // Broadcast alert to connected clients via WebSocket
       this.webSocketService.broadcastToAll('alert', alertInfo);
@@ -53,19 +56,25 @@ export class WebhookService {
       case 'HighCPUUsage':
       case 'HighMemoryUsage':
         if (status === 'firing') {
-          this.logger.warn(`WARNING: Resource usage high - ${alertInfo.summary}`);
+          this.logger.warn(
+            `WARNING: Resource usage high - ${alertInfo.summary}`
+          );
         }
         break;
 
       case 'BackendDown':
         if (status === 'firing') {
-          this.logger.error(`CRITICAL: Backend API is down - ${alertInfo.summary}`);
+          this.logger.error(
+            `CRITICAL: Backend API is down - ${alertInfo.summary}`
+          );
         }
         break;
 
       case 'HighErrorRate':
         if (status === 'firing') {
-          this.logger.warn(`WARNING: High error rate detected - ${alertInfo.summary}`);
+          this.logger.warn(
+            `WARNING: High error rate detected - ${alertInfo.summary}`
+          );
         }
         break;
 

@@ -1,6 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+} from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -24,7 +29,7 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { showInfo, showError, showWarning } = useToast();
-  
+
   // Get token from localStorage for socket auth (consistent with AuthContext)
   const getTokenFromStorage = () => {
     if (typeof window === 'undefined') return null;
@@ -32,16 +37,25 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Only connect socket when user is loaded and authenticated
-  const { socket, isConnected, isConnecting, error, emit, on, off } = useSocket({
-    auth: (!isLoading && user && isAuthenticated && user._id && getTokenFromStorage()) ? {
-      user: {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-      },
-      token: getTokenFromStorage() || undefined
-    } : undefined,
-  });
+  const { socket, isConnected, isConnecting, error, emit, on, off } = useSocket(
+    {
+      auth:
+        !isLoading &&
+        user &&
+        isAuthenticated &&
+        user._id &&
+        getTokenFromStorage()
+          ? {
+              user: {
+                id: user._id,
+                username: user.username,
+                role: user.role,
+              },
+              token: getTokenFromStorage() || undefined,
+            }
+          : undefined,
+    }
+  );
 
   // Debug socket connection status
   useEffect(() => {
@@ -53,7 +67,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       isConnected,
       isConnecting,
       hasSocket: !!socket,
-      userId: user?._id
+      userId: user?._id,
     };
     // Debug info available but not logged
   }, [isLoading, user, isAuthenticated, isConnected, isConnecting, socket]);
@@ -73,7 +87,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (socket && isConnected) {
       const handleAlert = (alertData: any) => {
         const { name, severity, status, summary, description } = alertData;
-        
+
         // Map severity to toast type
         let toastType: 'success' | 'error' | 'warning' | 'info' = 'info';
         switch (severity) {
@@ -94,7 +108,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         if (status === 'firing') {
           const title = `${severity.toUpperCase()}: ${name}`;
           const message = summary || description || 'System alert triggered';
-          
+
           switch (toastType) {
             case 'error':
               showError(title, message, { duration: 8000 });
@@ -120,75 +134,96 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [socket, isConnected, showError, showWarning, showInfo]);
 
   // Chat methods - use useCallback to prevent re-creation
-  const joinStreamChat = useCallback((streamId: string) => {
-    if (user && isConnected && socket) {
-      emit('join_stream_chat', {
-        streamId,
-        userId: user._id,
-        username: user.username,
-      });
-    } else {
-    }
-  }, [user, isConnected, emit, socket]);
+  const joinStreamChat = useCallback(
+    (streamId: string) => {
+      if (user && isConnected && socket) {
+        emit('join_stream_chat', {
+          streamId,
+          userId: user._id,
+          username: user.username,
+        });
+      } else {
+      }
+    },
+    [user, isConnected, emit, socket]
+  );
 
-  const leaveStreamChat = useCallback((streamId: string) => {
-    if (user && isConnected) {
-      emit('leave_stream_chat', {
-        streamId,
-        userId: user._id,
-      });
-    }
-  }, [user, isConnected, emit]);
+  const leaveStreamChat = useCallback(
+    (streamId: string) => {
+      if (user && isConnected) {
+        emit('leave_stream_chat', {
+          streamId,
+          userId: user._id,
+        });
+      }
+    },
+    [user, isConnected, emit]
+  );
 
-  const sendMessage = useCallback((streamId: string, content: string) => {
-    if (user && isConnected && socket) {
+  const sendMessage = useCallback(
+    (streamId: string, content: string) => {
+      if (user && isConnected && socket) {
         emit('send_message', {
           streamId,
           content,
           userId: user._id,
           username: user.username,
         });
-    }
-  }, [user, isConnected, emit, socket]);
+      }
+    },
+    [user, isConnected, emit, socket]
+  );
 
   // Stream methods - use useCallback to prevent re-creation
-  const likeStream = useCallback((streamId: string) => {
-    if (user && isConnected) {
-      emit('stream_like', {
-        streamId,
-        userId: user._id,
-      });
-    }
-  }, [user, isConnected, emit]);
+  const likeStream = useCallback(
+    (streamId: string) => {
+      if (user && isConnected) {
+        emit('stream_like', {
+          streamId,
+          userId: user._id,
+        });
+      }
+    },
+    [user, isConnected, emit]
+  );
 
-  const unlikeStream = useCallback((streamId: string) => {
-    if (user && isConnected) {
-      emit('stream_unlike', {
-        streamId,
-        userId: user._id,
-      });
-    }
-  }, [user, isConnected, emit]);
+  const unlikeStream = useCallback(
+    (streamId: string) => {
+      if (user && isConnected) {
+        emit('stream_unlike', {
+          streamId,
+          userId: user._id,
+        });
+      }
+    },
+    [user, isConnected, emit]
+  );
 
-  const joinStream = useCallback((streamId: string) => {
-    if (user && isConnected && user._id) {
-      emit('join_stream', {
-        streamId,
-        userId: user._id,
-      });
-    } else {
-    }
-  }, [user, isConnected, emit]);
+  const joinStream = useCallback(
+    (streamId: string) => {
+      if (user && isConnected && user._id) {
+        emit('join_stream', {
+          streamId,
+          userId: user._id,
+        });
+      } else {
+      }
+    },
+    [user, isConnected, emit]
+  );
 
-  const leaveStream = useCallback((streamId: string) => {
-    if (user && isConnected && user._id) {
-      emit('leave_stream', {
-        streamId,
-        userId: user._id,
-      });
-    } else {
-    }
-  }, [user, isConnected, emit]);
+  const leaveStream = useCallback(
+    (streamId: string) => {
+      if (user && isConnected && user._id) {
+        emit('leave_stream', {
+          streamId,
+          userId: user._id,
+        });
+      } else {
+      }
+    },
+    [user, isConnected, emit]
+  );
 
   const value = {
     socket,
@@ -205,9 +240,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SocketContext.Provider value={value}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
   );
 }
 
@@ -218,4 +251,3 @@ export function useSocketContext() {
   }
   return context;
 }
-

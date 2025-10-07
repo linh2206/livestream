@@ -19,5 +19,5 @@ export default function HomePage() {
     }
   }, [user, isLoading, router]);
 
-  return <Loading fullScreen text="Redirecting..." />;
+  return <Loading fullScreen text='Redirecting...' />;
 }

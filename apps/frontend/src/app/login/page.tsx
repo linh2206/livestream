@@ -17,21 +17,21 @@ export default function LoginPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return <Loading fullScreen text="Loading..." />;
+    return <Loading fullScreen text='Loading...' />;
   }
 
   if (user) {
-    return <Loading fullScreen text="Redirecting to dashboard..." />;
+    return <Loading fullScreen text='Redirecting to dashboard...' />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gradient mb-2">
+    <div className='min-h-screen bg-gray-900 flex items-center justify-center'>
+      <div className='w-full max-w-md'>
+        <div className='text-center mb-8'>
+          <h1 className='text-4xl font-bold text-gradient mb-2'>
             Livestream Platform
           </h1>
-          <p className="text-gray-400">
+          <p className='text-gray-400'>
             Sign in to start streaming and watching
           </p>
         </div>
@@ -40,5 +40,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-

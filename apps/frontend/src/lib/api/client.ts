@@ -1,12 +1,12 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiError } from './types';
 
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
+      baseURL:
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1',
       timeout: 10000,
       withCredentials: false, // No cookies needed
     });
@@ -17,7 +17,7 @@ class ApiClient {
   private setupInterceptors() {
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
+      config => {
         // Add auth token from localStorage if available
         const token = this.getToken();
         if (token) {
@@ -25,7 +25,7 @@ class ApiClient {
         }
         return config;
       },
-      (error) => {
+      error => {
         return Promise.reject(error);
       }
     );
@@ -35,7 +35,7 @@ class ApiClient {
       (response: AxiosResponse) => {
         return response;
       },
-      (error) => {
+      error => {
         if (error.response?.status === 401) {
           // Handle unauthorized access - NEVER redirect, let the app handle it
           this.clearToken();
@@ -61,12 +61,20 @@ class ApiClient {
     return response.data;
   }
 
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
     return response.data;
   }
@@ -76,7 +84,11 @@ class ApiClient {
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }

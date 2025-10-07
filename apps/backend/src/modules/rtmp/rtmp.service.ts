@@ -4,7 +4,10 @@ import { Model } from 'mongoose';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Stream, StreamDocument } from '../../shared/database/schemas/stream.schema';
+import {
+  Stream,
+  StreamDocument,
+} from '../../shared/database/schemas/stream.schema';
 import { RedisService } from '../../shared/redis/redis.service';
 import { WebSocketService } from '../../shared/websocket/websocket.service';
 
@@ -13,16 +16,15 @@ export class RtmpService {
   constructor(
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     private redisService: RedisService,
-    private webSocketService: WebSocketService,
+    private webSocketService: WebSocketService
   ) {}
 
   async onPublish(streamKey: string): Promise<void> {
     try {
       let stream = await this.streamModel.findOne({ streamKey });
-      
+
       // If stream doesn't exist, create a new one automatically
       if (!stream) {
-        
         stream = new this.streamModel({
           title: `Live Stream - ${streamKey}`,
           description: 'Auto-created stream from OBS',
@@ -35,7 +37,7 @@ export class RtmpService {
           viewerCount: 0,
           likeCount: 0,
         });
-        
+
         await stream.save();
       }
 
@@ -44,12 +46,16 @@ export class RtmpService {
       stream.status = 'active';
       stream.startTime = new Date();
       stream.viewerCount = 0;
-      
+
       await stream.save();
 
       // Store in Redis for real-time status
       await this.redisService.set(`stream:${streamKey}:status`, 'live', 3600);
-      await this.redisService.set(`stream:${streamKey}:start_time`, new Date().toISOString(), 3600);
+      await this.redisService.set(
+        `stream:${streamKey}:start_time`,
+        new Date().toISOString(),
+        3600
+      );
 
       // Broadcast stream start to frontend
       this.webSocketService.broadcastToAll('stream:started', {
@@ -60,7 +66,6 @@ export class RtmpService {
         hlsUrl: stream.hlsUrl,
         timestamp: new Date(),
       });
-
     } catch (error) {
       throw error;
     }
@@ -69,7 +74,7 @@ export class RtmpService {
   async onPublishDone(streamKey: string): Promise<void> {
     try {
       const stream = await this.streamModel.findOne({ streamKey });
-      
+
       if (!stream) {
         return;
       }
@@ -78,7 +83,7 @@ export class RtmpService {
       stream.isLive = false;
       stream.status = 'ended';
       stream.endTime = new Date();
-      
+
       await stream.save();
 
       // Remove from Redis
@@ -92,18 +97,18 @@ export class RtmpService {
         timestamp: new Date(),
       });
 
-
       // Auto-delete stream after 5 minutes if it's not a user-created stream
       if (!stream.userId) {
-        setTimeout(async () => {
-          try {
-            await this.deleteOfflineStream(streamKey);
-          } catch (error) {
-          }
-        }, 5 * 60 * 1000); // 5 minutes
+        setTimeout(
+          async () => {
+            try {
+              await this.deleteOfflineStream(streamKey);
+            } catch (error) {}
+          },
+          5 * 60 * 1000
+        ); // 5 minutes
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   async onPlay(streamKey: string): Promise<void> {
@@ -113,9 +118,7 @@ export class RtmpService {
         { streamKey },
         { $inc: { viewerCount: 1 } }
       );
-
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   async onPlayDone(streamKey: string): Promise<void> {
@@ -125,15 +128,15 @@ export class RtmpService {
         { streamKey },
         { $inc: { viewerCount: -1 } }
       );
-
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
-  async getStreamStatus(streamKey: string): Promise<{ isLive: boolean; viewerCount: number }> {
+  async getStreamStatus(
+    streamKey: string
+  ): Promise<{ isLive: boolean; viewerCount: number }> {
     try {
       const stream = await this.streamModel.findOne({ streamKey });
-      
+
       if (!stream) {
         return { isLive: false, viewerCount: 0 };
       }
@@ -147,10 +150,12 @@ export class RtmpService {
     }
   }
 
-  async getActiveStreams(): Promise<Array<{ streamKey: string; viewerCount: number; startTime: string }>> {
+  async getActiveStreams(): Promise<
+    Array<{ streamKey: string; viewerCount: number; startTime: string }>
+  > {
     try {
       const streams = await this.streamModel.find({ isLive: true });
-      
+
       return streams.map(stream => ({
         streamKey: stream.streamKey,
         viewerCount: stream.viewerCount,
@@ -173,7 +178,7 @@ export class RtmpService {
   async deleteOfflineStream(streamKey: string): Promise<void> {
     try {
       const stream = await this.streamModel.findOne({ streamKey });
-      
+
       if (!stream) {
         return;
       }
@@ -181,10 +186,10 @@ export class RtmpService {
       // Only delete if stream is offline and not user-created
       if (!stream.isLive && !stream.userId) {
         await this.streamModel.deleteOne({ streamKey });
-        
+
         // Clean up HLS files
         const hlsDir = path.join('/app', 'hls', streamKey);
-        
+
         if (fs.existsSync(hlsDir)) {
           fs.rmSync(hlsDir, { recursive: true, force: true });
         }
@@ -195,7 +200,6 @@ export class RtmpService {
           streamKey: stream.streamKey,
           timestamp: new Date(),
         });
-
       }
     } catch (error) {
       throw error;

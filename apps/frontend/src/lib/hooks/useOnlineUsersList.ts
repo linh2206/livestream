@@ -24,4 +24,3 @@ export function useOnlineUsersList() {
     mutate,
   };
 }
-

@@ -9,8 +9,11 @@ export class AlertsController {
 
   @Post('webhook')
   async handleWebhook(@Body() alertData: any) {
-    this.logger.log('Received alert webhook:', JSON.stringify(alertData, null, 2));
-    
+    this.logger.log(
+      'Received alert webhook:',
+      JSON.stringify(alertData, null, 2)
+    );
+
     try {
       await this.webhookService.processAlert(alertData);
       return { status: 'success', message: 'Alert processed' };
@@ -20,13 +23,3 @@ export class AlertsController {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-

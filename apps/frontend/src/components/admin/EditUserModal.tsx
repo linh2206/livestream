@@ -79,9 +79,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) return;
-    
+
     if (!validateForm()) {
       return;
     }
@@ -104,17 +104,18 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       showToast({
         type: 'success',
         title: 'Success',
-        message: 'User updated successfully!'
+        message: 'User updated successfully!',
       });
       onUserUpdated();
       handleClose();
     } catch (error: any) {
       console.error('Error updating user:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to update user';
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to update user';
       showToast({
         type: 'error',
         title: 'Error',
-        message: errorMessage
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -136,87 +137,91 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   if (!user) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={`Edit User: ${user.username}`} size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={`Edit User: ${user.username}`}
+      size='md'
+    >
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Input
-            label="Username"
+            label='Username'
             value={formData.username}
-            onChange={(e) => handleInputChange('username', e.target.value)}
+            onChange={e => handleInputChange('username', e.target.value)}
             error={errors.username}
             required
-            placeholder="Enter username"
+            placeholder='Enter username'
             disabled={isLoading}
           />
-          
+
           <Input
-            label="Email"
-            type="email"
+            label='Email'
+            type='email'
             value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
+            onChange={e => handleInputChange('email', e.target.value)}
             error={errors.email}
             required
-            placeholder="Enter email address"
+            placeholder='Enter email address'
             disabled={isLoading}
           />
         </div>
 
         <Input
-          label="Full Name"
+          label='Full Name'
           value={formData.fullName}
-          onChange={(e) => handleInputChange('fullName', e.target.value)}
+          onChange={e => handleInputChange('fullName', e.target.value)}
           error={errors.fullName}
           required
-          placeholder="Enter full name"
+          placeholder='Enter full name'
           disabled={isLoading}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className='block text-sm font-medium text-gray-300 mb-2'>
               Role
             </label>
             <select
               value={formData.role}
-              onChange={(e) => handleInputChange('role', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+              onChange={e => handleInputChange('role', e.target.value)}
+              className='w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white'
               disabled={isLoading}
             >
-              <option value="user">User</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
+              <option value='user'>User</option>
+              <option value='manager'>Manager</option>
+              <option value='admin'>Admin</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className='block text-sm font-medium text-gray-300 mb-2'>
               Status
             </label>
             <select
               value={formData.isActive ? 'active' : 'inactive'}
-              onChange={(e) => handleInputChange('isActive', e.target.value === 'active')}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+              onChange={e =>
+                handleInputChange('isActive', e.target.value === 'active')
+              }
+              className='w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white'
               disabled={isLoading}
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value='active'>Active</option>
+              <option value='inactive'>Inactive</option>
             </select>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className='flex justify-end space-x-3 pt-4'>
           <Button
-            type="button"
-            variant="secondary"
+            type='button'
+            variant='secondary'
             onClick={handleClose}
             disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-          >
+          <Button type='submit' disabled={isLoading}>
             {isLoading ? 'Updating...' : 'Update User'}
           </Button>
         </div>

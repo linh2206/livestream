@@ -10,4 +10,3 @@ import { ChatModule } from '../../modules/chat/chat.module';
   exports: [WebSocketService],
 })
 export class WebSocketModule {}
-

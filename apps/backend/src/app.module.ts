@@ -16,6 +16,7 @@ import { HlsModule } from './modules/hls/hls.module';
 import { HealthModule } from './modules/health/health.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 import { DatabaseModule } from './shared/database/database.module';
 import { RedisModule } from './shared/redis/redis.module';
@@ -48,6 +49,7 @@ import { databaseConfig } from './shared/database/database.config';
     HealthModule,
     MetricsModule,
     AlertsModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

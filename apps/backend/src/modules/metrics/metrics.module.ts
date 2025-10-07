@@ -12,4 +12,3 @@ import { WebSocketModule } from '../../shared/websocket/websocket.module';
   exports: [MetricsService],
 })
 export class MetricsModule {}
-

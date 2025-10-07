@@ -1,10 +1,9 @@
 import { apiClient } from '../client';
-import { 
-  User, 
+import {
+  User,
   UpdateUserRequest,
   PaginatedResponse,
   PaginationParams,
-  ApiResponse 
 } from '../types';
 
 class UserService {
@@ -44,7 +43,9 @@ class UserService {
   }
 
   async searchUsers(query: string): Promise<User[]> {
-    return apiClient.get<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
+    return apiClient.get<User[]>(
+      `/users/search?q=${encodeURIComponent(query)}`
+    );
   }
 
   async createUser(data: {
@@ -59,4 +60,3 @@ class UserService {
 }
 
 export const userService = new UserService();
-

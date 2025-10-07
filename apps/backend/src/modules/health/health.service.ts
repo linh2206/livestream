@@ -41,7 +41,13 @@ export class HealthService {
   constructor(private redisService: RedisService) {}
 
   async getHealthStatus(): Promise<HealthStatus> {
-    const [databaseHealth, redisHealth, websocketHealth, rtmpHealth, hlsHealth] = await Promise.all([
+    const [
+      databaseHealth,
+      redisHealth,
+      websocketHealth,
+      rtmpHealth,
+      hlsHealth,
+    ] = await Promise.all([
       this.checkDatabaseHealth(),
       this.checkRedisHealth(),
       this.checkWebSocketHealth(),
@@ -52,9 +58,19 @@ export class HealthService {
     const systemInfo = await this.getSystemInfo();
 
     // Determine overall status
-    const serviceStatuses = [databaseHealth, redisHealth, websocketHealth, rtmpHealth, hlsHealth];
-    const unhealthyCount = serviceStatuses.filter(s => s.status === 'unhealthy').length;
-    const degradedCount = serviceStatuses.filter(s => s.status === 'degraded').length;
+    const serviceStatuses = [
+      databaseHealth,
+      redisHealth,
+      websocketHealth,
+      rtmpHealth,
+      hlsHealth,
+    ];
+    const unhealthyCount = serviceStatuses.filter(
+      s => s.status === 'unhealthy'
+    ).length;
+    const degradedCount = serviceStatuses.filter(
+      s => s.status === 'degraded'
+    ).length;
 
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
     if (unhealthyCount > 0) {
@@ -81,14 +97,19 @@ export class HealthService {
 
   private async checkDatabaseHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
-    
+
     try {
       // This would typically ping the database
       // For now, we'll simulate a check
       const responseTime = Date.now() - startTime;
-      
+
       return {
-        status: responseTime < 100 ? 'healthy' : responseTime < 500 ? 'degraded' : 'unhealthy',
+        status:
+          responseTime < 100
+            ? 'healthy'
+            : responseTime < 500
+              ? 'degraded'
+              : 'unhealthy',
         responseTime,
         lastCheck: new Date(),
       };
@@ -103,13 +124,18 @@ export class HealthService {
 
   private async checkRedisHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
-    
+
     try {
       await this.redisService.getClient().ping();
       const responseTime = Date.now() - startTime;
-      
+
       return {
-        status: responseTime < 50 ? 'healthy' : responseTime < 200 ? 'degraded' : 'unhealthy',
+        status:
+          responseTime < 50
+            ? 'healthy'
+            : responseTime < 200
+              ? 'degraded'
+              : 'unhealthy',
         responseTime,
         lastCheck: new Date(),
       };
@@ -124,12 +150,12 @@ export class HealthService {
 
   private async checkWebSocketHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
-    
+
     try {
       // Check if WebSocket service is running
       // This would typically check the WebSocket server status
       const responseTime = Date.now() - startTime;
-      
+
       return {
         status: 'healthy',
         responseTime,
@@ -146,14 +172,19 @@ export class HealthService {
 
   private async checkRtmpHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
-    
+
     try {
       // Check RTMP server health
       // This would typically ping the RTMP server
       const responseTime = Date.now() - startTime;
-      
+
       return {
-        status: responseTime < 100 ? 'healthy' : responseTime < 500 ? 'degraded' : 'unhealthy',
+        status:
+          responseTime < 100
+            ? 'healthy'
+            : responseTime < 500
+              ? 'degraded'
+              : 'unhealthy',
         responseTime,
         lastCheck: new Date(),
       };
@@ -168,14 +199,19 @@ export class HealthService {
 
   private async checkHlsHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
-    
+
     try {
       // Check HLS server health
       // This would typically check if HLS files are being generated
       const responseTime = Date.now() - startTime;
-      
+
       return {
-        status: responseTime < 100 ? 'healthy' : responseTime < 500 ? 'degraded' : 'unhealthy',
+        status:
+          responseTime < 100
+            ? 'healthy'
+            : responseTime < 500
+              ? 'degraded'
+              : 'unhealthy',
         responseTime,
         lastCheck: new Date(),
       };
@@ -190,15 +226,16 @@ export class HealthService {
 
   private async getSystemInfo(): Promise<HealthStatus['system']> {
     const uptime = process.uptime();
-    
+
     // Get system info from Redis (updated by monitoring scripts)
-    const [memoryUsed, memoryTotal, cpuUsage, diskUsed, diskTotal] = await Promise.all([
-      this.redisService.get('system:memory:used') || '0',
-      this.redisService.get('system:memory:total') || '0',
-      this.redisService.get('system:cpu:usage') || '0',
-      this.redisService.get('system:disk:used') || '0',
-      this.redisService.get('system:disk:total') || '0',
-    ]);
+    const [memoryUsed, memoryTotal, cpuUsage, diskUsed, diskTotal] =
+      await Promise.all([
+        this.redisService.get('system:memory:used') || '0',
+        this.redisService.get('system:memory:total') || '0',
+        this.redisService.get('system:cpu:usage') || '0',
+        this.redisService.get('system:disk:used') || '0',
+        this.redisService.get('system:disk:total') || '0',
+      ]);
 
     const memUsed = parseInt(memoryUsed);
     const memTotal = parseInt(memoryTotal);

@@ -8,44 +8,48 @@ import { join } from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
   // Security and performance middleware
-  app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "ws:", "wss:"],
-        mediaSrc: ["'self'", "blob:"],
-        baseUri: ["'self'"],
-        fontSrc: ["'self'", "https:", "data:"],
-        formAction: ["'self'"],
-        frameAncestors: ["'self'"],
-        objectSrc: ["'none'"],
-        scriptSrcAttr: ["'none'"],
-        upgradeInsecureRequests: [],
+  app.use(
+    helmet({
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'ws:', 'wss:'],
+          mediaSrc: ["'self'", 'blob:'],
+          baseUri: ["'self'"],
+          fontSrc: ["'self'", 'https:', 'data:'],
+          formAction: ["'self'"],
+          frameAncestors: ["'self'"],
+          objectSrc: ["'none'"],
+          scriptSrcAttr: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
       },
-    },
-  }));
+    })
+  );
 
   // Enable compression with optimization
-  app.use(compression({
-    level: 6,
-    threshold: 1024,
-    filter: (req, res) => {
-      if (req.headers['x-no-compression']) {
-        return false;
-      }
-      return compression.filter(req, res);
-    },
-  }));
+  app.use(
+    compression({
+      level: 6,
+      threshold: 1024,
+      filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+    })
+  );
 
   // Enable CORS with environment configuration
   const corsOrigins = [
@@ -53,7 +57,7 @@ async function bootstrap() {
     'http://localhost:9000',
     process.env.FRONTEND_URL,
     process.env.API_BASE_URL,
-    process.env.NGINX_URL
+    process.env.NGINX_URL,
   ].filter(Boolean);
 
   app.enableCors({
@@ -61,23 +65,19 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'Accept', 
-      'Origin', 
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
       'X-Requested-With',
       'Cache-Control',
       'Range',
       'If-Range',
       'If-Modified-Since',
       'If-None-Match',
-      'Pragma'
+      'Pragma',
     ],
-    exposedHeaders: [
-      'Content-Length',
-      'Content-Range',
-      'Accept-Ranges'
-    ],
+    exposedHeaders: ['Content-Length', 'Content-Range', 'Accept-Ranges'],
   });
 
   // Global validation pipe with optimization
@@ -90,7 +90,7 @@ async function bootstrap() {
         enableImplicitConversion: true,
       },
       disableErrorMessages: process.env.NODE_ENV === 'production',
-    }),
+    })
   );
 
   // Global prefix
@@ -104,14 +104,15 @@ async function bootstrap() {
     });
   }
 
-
   const port = process.env.PORT || 9000;
   await app.listen(port, '0.0.0.0');
-  
+
   logger.log(`🚀 API Server running on: http://localhost:${port}/api/v1`);
   logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.log(`🔒 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-  
+  logger.log(
+    `🔒 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`
+  );
+
   // Handle health check for Docker
   if (process.argv.includes('--health-check')) {
     logger.log('🏥 Health check mode - server will exit after startup');

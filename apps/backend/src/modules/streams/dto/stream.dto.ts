@@ -1,4 +1,11 @@
-import { IsString, IsOptional, MaxLength, IsArray, IsUrl, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  IsArray,
+  IsUrl,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateStreamDto {
   @IsString()
@@ -56,4 +63,3 @@ export class UpdateStreamDto {
   @IsBoolean()
   requiresAuth?: boolean;
 }
-

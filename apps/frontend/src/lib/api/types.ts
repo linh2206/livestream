@@ -172,4 +172,3 @@ export interface ServiceHealth {
   responseTime?: number;
   message: string;
 }
-

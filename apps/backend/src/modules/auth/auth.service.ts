@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -13,10 +17,12 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
-    private redisService: RedisService,
+    private redisService: RedisService
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<{ user: Partial<User>; token: string }> {
+  async register(
+    registerDto: RegisterDto
+  ): Promise<{ user: Partial<User>; token: string }> {
     const { username, email, password, fullName } = registerDto;
 
     // Check if user already exists
@@ -50,16 +56,17 @@ export class AuthService {
     return { user: userWithoutPassword, token };
   }
 
-  async login(loginDto: LoginDto): Promise<{ user: Partial<User>; token: string }> {
+  async login(
+    loginDto: LoginDto
+  ): Promise<{ user: Partial<User>; token: string }> {
     const { usernameOrEmail, password } = loginDto;
 
     // Find user by email or username
-    const user = await this.userModel.findOne({
-      $or: [
-        { email: usernameOrEmail },
-        { username: usernameOrEmail }
-      ]
-    }).select('+password');
+    const user = await this.userModel
+      .findOne({
+        $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
+      })
+      .select('+password');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -90,7 +97,6 @@ export class AuthService {
     const { password: _, ...userWithoutPassword } = user.toObject();
     return { user: userWithoutPassword, token };
   }
-
 
   async validateUser(payload: any): Promise<User> {
     const user = await this.userModel.findById(payload.sub);

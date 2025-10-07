@@ -10,13 +10,3 @@ import { WebSocketModule } from '../../shared/websocket/websocket.module';
   exports: [WebhookService],
 })
 export class AlertsModule {}
-
-
-
-
-
-
-
-
-
-

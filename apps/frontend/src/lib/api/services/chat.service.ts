@@ -1,14 +1,9 @@
 import { apiClient } from '../client';
-import { 
-  ChatMessage,
-  PaginatedResponse,
-  PaginationParams,
-  ApiResponse 
-} from '../types';
+import { ChatMessage, PaginatedResponse, PaginationParams } from '../types';
 
 class ChatService {
   async getStreamMessages(
-    streamId: string, 
+    streamId: string,
     params?: PaginationParams
   ): Promise<PaginatedResponse<ChatMessage>> {
     const queryParams = new URLSearchParams();
@@ -32,10 +27,14 @@ class ChatService {
     await apiClient.delete(`/chat/messages/${messageId}`);
   }
 
-  async getMessageHistory(streamId: string, limit: number = 50): Promise<ChatMessage[]> {
-    return apiClient.get<ChatMessage[]>(`/chat/streams/${streamId}/history?limit=${limit}`);
+  async getMessageHistory(
+    streamId: string,
+    limit: number = 50
+  ): Promise<ChatMessage[]> {
+    return apiClient.get<ChatMessage[]>(
+      `/chat/streams/${streamId}/history?limit=${limit}`
+    );
   }
 }
 
 export const chatService = new ChatService();
-

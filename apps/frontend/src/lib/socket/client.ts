@@ -27,7 +27,7 @@ class SocketClient {
     this.error = null;
 
     const socketUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000';
-    
+
     this.socket = io(socketUrl, {
       auth: options?.auth,
       transports: options?.transports || ['websocket'],
@@ -50,18 +50,18 @@ class SocketClient {
       this.error = null;
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       // Socket disconnected silently
       this.isConnected = false;
       this.isConnecting = false;
-      
+
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
         this.handleReconnect();
       }
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       // Socket connection error handled silently
       this.isConnected = false;
       this.isConnecting = false;
@@ -69,14 +69,14 @@ class SocketClient {
       this.handleReconnect();
     });
 
-    this.socket.on('reconnect', (attemptNumber) => {
+    this.socket.on('reconnect', attemptNumber => {
       // Socket reconnected silently
       this.isConnected = true;
       this.isConnecting = false;
       this.error = null;
     });
 
-    this.socket.on('reconnect_error', (error) => {
+    this.socket.on('reconnect_error', error => {
       // Socket reconnection error handled silently
       this.error = error.message;
     });
@@ -98,7 +98,7 @@ class SocketClient {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    
+
     setTimeout(() => {
       if (this.socket && !this.socket.connected) {
         // Attempting to reconnect silently
@@ -128,10 +128,7 @@ class SocketClient {
     // Socket not connected - emit silently ignored
   }
 
-  on<K extends keyof SocketEvents>(
-    event: K,
-    callback: SocketEvents[K]
-  ): void {
+  on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): void {
     if (this.socket) {
       this.socket.on(event, callback as any);
     }
@@ -185,7 +182,12 @@ class SocketClient {
     this.emit('leave_stream_chat', { streamId, userId });
   }
 
-  sendMessage(streamId: string, content: string, userId: string, username: string): void {
+  sendMessage(
+    streamId: string,
+    content: string,
+    userId: string,
+    username: string
+  ): void {
     this.emit('send_message', { streamId, content, userId, username });
   }
 

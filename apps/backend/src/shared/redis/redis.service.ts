@@ -11,21 +11,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const redisUrl = this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
-    
+    const redisUrl =
+      this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+
     this.client = new Redis(redisUrl);
     this.subscriber = new Redis(redisUrl);
     this.publisher = new Redis(redisUrl);
 
-    this.client.on('error', (err) => {
+    this.client.on('error', err => {
       console.error('Redis Client Error:', err);
     });
 
-    this.subscriber.on('error', (err) => {
+    this.subscriber.on('error', err => {
       console.error('Redis Subscriber Error:', err);
     });
 
-    this.publisher.on('error', (err) => {
+    this.publisher.on('error', err => {
       console.error('Redis Publisher Error:', err);
     });
   }
@@ -115,7 +116,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.publisher.publish(channel, message);
   }
 
-  async subscribe(channel: string, callback: (message: string) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    callback: (message: string) => void
+  ): Promise<void> {
     await this.subscriber.subscribe(channel);
     this.subscriber.on('message', (receivedChannel, message) => {
       if (receivedChannel === channel) {
@@ -151,4 +155,3 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.publisher;
   }
 }
-

@@ -19,31 +19,30 @@ const colorClasses = {
   gray: 'from-gray-600 to-gray-700',
 };
 
-export default function AdminCard({ 
-  title, 
-  value, 
-  subtitle, 
-  icon, 
+export default function AdminCard({
+  title,
+  value,
+  subtitle,
+  icon,
   color = 'gray',
   className = '',
-  children 
+  children,
 }: AdminCardProps) {
   return (
-    <div className={`bg-gradient-to-r ${colorClasses[color]} rounded-lg p-6 ${className}`}>
-      <div className="flex items-center justify-between">
+    <div
+      className={`bg-gradient-to-r ${colorClasses[color]} rounded-lg p-6 ${className}`}
+    >
+      <div className='flex items-center justify-between'>
         <div>
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <div className="text-3xl font-bold">{value}</div>
+          <h3 className='text-lg font-semibold mb-2'>{title}</h3>
+          <div className='text-3xl font-bold'>{value}</div>
           {subtitle && (
-            <div className="text-sm opacity-80 mt-1">{subtitle}</div>
+            <div className='text-sm opacity-80 mt-1'>{subtitle}</div>
           )}
         </div>
-        {icon && (
-          <div className="text-4xl opacity-80">{icon}</div>
-        )}
+        {icon && <div className='text-4xl opacity-80'>{icon}</div>}
       </div>
       {children}
     </div>
   );
 }
-

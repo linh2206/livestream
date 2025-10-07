@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { register, collectDefaultMetrics, Counter, Gauge, Histogram } from 'prom-client';
+import {
+  register,
+  collectDefaultMetrics,
+  Counter,
+  Gauge,
+  Histogram,
+} from 'prom-client';
 import { User } from '../../shared/database/schemas/user.schema';
 import { Stream } from '../../shared/database/schemas/stream.schema';
 import { ChatMessage } from '../../shared/database/schemas/chat-message.schema';
@@ -27,7 +33,7 @@ export class MetricsService {
     @InjectModel(Stream.name) private streamModel: Model<Stream>,
     @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessage>,
     private redisService: RedisService,
-    private webSocketService: WebSocketService,
+    private webSocketService: WebSocketService
   ) {
     // Initialize default metrics
     collectDefaultMetrics({ register });
@@ -127,13 +133,22 @@ export class MetricsService {
   private async updateMetrics(): Promise<void> {
     try {
       // Update stream metrics
-      const [activeStreams, totalStreams, totalUsers, activeUsers, totalMessages, totalLikes] = await Promise.all([
+      const [
+        activeStreams,
+        totalStreams,
+        totalUsers,
+        activeUsers,
+        totalMessages,
+        totalLikes,
+      ] = await Promise.all([
         this.streamModel.countDocuments({ isLive: true }),
         this.streamModel.countDocuments(),
         this.userModel.countDocuments(),
         this.userModel.countDocuments({ isActive: true }),
         this.chatModel.countDocuments(),
-        this.streamModel.aggregate([{ $group: { _id: null, total: { $sum: '$likeCount' } } }]).then(r => r[0]?.total || 0),
+        this.streamModel
+          .aggregate([{ $group: { _id: null, total: { $sum: '$likeCount' } } }])
+          .then(r => r[0]?.total || 0),
       ]);
 
       this.activeStreamsGauge.set({ status: 'active' }, activeStreams);
@@ -158,22 +173,36 @@ export class MetricsService {
       // Set current viewer counts
       liveStreams.forEach(stream => {
         this.streamViewersGauge.set(
-          { stream_id: stream._id.toString(), stream_title: stream.title || 'Untitled' },
+          {
+            stream_id: stream._id.toString(),
+            stream_title: stream.title || 'Untitled',
+          },
           stream.viewerCount || 0
         );
       });
-
     } catch (error) {
       console.error('Error updating metrics:', error);
     }
   }
 
   // Methods to increment counters
-  incrementHttpRequests(method: string, route: string, statusCode: number): void {
-    this.httpRequestsTotal.inc({ method, route, status_code: statusCode.toString() });
+  incrementHttpRequests(
+    method: string,
+    route: string,
+    statusCode: number
+  ): void {
+    this.httpRequestsTotal.inc({
+      method,
+      route,
+      status_code: statusCode.toString(),
+    });
   }
 
-  recordHttpRequestDuration(method: string, route: string, duration: number): void {
+  recordHttpRequestDuration(
+    method: string,
+    route: string,
+    duration: number
+  ): void {
     this.httpRequestDuration.observe({ method, route }, duration);
   }
 
@@ -185,4 +214,3 @@ export class MetricsService {
     this.redisOperationsTotal.inc({ operation });
   }
 }
-
