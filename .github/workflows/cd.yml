@@ -16,45 +16,33 @@ jobs:
       github.event.workflow_run.head_branch == 'develop'
 
     steps:
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to Staging Server
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          port: ${{ secrets.STAGING_PORT || 22 }}
-          envs: DEBIAN_FRONTEND
-          debug: true
-          command_timeout: 10m
-          script: |
-            sudo -i bash << 'EOF'
-            set -ex
-            cd /workspace/livestream-staging
-            echo "=== Git Pull ==="
-            git pull origin develop
-            echo "=== Docker Down ==="
-            docker-compose down
-            echo "=== Docker Build ==="
-            docker-compose build
-            echo "=== Docker Up ==="
-            docker-compose up -d
-            echo "=== Container Status ==="
-            docker-compose ps
-            echo "=== Docker Logs ==="
-            docker-compose logs --tail=50
-            echo "=== Cleanup ==="
-            docker system prune -af --volumes
-            echo "=== Deployment Complete ==="
-            EOF
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.STAGING_USERNAME }}@${{ secrets.STAGING_HOST }} << 'EOF'
+          sudo -i bash << 'INNER_EOF'
+          cd /workspace/livestream-staging
+          git pull origin develop
+          docker-compose down
+          docker-compose build
+          docker-compose up -d
+          docker-compose ps
+          docker-compose logs --tail=50
+          docker system prune -af --volumes
+          INNER_EOF
+          EOF
 
       - name: Health Check
         run: |
-          echo "Waiting for containers to start..."
           sleep 60
-          echo "Checking health endpoint..."
-          curl -f -v --retry 3 --retry-delay 10 http://${{ secrets.STAGING_HOST }}:3000 || echo "Health check failed but deployment completed"
+          curl -f -v --retry 3 --retry-delay 10 http://${{ secrets.STAGING_HOST }}:3000
 
   # Deploy to Production (main branch)
   deploy-production:
@@ -66,20 +54,15 @@ jobs:
     steps:
       - name: Setup SSH Key
         run: |
-          sudo -i bash << 'INNER_EOF'
-          cd /root
+          mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-          ls -la ~/.ssh/
-INNER_EOF
-          EOF
-          echo "SSH key setup complete"
 
       - name: Deploy to Production Server
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USERNAME }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key root@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           sudo -i bash << 'INNER_EOF'
           cd /workspace/livestream
           git pull origin main
@@ -89,24 +72,22 @@ INNER_EOF
           docker-compose ps
           docker-compose logs --tail=50
           docker system prune -af --volumes
-INNER_EOF
+          INNER_EOF
           EOF
 
       - name: Health Check
         run: |
-          echo "Waiting for containers to start..."
           sleep 60
-          echo "Checking health endpoint..."
-          curl -f -v --retry 3 --retry-delay 10 http://${{ secrets.PRODUCTION_HOST }}:3000 || echo "Health check failed but deployment completed"
+          curl -f -v --retry 3 --retry-delay 10 http://${{ secrets.PRODUCTION_HOST }}:3000
 
       - name: Rollback on Failure
         if: failure()
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USERNAME }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key root@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           sudo -i bash << 'INNER_EOF'
           cd /workspace/livestream
           git reset --hard HEAD~1
           docker-compose down
           docker-compose up -d --build
-INNER_EOF
+          INNER_EOF
           EOF
