@@ -1,14 +1,11 @@
 name: CD
 
-# CD tạm tắt - SSH logs quá lộn xộn
-# Deploy thủ công trên VPS: cd /root/workspace/livestream && git pull && docker-compose up -d --build
 on:
-  workflow_dispatch:
-  # workflow_run:
-  #   workflows: ["CI"]
-  #   types:
-  #     - completed
-  #   branches: [main, develop]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main, develop]
 
 jobs:
   # Deploy to Staging (develop branch)
@@ -21,35 +18,45 @@ jobs:
     steps:
       - name: Deploy to Staging Server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEBIAN_FRONTEND: noninteractive
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USERNAME }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
+          envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
+            echo "================================================"
+            echo "🚀 STAGING DEPLOYMENT"
+            echo "================================================"
             cd /root/workspace/livestream-staging
-            echo "================================"
-            echo "📥 Pulling code..."
-            git pull origin develop
-            echo "================================"
+            
+            echo "📥 Git pull..."
+            git pull origin develop 2>&1
+            
             echo "🛑 Stopping containers..."
-            docker-compose down
-            echo "================================"
+            docker-compose down 2>&1
+            
             echo "🏗️ Building images..."
-            docker-compose build 2>&1 | tail -50
-            echo "================================"
+            docker-compose build --no-cache 2>&1
+            
             echo "🚀 Starting containers..."
-            docker-compose up -d
-            echo "================================"
+            docker-compose up -d 2>&1
+            
             echo "📊 Container status:"
             docker-compose ps
-            echo "================================"
-            echo "📋 Container logs:"
-            docker-compose logs --tail=50
-            echo "================================"
-            docker system prune -af --volumes > /dev/null 2>&1
-            echo "✅ Deployment done!"
+            
+            echo "📋 Last 30 lines of logs:"
+            docker-compose logs --tail=30
+            
+            echo "🧹 Cleanup..."
+            docker system prune -af 2>&1 | head -5
+            
+            echo "================================================"
+            echo "✅ DEPLOYMENT COMPLETED"
+            echo "================================================"
           EOF
 
       - name: Health Check
@@ -69,35 +76,45 @@ jobs:
     steps:
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEBIAN_FRONTEND: noninteractive
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USERNAME }}
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
+          envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
+            echo "================================================"
+            echo "🚀 PRODUCTION DEPLOYMENT"
+            echo "================================================"
             cd /root/workspace/livestream
-            echo "================================"
-            echo "📥 Pulling code..."
-            git pull origin main
-            echo "================================"
+            
+            echo "📥 Git pull..."
+            git pull origin main 2>&1
+            
             echo "🛑 Stopping containers..."
-            docker-compose down
-            echo "================================"
+            docker-compose down 2>&1
+            
             echo "🏗️ Building images..."
-            docker-compose build 2>&1 | tail -50
-            echo "================================"
+            docker-compose build --no-cache 2>&1
+            
             echo "🚀 Starting containers..."
-            docker-compose up -d
-            echo "================================"
+            docker-compose up -d 2>&1
+            
             echo "📊 Container status:"
             docker-compose ps
-            echo "================================"
-            echo "📋 Container logs:"
-            docker-compose logs --tail=50
-            echo "================================"
-            docker system prune -af --volumes > /dev/null 2>&1
-            echo "✅ Deployment done!"
+            
+            echo "📋 Last 30 lines of logs:"
+            docker-compose logs --tail=30
+            
+            echo "🧹 Cleanup..."
+            docker system prune -af 2>&1 | head -5
+            
+            echo "================================================"
+            echo "✅ DEPLOYMENT COMPLETED"
+            echo "================================================"
           EOF
 
       - name: Health Check
