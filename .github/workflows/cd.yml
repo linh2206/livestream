@@ -26,6 +26,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
           envs: DEBIAN_FRONTEND
+          debug: true
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream-staging
@@ -63,6 +64,7 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           envs: DEBIAN_FRONTEND
+          debug: true
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream
@@ -90,6 +92,7 @@ jobs:
           username: ${{ secrets.PRODUCTION_USERNAME }}
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
+          debug: true
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream
