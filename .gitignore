@@ -101,6 +101,11 @@ jspm_packages/
 apps/backend/hls/
 apps/api/hls/
 
+# VOD files (Video on Demand)
+**/vod/
+apps/backend/vod/
+apps/frontend/vod/
+
 # Database
 *.db
 *.sqlite
@@ -124,4 +129,28 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# FFmpeg temporary files
+*.tmp
+*.temp
+segments.txt
+
+# Video processing files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.m4v
+
+# Thumbnail files
+*_thumbnail.jpg
+*_thumbnail.png
+*_thumbnail.jpeg
+
+# Processing status files
+*.processing
+*.lock
 

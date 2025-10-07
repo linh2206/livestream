@@ -1,18 +1,18 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Delete, 
-  Param, 
-  Query, 
-  UseGuards, 
-  Request,
+import {
+  Controller,
+  Delete,
+  Get,
   HttpCode,
-  HttpStatus 
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { VodService } from './vod.service';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { AdminGuard } from '../../shared/guards/admin.guard';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { VodService } from './vod.service';
 
 @Controller('vod')
 export class VodController {
@@ -23,11 +23,11 @@ export class VodController {
   async getVodList(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('userId') userId?: string,
+    @Query('userId') userId?: string
   ) {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-    
+
     return this.vodService.getVodList(userId, pageNum, limitNum);
   }
 
@@ -36,11 +36,11 @@ export class VodController {
   async getMyVods(
     @Request() req: any,
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('limit') limit: string = '10'
   ) {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-    
+
     return this.vodService.getVodList(req.user._id, pageNum, limitNum);
   }
 
@@ -72,7 +72,7 @@ export class VodController {
     if (!vod) {
       throw new Error('VOD not found');
     }
-    
+
     return this.vodService.deleteVod(id, vod.userId.toString());
   }
 }
