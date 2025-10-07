@@ -28,7 +28,6 @@ jobs:
           envs: DEBIAN_FRONTEND
           debug: true
           command_timeout: 10m
-          script_timeout: 10m
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream-staging
@@ -68,7 +67,6 @@ jobs:
           envs: DEBIAN_FRONTEND
           debug: true
           command_timeout: 10m
-          script_timeout: 10m
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream
@@ -98,7 +96,6 @@ jobs:
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           debug: true
           command_timeout: 10m
-          script_timeout: 10m
           script: |
             sudo -i bash << 'EOF'
             cd /workspace/livestream
