@@ -20,6 +20,7 @@ help:
 	@echo "  make runner-reinstall - Purge then install runner(s)"
 	@echo "  make runner-start   - Start runner service(s)"
 	@echo "  make runner-status  - Status of runner service(s)"
+	@echo "  make runner-user    - Create 'runner' user if missing"
 	@echo "  make runner-delete  - Alias of runner-purge"
 	@echo ""
 	@echo "Access URLs:"
@@ -84,37 +85,50 @@ setup:
 
 runner-purge:
 	@echo "Purging existing runner..."
-	bash scripts/runner.sh --purge || true
+	RUNNER_USER=${RUNNER_USER} bash -c '\
+	  USERNAME="$${RUNNER_USER:-runner}"; \
+	  id $$USERNAME >/dev/null 2>&1 || sudo useradd -m -s /bin/bash $$USERNAME; \
+	  sudo -u $$USERNAME -H bash scripts/runner.sh --purge || true'
 
 runner-install:
 	@echo "Installing runner(s)..."
-	GH_URL="$(GH_URL)" GH_TOKEN="$(GH_TOKEN)" bash scripts/runner.sh --install \
+	RUNNER_USER=${RUNNER_USER} GH_URL="$(GH_URL)" GH_TOKEN="$(GH_TOKEN)" bash -c '\
+	  USERNAME="$${RUNNER_USER:-runner}"; \
+	  id $$USERNAME >/dev/null 2>&1 || sudo useradd -m -s /bin/bash $$USERNAME; \
+	  sudo -u $$USERNAME -H env GH_URL="$(GH_URL)" GH_TOKEN="$(GH_TOKEN)" bash scripts/runner.sh --install \
 		$$( [ -n "$(COUNT)" ] && echo --count $(COUNT) ) \
 		$$( [ -n "$(NAME)" ] && echo --name $(NAME) ) \
 		$$( [ -n "$(LABELS)" ] && echo --labels $(LABELS) ) \
 		$$( [ -n "$(PREFIX)" ] && echo --prefix $(PREFIX) ) \
-		$$( [ -n "$(VERSION)" ] && echo --version $(VERSION) )
+		$$( [ -n "$(VERSION)" ] && echo --version $(VERSION) )'
 
 runner-reinstall: runner-purge runner-install
 
 runner-start:
 	@echo "Starting runner service(s)..."
-	@COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
+	@RUNNER_USER=${RUNNER_USER} COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
 	  COUNT="$${COUNT:-1}"; PREFIX="$${PREFIX:-actions-runner}"; \
+	  USERNAME="$${RUNNER_USER:-runner}"; HOME_DIR=$$(getent passwd $$USERNAME | cut -d: -f6); \
 	  if [ $$COUNT -le 1 ]; then \
-	    d="$$HOME/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; \
+	    d="$$HOME_DIR/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; \
 	  else \
-	    for i in $$(seq 1 $$COUNT); do d="$$HOME/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; done; \
+	    for i in $$(seq 1 $$COUNT); do d="$$HOME_DIR/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; done; \
 	  fi'
 
 runner-status:
 	@echo "Runner service status..."
-	@COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
+	@RUNNER_USER=${RUNNER_USER} COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
 	  COUNT="$${COUNT:-1}"; PREFIX="$${PREFIX:-actions-runner}"; \
+	  USERNAME="$${RUNNER_USER:-runner}"; HOME_DIR=$$(getent passwd $$USERNAME | cut -d: -f6); \
 	  if [ $$COUNT -le 1 ]; then \
-	    d="$$HOME/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; \
+	    d="$$HOME_DIR/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; \
 	  else \
-	    for i in $$(seq 1 $$COUNT); do d="$$HOME/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; done; \
+	    for i in $$(seq 1 $$COUNT); do d="$$HOME_DIR/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; done; \
 	  fi'
+runner-user:
+	@RUNNER_USER=${RUNNER_USER} bash -c '\
+	  USERNAME="$${RUNNER_USER:-runner}"; \
+	  id $$USERNAME >/dev/null 2>&1 || sudo useradd -m -s /bin/bash $$USERNAME; \
+	  echo "User $$USERNAME is ready."'
 
 runner-delete: runner-purge

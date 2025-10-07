@@ -64,8 +64,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$EUID" -eq 0 ]]; then
-  echo "Do not run this script as root. Use a regular user; sudo is used only when needed." >&2
+# Allow running as root only when explicitly enabled
+if [[ "$EUID" -eq 0 && "${ALLOW_ROOT:-0}" != "1" ]]; then
+  echo "Do not run this script as root. Set ALLOW_ROOT=1 to override (not recommended)." >&2
   exit 1
 fi
 
