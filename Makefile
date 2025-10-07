@@ -18,6 +18,9 @@ help:
 	@echo "  make runner-purge   - Remove existing self-hosted runner"
 	@echo "  make runner-install - Install/register self-hosted runner(s)"
 	@echo "  make runner-reinstall - Purge then install runner(s)"
+	@echo "  make runner-start   - Start runner service(s)"
+	@echo "  make runner-status  - Status of runner service(s)"
+	@echo "  make runner-delete  - Alias of runner-purge"
 	@echo ""
 	@echo "Access URLs:"
 	@echo "  Frontend: http://localhost:3000"
@@ -93,3 +96,25 @@ runner-install:
 		$$( [ -n "$(VERSION)" ] && echo --version $(VERSION) )
 
 runner-reinstall: runner-purge runner-install
+
+runner-start:
+	@echo "Starting runner service(s)..."
+	@COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
+	  COUNT="$${COUNT:-1}"; PREFIX="$${PREFIX:-actions-runner}"; \
+	  if [ $$COUNT -le 1 ]; then \
+	    d="$$HOME/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; \
+	  else \
+	    for i in $$(seq 1 $$COUNT); do d="$$HOME/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh start || true; done; \
+	  fi'
+
+runner-status:
+	@echo "Runner service status..."
+	@COUNT=${COUNT} PREFIX=${PREFIX} bash -c '\
+	  COUNT="$${COUNT:-1}"; PREFIX="$${PREFIX:-actions-runner}"; \
+	  if [ $$COUNT -le 1 ]; then \
+	    d="$$HOME/$$PREFIX"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; \
+	  else \
+	    for i in $$(seq 1 $$COUNT); do d="$$HOME/$$PREFIX$$i"; [ -d "$$d" ] && cd "$$d" && sudo ./svc.sh status || true; done; \
+	  fi'
+
+runner-delete: runner-purge

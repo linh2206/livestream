@@ -77,19 +77,38 @@ ensure_deps() {
 }
 
 purge_runner() {
-  if [[ -d "$RUNNER_DIR" ]]; then
-    print_header "Stopping & uninstalling existing runner service (if any)"
-    pushd "$RUNNER_DIR" >/dev/null || exit 1
-    chmod +x svc.sh config.sh || true
-    ./svc.sh stop 2>/dev/null || true
-    ./svc.sh uninstall 2>/dev/null || true
-    ./config.sh remove --token invalid 2>/dev/null || true
-    popd >/dev/null || true
-
-    print_header "Deleting directory $RUNNER_DIR"
-    rm -rf "$RUNNER_DIR"
+  local count prefix
+  count=${RUNNER_COUNT}
+  prefix=${RUNNER_PREFIX}
+  if [[ ${count} -le 1 ]]; then
+    # Purge default single directory
+    local dir1="$RUNNER_DIR" dir2="$HOME/${prefix}"
+    for dir in "$dir1" "$dir2"; do
+      if [[ -d "$dir" ]]; then
+        print_header "Removing runner at $dir"
+        pushd "$dir" >/dev/null || exit 1
+        chmod +x svc.sh config.sh || true
+        ./svc.sh stop 2>/dev/null || true
+        ./svc.sh uninstall 2>/dev/null || true
+        ./config.sh remove --token invalid 2>/dev/null || true
+        popd >/dev/null || true
+        rm -rf "$dir"
+      fi
+    done
   else
-    echo "No existing runner at $RUNNER_DIR"
+    for ((i=1; i<=count; i++)); do
+      local dir="$HOME/${prefix}${i}"
+      if [[ -d "$dir" ]]; then
+        print_header "Removing runner #$i at $dir"
+        pushd "$dir" >/dev/null || exit 1
+        chmod +x svc.sh config.sh || true
+        ./svc.sh stop 2>/dev/null || true
+        ./svc.sh uninstall 2>/dev/null || true
+        ./config.sh remove --token invalid 2>/dev/null || true
+        popd >/dev/null || true
+        rm -rf "$dir"
+      fi
+    done
   fi
 }
 
