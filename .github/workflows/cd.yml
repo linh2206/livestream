@@ -28,7 +28,7 @@ jobs:
           envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
-            cd /root/workspace/livestream-staging
+            cd /workspace/livestream-staging
             git pull origin develop
             docker-compose down
             docker-compose build
@@ -65,7 +65,7 @@ jobs:
           envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
-            cd /root/workspace/livestream
+            cd /workspace/livestream
             git pull origin main
             docker-compose down
             docker-compose build
@@ -92,7 +92,7 @@ jobs:
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
             sudo -i bash << 'EOF'
-            cd /root/workspace/livestream
+            cd /workspace/livestream
             git reset --hard HEAD~1
             docker-compose down
             docker-compose up -d --build
