@@ -171,6 +171,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      frontend:
+        condition: service_healthy
     networks:
       - livestream-network
 
