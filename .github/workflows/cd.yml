@@ -7,84 +7,41 @@ on:
         types: [completed]
         branches: [main]
 
-env:
-    NODE_VERSION: "20"
-
 jobs:
     deploy:
         name: Deploy to server
-        runs-on: ubuntu-latest
-        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: self-hosted
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Setup SSH
-              uses: webfactory/ssh-agent@v0.9.0
-              with:
-                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-            - name: Mask sensitive values in logs
+            - name: Prepare environment file
               run: |
-                  echo "::add-mask::${{ secrets.SSH_HOST }}"
-                  echo "::add-mask::${{ secrets.SSH_USER }}"
-                  echo "::add-mask::${{ secrets.SSH_PORT }}"
+                  set -euo pipefail
+                  if [ -f .env ]; then echo '.env exists, keeping it';
+                  elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env;
+                  else echo 'No .env or .env.example found'; fi
 
-            - name: Add known hosts
+            - name: Docker compose up
               run: |
-                  mkdir -p ~/.ssh
-                  touch ~/.ssh/known_hosts
-                  chmod 700 ~/.ssh
-                  chmod 600 ~/.ssh/known_hosts
-                  ssh-keyscan -p "${{ secrets.SSH_PORT }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
-
-            - name: Sync files to server (rsync)
-              run: |
-                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
-                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p \"$HOME/workspace/livestream\""
-                  retry rsync -azq --delete \
-                    --exclude='.git' \
-                    --exclude='.github' \
-                    --exclude='node_modules' \
-                    -e "ssh -q -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
-                    ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/workspace/livestream/
-
-            - name: Deploy on server
-              run: |
-                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
-                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
-                    set -euo pipefail; \
-                    TARGET_DIR=\"$HOME/workspace/livestream\"; \
-                    case \"$TARGET_DIR\" in \
-                      /*) ;; \
-                      *) TARGET_DIR=\"$HOME/$TARGET_DIR\" ;; \
-                    esac; \
-                    mkdir -p \"$TARGET_DIR\"; \
-                    cd \"$TARGET_DIR\"; \
-                    if [ -f .env ]; then echo '.env exists, keeping it'; \
-                    elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env; \
-                    else echo 'No .env or .env.example found'; fi; \
-                    docker compose pull || true; \
-                    docker compose build --no-cache; \
-                    docker compose up -d --remove-orphans; \
-                    docker image prune -f || true; \
-                    docker system df; \
-                  "
+                  docker compose pull || true
+                  docker compose build --no-cache
+                  docker compose up -d --remove-orphans
+                  docker image prune -f || true
+                  docker system df
 
             - name: Health check services via Docker
               run: |
-                  retry() { for i in 1 2 3; do "$@" && return 0; echo "retry $i failed, retrying..."; sleep 5; done; return 1; }
-                  retry ssh -q -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
-                      set -e; \
-                      check_health() { \
-                        name=\"$1\"; \
-                        for i in $(seq 1 20); do \
-                          status=\$(docker inspect --format='{{{{.State.Health.Status}}}}' \"$name\" 2>/dev/null || echo 'unknown'); \
-                          echo \"$name: $status\"; \
-                          if [ \"$status\" = healthy ]; then return 0; fi; \
-                          sleep 6; \
-                        done; \
-                        return 1; \
-                      }; \
-                      check_health livestream-backend && check_health livestream-frontend && echo 'All services healthy'; \
-                    "
+                  set -e
+                  check_health() {
+                    name="$1"
+                    for i in $(seq 1 20); do
+                      status=$(docker inspect --format='{{.State.Health.Status}}' "$name" 2>/dev/null || echo 'unknown')
+                      echo "$name: $status"
+                      if [ "$status" = healthy ]; then return 0; fi
+                      sleep 6
+                    done
+                    return 1
+                  }
+                  check_health livestream-backend && check_health livestream-frontend && echo 'All services healthy'
