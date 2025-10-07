@@ -28,35 +28,14 @@ jobs:
           envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
-            echo "================================================"
-            echo "🚀 STAGING DEPLOYMENT"
-            echo "================================================"
             cd /root/workspace/livestream-staging
-            
-            echo "📥 Git pull..."
-            git pull origin develop 2>&1
-            
-            echo "🛑 Stopping containers..."
-            docker-compose down 2>&1
-            
-            echo "🏗️ Building images..."
-            docker-compose build --no-cache 2>&1
-            
-            echo "🚀 Starting containers..."
-            docker-compose up -d 2>&1
-            
-            echo "📊 Container status:"
+            git pull origin develop
+            docker-compose down
+            docker-compose build
+            docker-compose up -d
             docker-compose ps
-            
-            echo "📋 Last 30 lines of logs:"
-            docker-compose logs --tail=30
-            
-            echo "🧹 Cleanup..."
-            docker system prune -af 2>&1 | head -5
-            
-            echo "================================================"
-            echo "✅ DEPLOYMENT COMPLETED"
-            echo "================================================"
+            docker-compose logs --tail=50
+            docker system prune -af --volumes
           EOF
 
       - name: Health Check
@@ -86,35 +65,14 @@ jobs:
           envs: DEBIAN_FRONTEND
           script: |
             sudo -i bash << 'EOF'
-            echo "================================================"
-            echo "🚀 PRODUCTION DEPLOYMENT"
-            echo "================================================"
             cd /root/workspace/livestream
-            
-            echo "📥 Git pull..."
-            git pull origin main 2>&1
-            
-            echo "🛑 Stopping containers..."
-            docker-compose down 2>&1
-            
-            echo "🏗️ Building images..."
-            docker-compose build --no-cache 2>&1
-            
-            echo "🚀 Starting containers..."
-            docker-compose up -d 2>&1
-            
-            echo "📊 Container status:"
+            git pull origin main
+            docker-compose down
+            docker-compose build
+            docker-compose up -d
             docker-compose ps
-            
-            echo "📋 Last 30 lines of logs:"
-            docker-compose logs --tail=30
-            
-            echo "🧹 Cleanup..."
-            docker system prune -af 2>&1 | head -5
-            
-            echo "================================================"
-            echo "✅ DEPLOYMENT COMPLETED"
-            echo "================================================"
+            docker-compose logs --tail=50
+            docker system prune -af --volumes
           EOF
 
       - name: Health Check
@@ -126,14 +84,16 @@ jobs:
 
       - name: Rollback on Failure
         if: failure()
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USERNAME }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_PORT || 22 }}
+          script: |
             sudo -i bash << 'EOF'
             cd /root/workspace/livestream
-            echo "⚠️ Rolling back..."
             git reset --hard HEAD~1
             docker-compose down
             docker-compose up -d --build
-            echo "✅ Rollback completed"
           EOF
-          ENDSSH
