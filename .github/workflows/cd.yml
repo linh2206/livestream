@@ -100,18 +100,12 @@ jobs:
 
       - name: Rollback on Failure
         if: failure()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          port: ${{ secrets.PRODUCTION_PORT || 22 }}
-          debug: true
-          command_timeout: 10m
-          script: |
-            sudo -i bash << 'EOF'
-            cd /workspace/livestream
-            git reset --hard HEAD~1
-            docker-compose down
-            docker-compose up -d --build
-            EOF
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USERNAME }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sudo -i bash << 'INNER_EOF'
+          cd /workspace/livestream
+          git reset --hard HEAD~1
+          docker-compose down
+          docker-compose up -d --build
+          INNER_EOF
+          EOF
