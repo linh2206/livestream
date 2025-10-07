@@ -43,6 +43,10 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: npm run type-check
 
+      - name: Run tests
+        working-directory: apps/${{ matrix.app }}
+        run: npm test -- --passWithNoTests
+
       - name: Build
         working-directory: apps/${{ matrix.app }}
         run: npm run build

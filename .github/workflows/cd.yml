@@ -25,11 +25,14 @@ jobs:
           port: ${{ secrets.STAGING_PORT || 22 }}
           script: |
             set -e
+            sudo -i bash << 'EOF'
+            set -e
             cd /root/workspace/livestream-staging
-            sudo git pull origin develop
-            sudo docker-compose down
-            sudo docker-compose up -d --build
-            sudo docker system prune -af --volumes
+            git pull origin develop
+            docker-compose down
+            docker-compose up -d --build
+            docker system prune -af --volumes
+            EOF
           script_stop: true
           command_timeout: 30m
           debug: true
@@ -56,11 +59,14 @@ jobs:
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
             set -e
+            sudo -i bash << 'EOF'
+            set -e
             cd /root/workspace/livestream
-            sudo git pull origin main
-            sudo docker-compose down
-            sudo docker-compose up -d --build
-            sudo docker system prune -af --volumes
+            git pull origin main
+            docker-compose down
+            docker-compose up -d --build
+            docker system prune -af --volumes
+            EOF
           script_stop: true
           command_timeout: 30m
           debug: true
@@ -80,9 +86,12 @@ jobs:
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
             set -e
+            sudo -i bash << 'EOF'
+            set -e
             cd /root/workspace/livestream
-            sudo git reset --hard HEAD~1
-            sudo docker-compose down
-            sudo docker-compose up -d --build
+            git reset --hard HEAD~1
+            docker-compose down
+            docker-compose up -d --build
+            EOF
           script_stop: true
           debug: true

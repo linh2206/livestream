@@ -6,15 +6,18 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['@typescript-eslint/eslint-plugin', 'unused-imports'],
-  extends: [
-    'plugin:prettier/recommended',
-  ],
+  extends: ['plugin:prettier/recommended'],
   root: true,
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'dist/**/*'],
+  ignorePatterns: [
+    '.eslintrc.js',
+    'jest.config.js',
+    'test/**/*.js',
+    'dist/**/*',
+  ],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',

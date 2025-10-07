@@ -365,6 +365,30 @@ Trước khi production:
 
 ---
 
+## Branch Protection
+
+### Setup Branch Protection Rules:
+
+1. Vào: https://github.com/linh2206/livestream/settings/branches
+2. Click "Add branch protection rule"
+3. Branch name pattern: `main`
+4. Enable:
+   - ✅ Require a pull request before merging
+   - ✅ Require status checks to pass before merging
+     - Select: Test frontend, Test backend, CI Success
+   - ✅ Require conversation resolution before merging
+5. Click "Create"
+
+### Workflow với Branch Protection:
+
+```
+Feature → PR → CI runs → Tests pass → Merge → CD deploys
+```
+
+Không thể push trực tiếp vào main!
+
+---
+
 ## Kết luận
 
 Sau khi setup xong:
@@ -373,5 +397,7 @@ Sau khi setup xong:
 - ✅ develop branch → Staging
 - ✅ main branch → Production
 - ✅ Có rollback nếu failed
+- ✅ Branch protection bảo vệ main
+- ✅ Tests chạy trước khi merge
 
 **Happy deploying! 🚀**
