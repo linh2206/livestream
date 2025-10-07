@@ -20,6 +20,7 @@ GH_URL="${GH_URL:-}"
 GH_TOKEN="${GH_TOKEN:-}"
 RUNNER_COUNT=1
 RUNNER_PREFIX="actions-runner"
+RUNNER_BASE="${RUNNER_BASE:-$HOME}"
 
 print_header() {
   echo "\n==> $1"
@@ -38,6 +39,7 @@ Flags:
   --version <X.Y.Z>       Runner version (default: ${RUNNER_VERSION})
   --count <N>             Install N runners (each in its own directory)
   --prefix <PREFIX>       Base directory/name prefix (default: ${RUNNER_PREFIX})
+  --base <DIR>            Base directory to place runner folders (default: ${RUNNER_BASE})
 
 Environment variables (alternative to flags / prompts):
   GH_URL      Same as --url
@@ -59,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --version) RUNNER_VERSION="$2"; shift 2 ;;
     --count) RUNNER_COUNT="$2"; shift 2 ;;
     --prefix) RUNNER_PREFIX="$2"; shift 2 ;;
+    --base) RUNNER_BASE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1"; usage; exit 1 ;;
   esac
@@ -83,12 +86,13 @@ ensure_deps() {
 }
 
 purge_runner() {
-  local count prefix
+  local count prefix base
   count=${RUNNER_COUNT}
   prefix=${RUNNER_PREFIX}
+  base=${RUNNER_BASE:-$HOME}
   if [[ ${count} -le 1 ]]; then
     # Purge default single directory
-    local dir1="$RUNNER_DIR" dir2="$HOME/${prefix}"
+    local dir1="$RUNNER_DIR" dir2="$base/${prefix}"
     for dir in "$dir1" "$dir2"; do
       if [[ -d "$dir" ]]; then
         print_header "Removing runner at $dir"
@@ -104,7 +108,7 @@ purge_runner() {
     done
   else
     for ((i=1; i<=count; i++)); do
-      local dir="$HOME/${prefix}${i}"
+      local dir="$base/${prefix}${i}"
       if [[ -d "$dir" ]]; then
         print_header "Removing runner #$i at $dir"
         (
@@ -162,7 +166,7 @@ install_runner() {
     # Luôn đánh số 1..N để thỏa yêu cầu "runner + number"
     suffix="$i"
     name="${base_name}${suffix}"
-    dir="$HOME/${RUNNER_PREFIX}${suffix}"
+    dir="${RUNNER_BASE/%\//}/${RUNNER_PREFIX}${suffix}"
 
     print_header "Cài runner #$i tại $dir (name=$name)"
     mkdir -p "$dir"
