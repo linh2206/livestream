@@ -30,14 +30,23 @@ jobs:
           command_timeout: 10m
           script: |
             sudo -i bash << 'EOF'
+            set -ex
             cd /workspace/livestream-staging
+            echo "=== Git Pull ==="
             git pull origin develop
+            echo "=== Docker Down ==="
             docker-compose down
+            echo "=== Docker Build ==="
             docker-compose build
+            echo "=== Docker Up ==="
             docker-compose up -d
+            echo "=== Container Status ==="
             docker-compose ps
+            echo "=== Docker Logs ==="
             docker-compose logs --tail=50
+            echo "=== Cleanup ==="
             docker system prune -af --volumes
+            echo "=== Deployment Complete ==="
             EOF
 
       - name: Health Check
@@ -69,14 +78,23 @@ jobs:
           command_timeout: 10m
           script: |
             sudo -i bash << 'EOF'
+            set -ex
             cd /workspace/livestream
+            echo "=== Git Pull ==="
             git pull origin main
+            echo "=== Docker Down ==="
             docker-compose down
+            echo "=== Docker Build ==="
             docker-compose build
+            echo "=== Docker Up ==="
             docker-compose up -d
+            echo "=== Container Status ==="
             docker-compose ps
+            echo "=== Docker Logs ==="
             docker-compose logs --tail=50
+            echo "=== Cleanup ==="
             docker system prune -af --volumes
+            echo "=== Deployment Complete ==="
             EOF
 
       - name: Health Check
