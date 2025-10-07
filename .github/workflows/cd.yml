@@ -166,7 +166,6 @@ jobs:
     steps:
       - name: Setup SSH Key
         run: |
-          mkdir -p ~/.ssh
           echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           chmod 700 ~/.ssh
