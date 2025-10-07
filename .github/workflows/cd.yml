@@ -73,7 +73,7 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
           ls -la ~/.ssh/
-          INNER_EOF
+INNER_EOF
           EOF
           echo "SSH key setup complete"
 
@@ -89,7 +89,7 @@ jobs:
           docker-compose ps
           docker-compose logs --tail=50
           docker system prune -af --volumes
-          INNER_EOF
+INNER_EOF
           EOF
 
       - name: Health Check
@@ -108,5 +108,5 @@ jobs:
           git reset --hard HEAD~1
           docker-compose down
           docker-compose up -d --build
-          INNER_EOF
+INNER_EOF
           EOF
