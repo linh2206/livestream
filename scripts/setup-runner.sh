@@ -69,18 +69,24 @@ OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
 REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 
 echo "Repository: $OWNER/$REPO"
+echo "Token length: ${#RUNNER_TOKEN}"
+echo "Token first 10 chars: ${RUNNER_TOKEN:0:10}"
 
-API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST -H "Accept: application/vnd.github+json" -H "Authorization: token $RUNNER_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+# Test with simple curl first
+echo "Testing API call..."
+API_RESPONSE=$(curl -s -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token $RUNNER_TOKEN" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" 2>&1)
 
-HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
-RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
+echo "API Response: $API_RESPONSE"
 
-REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
+REG_TOKEN=$(echo "$API_RESPONSE" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
 
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
-    echo "HTTP Code: $HTTP_CODE"
-    echo "Response: $RESPONSE_BODY"
+    echo "Response: $API_RESPONSE"
     exit 1
 fi
 
