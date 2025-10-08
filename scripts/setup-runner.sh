@@ -14,6 +14,9 @@ if [[ -z "$RUNNER_TOKEN" ]]; then
     echo ""
 fi
 
+# Clean token from any newlines/carriage returns
+RUNNER_TOKEN=$(echo "$RUNNER_TOKEN" | tr -d '\n\r')
+
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Error: Token is required"
     exit 1
