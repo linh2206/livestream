@@ -49,14 +49,8 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Use existing runner files
-if [[ ! -d "$WORK_BASE_DIR/actions-runner" ]]; then
-    echo "Error: $WORK_BASE_DIR/actions-runner not found"
-    exit 1
-fi
-
-echo "Using existing runner files..."
-cp -r "$WORK_BASE_DIR/actions-runner"/* .
+# Use existing runner files (version 2.328.0)
+echo "Using existing runner files (v2.328.0)..."
 
 # Get registration token from GitHub API
 echo "Getting registration token from GitHub API..."
