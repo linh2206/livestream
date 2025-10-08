@@ -78,11 +78,29 @@ for i in $(seq 1 "$COUNT"); do
   fi
 done
 
+# Find next available runner number
+find_next_runner_number() {
+  local base_path="${RUNNER_BASE%/}/${PREFIX}"
+  local num=1
+  while [[ -d "${base_path}${num}" ]]; do
+    ((num++))
+  done
+  echo $num
+}
+
 # Install fresh
 for i in $(seq 1 "$COUNT"); do
-  name="${NAME}${i}"
-  dest="${RUNNER_BASE%/}/${PREFIX}${i}"
-  echo "==> Install $name at $dest"
+  if [[ "$COUNT" -eq 1 ]]; then
+    # Single runner - find next available number
+    runner_num=$(find_next_runner_number)
+  else
+    # Multiple runners - use sequential numbers
+    runner_num=$i
+  fi
+  
+  name="${NAME}${runner_num}"
+  dest="${RUNNER_BASE%/}/${PREFIX}${runner_num}"
+  echo "==> Install $name at $dest (runner #${runner_num})"
   mkdir -p "$dest" && cd "$dest"
   url="https://github.com/actions/runner/releases/download/v${VERSION}/actions-runner-linux-x64-${VERSION}.tar.gz"
   curl -fL -H 'Accept: application/octet-stream' -o runner.tgz "$url"
@@ -99,9 +117,9 @@ for i in $(seq 1 "$COUNT"); do
   done
   echo "Configuring runner..."
   if [[ -n "$LABELS" ]]; then
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace --allow-root
   else
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace --allow-root
   fi
   
   echo "Installing service..."
