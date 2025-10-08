@@ -139,21 +139,27 @@ echo "  URL: $REPO_URL"
 echo "  Token: ${RUNNER_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
-# Try with --ephemeral flag (newer runners)
-./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work" --ephemeral
+# Patch runner binary to use correct API endpoint
+echo "Patching runner binary to fix API endpoint..."
+
+# Backup original binary
+cp ./config.sh ./config.sh.backup
+
+# Patch the API endpoint in config.sh
+sed -i 's|https://api.github.com/actions/runner-registration|https://api.github.com/repos/'"$OWNER"'/'"$REPO"'/actions/runners/registration-token|g' ./config.sh
+
+echo "Patched config.sh to use correct API endpoint"
+
+# Try config.sh with patched binary
+./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
 if [[ $? -eq 0 ]]; then
-    echo "Config.sh succeeded with --ephemeral"
+    echo "Config.sh succeeded with patched binary"
 else
-    echo "Config.sh failed with --ephemeral, trying without..."
-    ./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
-    
-    if [[ $? -eq 0 ]]; then
-        echo "Config.sh succeeded without --ephemeral"
-    else
-        echo "Config.sh failed completely"
-        exit 1
-    fi
+    echo "Config.sh failed even with patch"
+    # Restore original
+    mv ./config.sh.backup ./config.sh
+    exit 1
 fi
 
 # Run directly (svc.sh has JSON parsing issues)
