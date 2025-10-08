@@ -10,12 +10,11 @@ WORK_BASE_DIR="${WORK_BASE_DIR:-$HOME/workspace}"
 # Get token from user
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Enter your GitHub Personal Access Token:"
-    read -s RUNNER_TOKEN
-    echo ""
+    read RUNNER_TOKEN
 fi
 
 # Clean token from any newlines/carriage returns
-RUNNER_TOKEN=$(echo "$RUNNER_TOKEN" | tr -d '\n\r')
+RUNNER_TOKEN=$(echo "$RUNNER_TOKEN" | tr -d '\n\r' | tr -d ' ')
 
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Error: Token is required"
