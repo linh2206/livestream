@@ -68,11 +68,7 @@ REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 
 echo "Repository: $OWNER/$REPO"
 
-API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token $(echo "$RUNNER_TOKEN" | tr -d '\n\r')" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST -H "Accept: application/vnd.github+json" -H "Authorization: token $RUNNER_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
 
 HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
 RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
