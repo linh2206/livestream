@@ -12,6 +12,7 @@ help:
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make reset-password - Reset admin password"
 	@echo "  make setup-ssh  - Install & configure SSH server (password + key)"
+	@echo "  make setup-run  - Setup GitHub Actions runner"
 	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
@@ -47,6 +48,13 @@ logs:
 setup-ssh:
 	@echo "Installing and configuring SSH server..."
 	./scripts/setup-ssh-server.sh
+
+# GitHub Actions runner setup
+setup-run:
+	@echo "Setting up GitHub Actions runner..."
+	@echo "Usage: GH_URL=<repo_url> GH_TOKEN=<token> [COUNT=1] make setup-run"
+	@echo "Example: GH_URL=https://github.com/owner/repo GH_TOKEN=abc123 make setup-run"
+	./scripts/setup-runner.sh
 
 # FFmpeg
 install-ffmpeg:
