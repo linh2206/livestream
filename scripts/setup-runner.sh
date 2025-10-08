@@ -49,13 +49,9 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Use existing runner files from workspace
+# Use existing runner files
 if [[ ! -d "$WORK_BASE_DIR/actions-runner" ]]; then
     echo "Error: $WORK_BASE_DIR/actions-runner not found"
-    echo "Please download runner first:"
-    echo "mkdir -p $WORK_BASE_DIR/actions-runner && cd $WORK_BASE_DIR/actions-runner"
-    echo "curl -L -o actions-runner-linux-x64.tar.gz https://github.com/actions/runner/releases/download/v2.318.0/actions-runner-linux-x64-2.318.0.tar.gz"
-    echo "tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz"
     exit 1
 fi
 
