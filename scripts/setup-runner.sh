@@ -64,121 +64,62 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Use existing runner files (version 2.328.0)
-if [[ ! -d "$WORK_BASE_DIR/actions-runner" ]]; then
-    echo "Error: $WORK_BASE_DIR/actions-runner not found"
-    exit 1
+# Use existing runner files if available, otherwise download
+if [[ -d "$WORK_BASE_DIR/actions-runner" ]]; then
+    echo "Using existing runner files from $WORK_BASE_DIR/actions-runner..."
+    cp -r "$WORK_BASE_DIR/actions-runner"/* .
+else
+    echo "Downloading GitHub Actions runner (v2.328.0)..."
+    
+    # Download runner
+    curl -o actions-runner-linux-x64-2.328.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.328.0/actions-runner-linux-x64-2.328.0.tar.gz
+    
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to download runner"
+        exit 1
+    fi
+    
+    # Extract the installer
+    echo "Extracting runner..."
+    tar xzf ./actions-runner-linux-x64-2.328.0.tar.gz
+    
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to extract runner"
+        exit 1
+    fi
+    
+    # Clean up
+    rm actions-runner-linux-x64-2.328.0.tar.gz
+    
+    echo "Runner downloaded and extracted successfully"
 fi
 
-echo "Using existing runner files (v2.328.0)..."
-cp -r "$WORK_BASE_DIR/actions-runner"/* .
-
-# Get registration token from GitHub API
-echo "Getting registration token from GitHub API..."
-
-OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
-REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
-
-echo "Repository: $OWNER/$REPO"
-
-# Test repository access first
-echo "Testing repository access..."
-REPO_TEST=$(curl -s -H "Authorization: token ${RUNNER_TOKEN}" "https://api.github.com/repos/$OWNER/$REPO")
-if [[ $? -ne 0 ]]; then
-    echo "Error: Cannot access repository"
-    exit 1
-fi
-
-# Clean API call with proper token handling
-API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token ${RUNNER_TOKEN}" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token")
-
-HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
-RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
-
-echo "HTTP Code: $HTTP_CODE"
-echo "Response: $RESPONSE_BODY"
-
-REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
-
-echo "Parsed token: '$REG_TOKEN'"
-
-if [[ -z "$REG_TOKEN" ]]; then
-    echo "Error: Failed to get registration token"
-    echo "HTTP Code: $HTTP_CODE"
-    echo "Response: $RESPONSE_BODY"
-    exit 1
-fi
-
-echo "Registration token obtained"
-
-# Create runner configuration manually (avoid config.sh API issue)
-echo "Creating runner configuration manually..."
-
-# Clean registration token
-REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
-
-# Check runner limit first
-echo "Checking runner limit..."
-RUNNER_COUNT=$(curl -s -H "Authorization: token ${RUNNER_TOKEN}" \
-    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners" | \
-    grep -o '"total_count":[0-9]*' | cut -d: -f2)
-
-if [[ "$RUNNER_COUNT" -ge 10 ]]; then
-    echo "Warning: Repository has $RUNNER_COUNT runners (limit: 10,000)"
-fi
-
-# Try config.sh with different approaches
-echo "Trying config.sh with repository URL..."
+# Configure runner (GitHub official way)
+echo "Configuring runner..."
 
 echo "Running config.sh with:"
 echo "  URL: $REPO_URL"
 echo "  Token: ${RUNNER_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
-# Test API endpoint directly first
-echo "Testing API endpoint directly..."
-API_TEST=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token ${RUNNER_TOKEN}" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token")
-
-API_HTTP_CODE=$(echo "$API_TEST" | grep "HTTP_CODE:" | cut -d: -f2)
-API_RESPONSE=$(echo "$API_TEST" | sed '/HTTP_CODE:/d')
-
-echo "API Test HTTP Code: $API_HTTP_CODE"
-echo "API Test Response: $API_RESPONSE"
-
-if [[ "$API_HTTP_CODE" != "201" ]]; then
-    echo "Error: API endpoint test failed"
-    echo "Check token permissions and repository access"
-    exit 1
-fi
-
-echo "API endpoint test successful"
-
-# Now try config.sh
-echo "Running config.sh..."
-./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+# Create the runner and start the configuration experience
+./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended
 
 if [[ $? -eq 0 ]]; then
-    echo "Config.sh succeeded"
+    echo "Runner configured successfully"
 else
-    echo "Config.sh failed"
+    echo "Error: Failed to configure runner"
     exit 1
 fi
 
-# Run directly (svc.sh has JSON parsing issues)
-echo "Starting runner directly..."
+# Last step, run it! (GitHub official way)
+echo "Starting runner..."
 echo "Runner will run in foreground. Press Ctrl+C to stop."
 echo "To run in background, use: nohup ./run.sh &"
+
+# Run the runner
 ./run.sh
 
 echo ""
 echo "✅ Runner $RUNNER_NAME setup completed!"
 echo "   Directory: $WORK_DIR"
-echo "   Service: actions.runner.$RUNNER_NAME.service"
