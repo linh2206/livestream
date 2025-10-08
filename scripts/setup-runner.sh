@@ -126,10 +126,10 @@ else
     exit 1
 fi
 
-# Install service
-echo "Installing as service..."
-sudo ./svc.sh install
-sudo ./svc.sh start
+# Run directly instead of service (avoid JSON parsing issues)
+echo "Starting runner directly..."
+echo "Runner will run in foreground. Press Ctrl+C to stop."
+./run.sh
 
 echo ""
 echo "✅ Runner $RUNNER_NAME setup completed!"
