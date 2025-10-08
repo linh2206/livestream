@@ -4,8 +4,9 @@
 REPO_URL="https://github.com/linh2206/livestream"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
-# Remove hardcoded token - must be provided via environment variable
-GITHUB_PAT="${GITHUB_PAT:-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}"
+# GitHub Personal Access Token - Set this environment variable
+# export GITHUB_PAT="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+GITHUB_PAT="${GITHUB_PAT}"
 
 # Function để tìm số runner tiếp theo
 find_next_runner_number() {
@@ -23,7 +24,7 @@ RUNNER_NAME="${RUNNER_BASE_NAME}${RUNNER_NUM}"
 WORK_DIR="$WORK_BASE_DIR/$RUNNER_NAME"
 
 # Check if GITHUB_PAT is set
-if [[ -z "$GITHUB_PAT" ]]; then
+if [[ -z "$GITHUB_PAT" || "$GITHUB_PAT" == "null" ]]; then
     echo "Error: GITHUB_PAT environment variable is not set"
     echo "Please set your GitHub Personal Access Token with proper permissions:"
     echo "export GITHUB_PAT=ghp_xxxxx"
@@ -37,26 +38,6 @@ if [[ -z "$GITHUB_PAT" ]]; then
     exit 1
 fi
 
-echo "Setting up runner: $RUNNER_NAME"
-echo "Work directory: $WORK_DIR"
-
-# Tạo thư mục riêng
-mkdir -p "$WORK_DIR"
-
-# Copy từ thư mục actions-runner gốc (nếu có)
-if [[ -d "$HOME/actions-runner" ]]; then
-    cp -r "$HOME/actions-runner"/* "$WORK_DIR"
-else
-    echo "Downloading GitHub Actions runner..."
-    # Download runner nếu chưa có
-    cd "$WORK_DIR"
-    curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz
-    tar xzf actions-runner-linux-x64.tar.gz
-    rm actions-runner-linux-x64.tar.gz
-fi
-
-cd "$WORK_DIR"
-
 # Validate token format
 if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^gho_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghu_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghs_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghr_[A-Za-z0-9]{76}$ ]]; then
     echo "Error: Invalid GitHub token format"
@@ -65,18 +46,76 @@ if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^gho_
     exit 1
 fi
 
-echo "Using GitHub Personal Access Token..."
-TOKEN="$GITHUB_PAT"
+echo "Setting up runner: $RUNNER_NAME"
+echo "Work directory: $WORK_DIR"
 
-# Test token validity by making a simple API call
-echo "Validating GitHub token..."
-if ! curl -s -H "Authorization: token $TOKEN" https://api.github.com/user | grep -q '"login"'; then
-    echo "Error: Invalid or expired GitHub token"
-    echo "Please generate a new token with proper permissions at: https://github.com/settings/tokens"
+# Tạo thư mục riêng
+mkdir -p "$WORK_DIR"
+
+# Copy từ thư mục actions-runner gốc (nếu có)
+if [[ -d "$HOME/actions-runner" ]]; then
+    echo "Copying existing runner files..."
+    if ! cp -r "$HOME/actions-runner"/* "$WORK_DIR"; then
+        echo "Error: Failed to copy runner files"
+        exit 1
+    fi
+else
+    echo "Downloading GitHub Actions runner..."
+    # Download runner nếu chưa có
+    cd "$WORK_DIR"
+    if ! curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
+        echo "Error: Failed to download GitHub Actions runner"
+        exit 1
+    fi
+    
+    if ! tar xzf actions-runner-linux-x64.tar.gz; then
+        echo "Error: Failed to extract runner archive"
+        exit 1
+    fi
+    
+    rm actions-runner-linux-x64.tar.gz
+fi
+
+cd "$WORK_DIR"
+
+# Get registration token from GitHub API using PAT
+echo "Getting registration token from GitHub API..."
+
+# Extract owner and repo from URL
+if [[ "$REPO_URL" =~ https://github.com/([^/]+)/([^/]+) ]]; then
+    OWNER="${BASH_REMATCH[1]}"
+    REPO="${BASH_REMATCH[2]}"
+else
+    echo "Error: Invalid repository URL format"
+    echo "Expected: https://github.com/owner/repo"
+    echo "Got: $REPO_URL"
     exit 1
 fi
 
-echo "GitHub token validated successfully"
+# Get registration token from GitHub API
+echo "Requesting registration token for $OWNER/$REPO..."
+REG_TOKEN_RESPONSE=$(curl -s -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token $GITHUB_PAT" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+
+# Check if request was successful
+if echo "$REG_TOKEN_RESPONSE" | grep -q '"token"'; then
+    TOKEN=$(echo "$REG_TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    echo "Registration token obtained successfully"
+else
+    echo "Error: Failed to get registration token"
+    echo "Response: $REG_TOKEN_RESPONSE"
+    echo ""
+    echo "Check that:"
+    echo "1. Personal Access Token has 'repo' permission"
+    echo "2. Repository exists and is accessible"
+    echo "3. Token is not expired"
+    echo ""
+    echo "Generate token at: https://github.com/settings/tokens"
+    exit 1
+fi
 
 # Đăng ký runner
 echo "Registering runner: $RUNNER_NAME"
