@@ -47,22 +47,18 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Download runner if not exists
+# Use existing runner files only
 if [[ ! -d "$HOME/actions-runner" ]]; then
-    echo "Downloading GitHub Actions runner..."
-    curl -L -o actions-runner-linux-x64.tar.gz \
-        https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz
-    
-    echo "Extracting..."
-    tar xzf actions-runner-linux-x64.tar.gz
-    rm actions-runner-linux-x64.tar.gz
-    
-    # Copy to home directory for future use
-    cp -r . "$HOME/actions-runner"
-else
-    echo "Using existing runner files..."
-    cp -r "$HOME/actions-runner"/* .
+    echo "Error: ~/actions-runner not found"
+    echo "Please download runner first:"
+    echo "mkdir -p ~/actions-runner && cd ~/actions-runner"
+    echo "curl -L -o actions-runner-linux-x64.tar.gz https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz"
+    echo "tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz"
+    exit 1
 fi
+
+echo "Using existing runner files..."
+cp -r "$HOME/actions-runner"/* .
 
 # Get registration token
 echo "Getting registration token from GitHub API..."
