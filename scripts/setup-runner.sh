@@ -83,7 +83,7 @@ for i in $(seq 1 "$COUNT"); do
   curl -fL -H 'Accept: application/octet-stream' -o runner.tgz "$url"
   tar -tzf runner.tgz >/dev/null 2>&1 || { echo "runner.tgz invalid"; exit 1; }
   tar -xzf runner.tgz
-  chmod +x config.sh run.sh svc.sh
+  chmod +x config.sh run.sh svc.sh 2>/dev/null || true
   if [[ -n "$LABELS" ]]; then
     ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
   else
