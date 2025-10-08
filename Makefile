@@ -79,12 +79,6 @@ setup:
 # GitHub Actions runner setup
 setup-runner:
 	@echo "Setting up GitHub Actions runner..."
-	@if [ -z "$$GITHUB_PAT" ]; then \
-		echo "Error: GITHUB_PAT environment variable is not set"; \
-		echo "Please run: export GITHUB_PAT=ghp_your_token_here"; \
-		echo "Then run: make setup-runner"; \
-		exit 1; \
-	fi
 	./scripts/setup-runner.sh
 # Check running GitHub Actions runners
 check-runner:
