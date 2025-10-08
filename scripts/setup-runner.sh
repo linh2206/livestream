@@ -62,33 +62,9 @@ fi
 echo "Using existing runner files..."
 cp -r "$WORK_BASE_DIR/actions-runner"/* .
 
-# Get registration token
-echo "Getting registration token from GitHub API..."
-
-OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
-REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
-
-echo "Repository: $OWNER/$REPO"
-echo "Token length: ${#RUNNER_TOKEN}"
-echo "Token first 10 chars: ${RUNNER_TOKEN:0:10}"
-
-# Test with simple curl first
-echo "Testing API call..."
-API_RESPONSE=$(curl -s -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token $RUNNER_TOKEN" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" 2>&1)
-
-echo "API Response: $API_RESPONSE"
-
-REG_TOKEN=$(echo "$API_RESPONSE" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
-
-if [[ -z "$REG_TOKEN" ]]; then
-    echo "Error: Failed to get registration token"
-    echo "Response: $API_RESPONSE"
-    exit 1
-fi
+# Use token directly for registration
+echo "Using token for runner registration..."
+REG_TOKEN="$RUNNER_TOKEN"
 
 # Register runner
 echo "Registering runner..."
