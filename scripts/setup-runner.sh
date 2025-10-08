@@ -121,22 +121,39 @@ echo "Creating runner configuration manually..."
 # Clean registration token
 REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
 
-# Try config.sh with PAT directly (not registration token)
-echo "Trying config.sh with PAT directly..."
+# Check runner limit first
+echo "Checking runner limit..."
+RUNNER_COUNT=$(curl -s -H "Authorization: token ${RUNNER_TOKEN}" \
+    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners" | \
+    grep -o '"total_count":[0-9]*' | cut -d: -f2)
 
-echo "Running config.sh with PAT:"
+if [[ "$RUNNER_COUNT" -ge 10 ]]; then
+    echo "Warning: Repository has $RUNNER_COUNT runners (limit: 10,000)"
+fi
+
+# Try config.sh with different approaches
+echo "Trying config.sh with repository URL..."
+
+echo "Running config.sh with:"
 echo "  URL: $REPO_URL"
 echo "  Token: ${RUNNER_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
-# Use PAT directly instead of registration token
-./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+# Try with --ephemeral flag (newer runners)
+./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work" --ephemeral
 
 if [[ $? -eq 0 ]]; then
-    echo "Config.sh succeeded with PAT"
+    echo "Config.sh succeeded with --ephemeral"
 else
-    echo "Config.sh failed with PAT too"
-    exit 1
+    echo "Config.sh failed with --ephemeral, trying without..."
+    ./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+    
+    if [[ $? -eq 0 ]]; then
+        echo "Config.sh succeeded without --ephemeral"
+    else
+        echo "Config.sh failed completely"
+        exit 1
+    fi
 fi
 
 # Run directly (svc.sh has JSON parsing issues)
