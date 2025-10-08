@@ -22,14 +22,8 @@ EOF
 
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
 
-# Check if running as root or with sudo
-if [[ "$EUID" -eq 0 ]] || [[ -n "${SUDO_USER:-}" ]]; then
-  if [[ "${ALLOW_ROOT:-0}" != "1" ]]; then
-    echo "Do not run as root. Set ALLOW_ROOT=1 to override." >&2; exit 1;
-  else
-    echo "Running with elevated privileges (ALLOW_ROOT=1)"
-  fi
-fi
+# Allow running with root/sudo
+echo "Running with elevated privileges"
 
 GH_URL=${GH_URL:-}
 GH_TOKEN=${GH_TOKEN:-}
