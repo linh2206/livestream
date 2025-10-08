@@ -106,29 +106,28 @@ echo "Creating runner configuration manually..."
 # Clean registration token
 REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
 
-# Try config.sh with organization URL instead of repository URL
-echo "Trying config.sh with organization URL..."
+# Try config.sh with PAT directly (not registration token)
+echo "Trying config.sh with PAT directly..."
 
-# Extract organization from repo URL
-ORG_URL="https://github.com/linh2206"
-
-echo "Running config.sh with organization URL:"
-echo "  URL: $ORG_URL"
-echo "  Token: ${REG_TOKEN:0:10}..."
+echo "Running config.sh with PAT:"
+echo "  URL: $REPO_URL"
+echo "  Token: ${RUNNER_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
-./config.sh --url "$ORG_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+# Use PAT directly instead of registration token
+./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
 if [[ $? -eq 0 ]]; then
-    echo "Config.sh succeeded with organization URL"
+    echo "Config.sh succeeded with PAT"
 else
-    echo "Config.sh failed with organization URL too"
+    echo "Config.sh failed with PAT too"
     exit 1
 fi
 
-# Run directly instead of service (avoid JSON parsing issues)
+# Run directly (svc.sh has JSON parsing issues)
 echo "Starting runner directly..."
 echo "Runner will run in foreground. Press Ctrl+C to stop."
+echo "To run in background, use: nohup ./run.sh &"
 ./run.sh
 
 echo ""
