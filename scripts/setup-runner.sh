@@ -77,10 +77,7 @@ API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
 HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
 RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
 
-echo "HTTP Code: $HTTP_CODE"
-echo "Response: $RESPONSE_BODY"
-
-REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/' | tr -d '\n\r ')
+REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
 
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
@@ -88,8 +85,6 @@ if [[ -z "$REG_TOKEN" ]]; then
     echo "Response: $RESPONSE_BODY"
     exit 1
 fi
-
-echo "Registration token obtained"
 
 # Register runner
 echo "Registering runner..."
