@@ -27,6 +27,21 @@ if [[ ! "$RUNNER_TOKEN" =~ ^ghp_[A-Za-z0-9]{36}$ ]]; then
     exit 1
 fi
 
+# Check system time sync
+echo "Checking system time sync..."
+if ! ntpdate -q pool.ntp.org >/dev/null 2>&1; then
+    echo "Warning: System time may not be synced. This can cause 401/404 errors."
+    echo "Please sync system time: sudo ntpdate pool.ntp.org"
+fi
+
+# Test GitHub connectivity
+echo "Testing GitHub connectivity..."
+if ! curl -s --connect-timeout 10 https://api.github.com >/dev/null; then
+    echo "Error: Cannot connect to GitHub API"
+    echo "Check network connectivity and firewall settings"
+    exit 1
+fi
+
 echo "Setting up GitHub Actions runner..."
 
 # Find next runner number
