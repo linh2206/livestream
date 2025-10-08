@@ -77,14 +77,15 @@ setup:
  
 
 # GitHub Actions runner setup
+# GitHub Actions runner setup
+setup-runner:
 	@echo "Setting up GitHub Actions runner..."
-	@echo "Usage: make setup-runner GITHUB_PAT=your_token"
 	@if [ -z "$(GITHUB_PAT)" ]; then \
 		echo "Error: GITHUB_PAT is required"; \
 		echo "Usage: make setup-runner GITHUB_PAT=ghp_xxxxx"; \
 		exit 1; \
 	fi
-	GITHUB_PAT=$(GITHUB_PAT) ./scripts/setup-runner.sh# Check running GitHub Actions runners
+	GITHUB_PAT=$(GITHUB_PAT) ./scripts/setup-runner.sh
 check-runner:
 	@echo "Checking GitHub Actions runners status..."
 	@echo "=== Runner Directories ==="
