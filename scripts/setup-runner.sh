@@ -13,8 +13,8 @@ if [[ -z "$GITHUB_PAT" ]]; then
     read GITHUB_PAT
 fi
 
-# Clean token from any whitespace/newlines
-GITHUB_PAT=$(printf '%s' "${GITHUB_PAT}" | tr -d '\n\r\t ')
+# Clean token from any whitespace/newlines - AGGRESSIVE CLEANING
+GITHUB_PAT=$(printf '%s' "${GITHUB_PAT}" | tr -d '\n\r\t ' | sed 's/[[:space:]]//g')
 
 if [[ -z "$GITHUB_PAT" ]]; then
     echo "Error: GitHub PAT is required"
@@ -24,8 +24,16 @@ fi
 # Validate token format
 if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]]; then
     echo "Error: Invalid PAT format. Expected: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    echo "Your token: '$GITHUB_PAT'"
+    echo "Token length: ${#GITHUB_PAT}"
     exit 1
 fi
+
+# Debug: Show cleaned token info
+echo "Token info:"
+echo "  Length: ${#GITHUB_PAT}"
+echo "  First 10 chars: ${GITHUB_PAT:0:10}"
+echo "  Last 10 chars: ${GITHUB_PAT: -10}"
 
 # Check system time sync
 echo "Checking system time sync..."
@@ -103,6 +111,12 @@ REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 echo "Repository: $OWNER/$REPO"
 
 # Get registration token using PAT
+echo "Making API call with token: ${GITHUB_PAT:0:10}..."
+
+# Debug: Check token for hidden characters
+echo "Token hex dump:"
+printf '%s' "$GITHUB_PAT" | hexdump -C | head -2
+
 API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token ${GITHUB_PAT}" \
