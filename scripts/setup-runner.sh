@@ -83,7 +83,15 @@ for i in $(seq 1 "$COUNT"); do
   curl -fL -H 'Accept: application/octet-stream' -o runner.tgz "$url"
   tar -tzf runner.tgz >/dev/null 2>&1 || { echo "runner.tgz invalid"; exit 1; }
   tar -xzf runner.tgz
-  chmod +x config.sh run.sh svc.sh 2>/dev/null || true
+  echo "Files extracted: $(ls -la)"
+  for file in config.sh run.sh svc.sh; do
+    if [ -f "$file" ]; then
+      echo "Setting permissions for $file"
+      chmod +x "$file"
+    else
+      echo "Warning: $file not found after extraction"
+    fi
+  done
   if [[ -n "$LABELS" ]]; then
     ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
   else
