@@ -64,6 +64,16 @@ echo "Getting registration token from GitHub API..."
 OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
 REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 
+echo "Repository: $OWNER/$REPO"
+
+# Test repository access first
+echo "Testing repository access..."
+REPO_TEST=$(curl -s -H "Authorization: token ${RUNNER_TOKEN}" "https://api.github.com/repos/$OWNER/$REPO")
+if [[ $? -ne 0 ]]; then
+    echo "Error: Cannot access repository"
+    exit 1
+fi
+
 # Clean API call with proper token handling
 API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
     -H "Accept: application/vnd.github+json" \
@@ -94,6 +104,18 @@ echo "Registration token obtained"
 echo "Registering runner..."
 # Clean registration token before passing to config.sh
 REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
+
+# Check if config.sh exists and is executable
+if [[ ! -x "./config.sh" ]]; then
+    echo "Error: config.sh not found or not executable"
+    exit 1
+fi
+
+echo "Running config.sh with:"
+echo "  URL: $REPO_URL"
+echo "  Token: ${REG_TOKEN:0:10}..."
+echo "  Name: $RUNNER_NAME"
+
 ./config.sh --url "$REPO_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
 # Install service
