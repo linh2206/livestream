@@ -4,9 +4,12 @@
 REPO_URL="https://github.com/linh2206/livestream"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
-# GitHub Personal Access Token - Set this environment variable
-# export RUNNER_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-RUNNER_TOKEN="${RUNNER_TOKEN:-${GITHUB_PAT}}"
+# GitHub Personal Access Token - from environment or prompt
+if [[ -z "$RUNNER_TOKEN" ]]; then
+    echo "Enter your GitHub Personal Access Token:"
+    read -s RUNNER_TOKEN
+    echo ""
+fi
 
 # Parse options
 TEST_API_ONLY=false
