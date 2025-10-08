@@ -69,19 +69,24 @@ OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
 REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 
 # Clean API call with proper token handling
-REG_TOKEN=$(curl -s -X POST \
+API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token ${RUNNER_TOKEN}" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token" | \
-    grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token")
+
+HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
+
+echo "HTTP Code: $HTTP_CODE"
+echo "Response: $RESPONSE_BODY"
+
+REG_TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
-    echo "Check that:"
-    echo "1. Repository $OWNER/$REPO exists"
-    echo "2. Token has 'repo' permission"
-    echo "3. Token is not expired"
+    echo "HTTP Code: $HTTP_CODE"
+    echo "Response: $RESPONSE_BODY"
     exit 1
 fi
 
