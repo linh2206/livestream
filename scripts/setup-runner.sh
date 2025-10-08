@@ -7,12 +7,17 @@ REPO_URL="${REPO_URL:-https://github.com/linh2206/livestream}"
 RUNNER_BASE_NAME="${RUNNER_BASE_NAME:-runner}"
 WORK_BASE_DIR="${WORK_BASE_DIR:-$HOME/workspace}"
 
+# Get token from user if not set
+if [[ -z "$RUNNER_TOKEN" ]]; then
+    echo "Enter your GitHub Personal Access Token:"
+    read RUNNER_TOKEN
+fi
+
 # Clean token from any whitespace/newlines
 RUNNER_TOKEN=$(echo "${RUNNER_TOKEN}" | tr -d '\n\r\t ')
 
 if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Error: RUNNER_TOKEN environment variable is required"
-    echo "Usage: RUNNER_TOKEN=ghp_xxxxx make setup-runner"
+    echo "Error: Token is required"
     exit 1
 fi
 
