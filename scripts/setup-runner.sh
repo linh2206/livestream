@@ -111,9 +111,9 @@ for i in $(seq 1 "$COUNT"); do
   done
   echo "Configuring runner..."
   if [[ -n "$LABELS" ]]; then
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace --allow-root
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace --allow-root --acceptTeeEula
   else
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace --allow-root
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace --allow-root --acceptTeeEula
   fi
   
   echo "Installing service..."
