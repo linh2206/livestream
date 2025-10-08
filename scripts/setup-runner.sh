@@ -7,14 +7,12 @@ REPO_URL="${REPO_URL:-https://github.com/linh2206/livestream}"
 RUNNER_BASE_NAME="${RUNNER_BASE_NAME:-runner}"
 WORK_BASE_DIR="${WORK_BASE_DIR:-$HOME/workspace}"
 
-# Get token from user
-if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Enter your GitHub Personal Access Token:"
-    read RUNNER_TOKEN
-fi
+# Clean token from any whitespace/newlines
+RUNNER_TOKEN=$(echo "${RUNNER_TOKEN}" | tr -d '\n\r\t ')
 
 if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Error: Token is required"
+    echo "Error: RUNNER_TOKEN environment variable is required"
+    echo "Usage: RUNNER_TOKEN=ghp_xxxxx make setup-runner"
     exit 1
 fi
 
@@ -46,7 +44,7 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Use existing runner files
+# Use existing runner files from workspace
 if [[ ! -d "$WORK_BASE_DIR/actions-runner" ]]; then
     echo "Error: $WORK_BASE_DIR/actions-runner not found"
     echo "Please download runner first:"
@@ -59,22 +57,26 @@ fi
 echo "Using existing runner files..."
 cp -r "$WORK_BASE_DIR/actions-runner"/* .
 
-# Get registration token
+# Get registration token from GitHub API
 echo "Getting registration token from GitHub API..."
 
 OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
 REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
 
+# Clean API call with proper token handling
 REG_TOKEN=$(curl -s -X POST \
     -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token $(printf '%s' "$RUNNER_TOKEN")" \
+    -H "Authorization: token ${RUNNER_TOKEN}" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" | \
+    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token" | \
     grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
-    echo "Check that your token has 'repo' permission"
+    echo "Check that:"
+    echo "1. Repository $OWNER/$REPO exists"
+    echo "2. Token has 'repo' permission"
+    echo "3. Token is not expired"
     exit 1
 fi
 
