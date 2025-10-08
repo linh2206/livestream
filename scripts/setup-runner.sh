@@ -1,230 +1,100 @@
 #!/bin/bash
 
+set -e
+
 # Config
-REPO_URL="https://github.com/linh2206/livestream"
-RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
-WORK_BASE_DIR="$HOME/workspace"
-# GitHub Personal Access Token - from environment or prompt
+REPO_URL="${REPO_URL:-https://github.com/linh2206/livestream}"
+RUNNER_BASE_NAME="${RUNNER_BASE_NAME:-runner}"
+WORK_BASE_DIR="${WORK_BASE_DIR:-$HOME/workspace}"
+
+# Get token from user
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Enter your GitHub Personal Access Token:"
     read -s RUNNER_TOKEN
     echo ""
 fi
 
-# Parse options
-TEST_API_ONLY=false
-GET_TOKEN_ONLY=false
-
-if [[ "$1" == "--test-api" ]]; then
-    TEST_API_ONLY=true
-elif [[ "$1" == "--get-token" ]]; then
-    GET_TOKEN_ONLY=true
+if [[ -z "$RUNNER_TOKEN" ]]; then
+    echo "Error: Token is required"
+    exit 1
 fi
 
-# Function để tìm số runner tiếp theo
+# Validate token format
+if [[ ! "$RUNNER_TOKEN" =~ ^ghp_[A-Za-z0-9]{36}$ ]]; then
+    echo "Error: Invalid token format. Expected: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    exit 1
+fi
+
+echo "Setting up GitHub Actions runner..."
+
+# Find next runner number
 find_next_runner_number() {
-    local base_dir="$WORK_BASE_DIR"
     local num=1
-    while [[ -d "$base_dir/${RUNNER_BASE_NAME}${num}" ]]; do
+    while [[ -d "$WORK_BASE_DIR/${RUNNER_BASE_NAME}${num}" ]]; do
         ((num++))
     done
     echo $num
 }
 
-# Extract owner and repo from URL (needed for API test)
-if [[ "$REPO_URL" =~ https://github.com/([^/]+)/([^/]+) ]]; then
-    OWNER="${BASH_REMATCH[1]}"
-    REPO="${BASH_REMATCH[2]}"
-else
-    echo "Error: Invalid repository URL format"
-    echo "Expected: https://github.com/owner/repo"
-    echo "Got: $REPO_URL"
-    exit 1
-fi
-
-# Lấy số runner tiếp theo
 RUNNER_NUM=$(find_next_runner_number)
 RUNNER_NAME="${RUNNER_BASE_NAME}${RUNNER_NUM}"
 WORK_DIR="$WORK_BASE_DIR/$RUNNER_NAME"
 
-# Check if RUNNER_TOKEN is set
-if [[ -z "$RUNNER_TOKEN" || "$RUNNER_TOKEN" == "null" ]]; then
-    echo "Error: RUNNER_TOKEN environment variable is not set"
-    echo "Please set your GitHub Personal Access Token with proper permissions:"
-    echo "export RUNNER_TOKEN=ghp_xxxxx"
-    echo ""
-    echo "Required permissions for the token:"
-    echo "- repo (for private repositories)"
-    echo "- admin:org (for organization runners)"
-    echo "- admin:repo_hook (for repository runners)"
-    echo ""
-    echo "Generate token at: https://github.com/settings/tokens"
-    exit 1
-fi
-
-# Validate token format
-if [[ ! "$RUNNER_TOKEN" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^gho_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghu_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghs_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghr_[A-Za-z0-9]{76}$ ]]; then
-    echo "Error: Invalid GitHub token format"
-    echo "Expected format: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    echo "Your token: ${RUNNER_TOKEN:0:10}..."
-    exit 1
-fi
-
-# If test API only mode, just test and exit
-if [[ "$TEST_API_ONLY" == true ]]; then
-    echo "==== Testing GitHub API Connection ===="
-    echo "Repository: $OWNER/$REPO"
-    echo "PAT: ${GITHUB_PAT:0:10}..."
-    echo ""
-    echo "Testing API call..."
-    
-    RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: token $GITHUB_PAT" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
-    
-    HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
-    RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
-    
-    echo "HTTP Code: $HTTP_CODE"
-    echo "Response: $RESPONSE_BODY"
-    echo ""
-    
-    if [[ "$HTTP_CODE" == "201" ]] && echo "$RESPONSE_BODY" | grep -q '"token"'; then
-        echo "✅ SUCCESS: API is working! Registration token obtained."
-        TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-        echo "Token: ${TOKEN:0:30}..."
-        exit 0
-    else
-        echo "❌ FAILED: Could not get registration token"
-        echo ""
-        echo "Common issues:"
-        echo "- HTTP 401/403: PAT lacks permissions (need 'repo' + 'admin:org' for org repos)"
-        echo "- HTTP 404: Repository not found or PAT can't access it"
-        echo "- HTTP 422: Invalid request"
-        exit 1
-    fi
-fi
-
-# If get token only mode, get token and print it
-if [[ "$GET_TOKEN_ONLY" == true ]]; then
-    echo "Getting registration token for $OWNER/$REPO..."
-    
-    RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: token $GITHUB_PAT" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
-    
-    HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
-    RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
-    
-    if [[ "$HTTP_CODE" == "201" ]] && echo "$RESPONSE_BODY" | grep -q '"token"'; then
-        TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-        echo ""
-        echo "Registration Token:"
-        echo "$TOKEN"
-        echo ""
-        echo "This token expires in 1 hour."
-        echo "Use it to register runner manually:"
-        echo "./config.sh --url $REPO_URL --token $TOKEN --name runner1"
-        exit 0
-    else
-        echo "Error: Failed to get registration token"
-        echo "HTTP Code: $HTTP_CODE"
-        echo "Response: $RESPONSE_BODY"
-        exit 1
-    fi
-fi
-
-echo "Setting up runner: $RUNNER_NAME"
+echo "Runner name: $RUNNER_NAME"
 echo "Work directory: $WORK_DIR"
 
-# Tạo thư mục riêng
+# Create work directory
 mkdir -p "$WORK_DIR"
-
-# Copy từ thư mục actions-runner gốc (nếu có)
-if [[ -d "$HOME/actions-runner" ]]; then
-    echo "Copying existing runner files..."
-    if ! cp -r "$HOME/actions-runner"/* "$WORK_DIR"; then
-        echo "Error: Failed to copy runner files"
-        exit 1
-    fi
-else
-    echo "[DOWNLOAD] GitHub Actions runner (180MB)..."
-    cd "$WORK_DIR"
-    
-    # Download với progress bar và timeout ngắn hơn
-    if ! timeout 60 curl -L --progress-bar --connect-timeout 5 \
-        -o actions-runner-linux-x64.tar.gz \
-        https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
-        echo "Error: Download timeout or failed"
-        exit 1
-    fi
-    
-    echo "[EXTRACT] Extracting..."
-    if ! tar xzf actions-runner-linux-x64.tar.gz; then
-        echo "Error: Failed to extract runner archive"
-        exit 1
-    fi
-    
-    rm -f actions-runner-linux-x64.tar.gz
-    echo "[DONE] ✓"
-fi
-
 cd "$WORK_DIR"
 
-# Get registration token from GitHub API
-echo "[API] Getting registration token..."
+# Download runner if not exists
+if [[ ! -d "$HOME/actions-runner" ]]; then
+    echo "Downloading GitHub Actions runner..."
+    curl -L -o actions-runner-linux-x64.tar.gz \
+        https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz
+    
+    echo "Extracting..."
+    tar xzf actions-runner-linux-x64.tar.gz
+    rm actions-runner-linux-x64.tar.gz
+    
+    # Copy to home directory for future use
+    cp -r . "$HOME/actions-runner"
+else
+    echo "Using existing runner files..."
+    cp -r "$HOME/actions-runner"/* .
+fi
 
-# API call với timeout ngắn
-REG_TOKEN_RESPONSE=$(timeout 10 curl -sf -w "\nHTTP:%{http_code}" -X POST \
+# Get registration token
+echo "Getting registration token from GitHub API..."
+
+OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
+REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
+
+REG_TOKEN=$(curl -s -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token $RUNNER_TOKEN" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" 2>/dev/null)
+    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" | \
+    grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
-if [ $? -ne 0 ]; then
-    echo "Error: API timeout or connection failed"
+if [[ -z "$REG_TOKEN" ]]; then
+    echo "Error: Failed to get registration token"
+    echo "Check that your token has 'repo' permission"
     exit 1
 fi
 
-# Extract HTTP code
-HTTP_CODE=$(echo "$REG_TOKEN_RESPONSE" | grep "HTTP:" | cut -d':' -f2)
-RESPONSE_BODY=$(echo "$REG_TOKEN_RESPONSE" | sed '/HTTP:/d')
+echo "Registration token obtained"
 
-echo "[API] HTTP $HTTP_CODE"
+# Register runner
+echo "Registering runner..."
+./config.sh --url "$REPO_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
-# Check if request was successful
-if ! echo "$RESPONSE_BODY" | grep -q '"token"'; then
-    echo "Error: No token in response"
-    echo "Response: $RESPONSE_BODY"
-    exit 1
-fi
-
-TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-echo "[API] ✓ Token obtained"
-
-# Đăng ký runner
-echo "[REGISTER] Registering runner..."
-if ! timeout 30 ./config.sh --url "$REPO_URL" --token "$TOKEN" --name "$RUNNER_NAME" --unattended --work "_work" 2>&1 | grep -E "(Connecting|Settings Saved)" ; then
-    echo "Error: Registration failed"
-    exit 1
-fi
-
-echo "[REGISTER] ✓ Done"
-
-# Verify svc.sh exists
-[[ ! -f "./svc.sh" ]] && echo "Error: svc.sh not found" && exit 1
-
-# Cài service
-echo "[SERVICE] Installing..."
-timeout 20 sudo ./svc.sh install >/dev/null 2>&1 || { echo "Error: Install failed"; exit 1; }
-
-echo "[SERVICE] Starting..."
-timeout 20 sudo ./svc.sh start >/dev/null 2>&1 || { echo "Error: Start failed"; exit 1; }
+# Install service
+echo "Installing as service..."
+sudo ./svc.sh install
+sudo ./svc.sh start
 
 echo ""
 echo "✅ Runner $RUNNER_NAME setup completed!"
 echo "   Directory: $WORK_DIR"
+echo "   Service: actions.runner.$RUNNER_NAME.service"
