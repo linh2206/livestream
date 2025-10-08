@@ -63,10 +63,10 @@ if [[ -z "$RUNNER_TOKEN" || "$RUNNER_TOKEN" == "null" ]]; then
 fi
 
 # Validate token format
-if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^gho_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghu_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghs_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^ghr_[A-Za-z0-9]{76}$ ]]; then
+if [[ ! "$RUNNER_TOKEN" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^gho_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghu_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghs_[A-Za-z0-9]{36}$ ]] && [[ ! "$RUNNER_TOKEN" =~ ^ghr_[A-Za-z0-9]{76}$ ]]; then
     echo "Error: Invalid GitHub token format"
     echo "Expected format: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    echo "Your token: ${GITHUB_PAT:0:10}..."
+    echo "Your token: ${RUNNER_TOKEN:0:10}..."
     exit 1
 fi
 
