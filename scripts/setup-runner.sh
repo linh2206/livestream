@@ -80,7 +80,7 @@ RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
 echo "HTTP Code: $HTTP_CODE"
 echo "Response: $RESPONSE_BODY"
 
-REG_TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
 
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
