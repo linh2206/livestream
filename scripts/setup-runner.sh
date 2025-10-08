@@ -31,7 +31,7 @@ GH_TOKEN=${GH_TOKEN:-}
 COUNT=${COUNT:-1}
 VERSION=${VERSION:-2.316.1}
 PREFIX=${PREFIX:-actions-runner}
-RUNNER_BASE=${RUNNER_BASE:-$PWD}
+RUNNER_BASE=${RUNNER_BASE:-/root/workspace}
 NAME=${NAME:-runner}
 LABELS=${LABELS:-}
 
@@ -63,7 +63,8 @@ for i in $(seq 1 "$COUNT"); do
     echo "==> Purging $d"
     (
       cd "$d" || exit 0
-      chmod +x svc.sh config.sh >/dev/null 2>&1 || true
+      [ -f svc.sh ] && chmod +x svc.sh >/dev/null 2>&1 || true
+      [ -f config.sh ] && chmod +x config.sh >/dev/null 2>&1 || true
       [ -f svc.sh ] && ./svc.sh stop >/dev/null 2>&1 || true
       [ -f svc.sh ] && ./svc.sh uninstall >/dev/null 2>&1 || true
       [ -f config.sh ] && ./config.sh remove --token invalid >/dev/null 2>&1 || true
