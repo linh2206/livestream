@@ -5,8 +5,8 @@ REPO_URL="https://github.com/linh2206/livestream"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
 # GitHub Personal Access Token - Set this environment variable
-# export GITHUB_PAT="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-GITHUB_PAT="${GITHUB_PAT}"
+# export RUNNER_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+RUNNER_TOKEN="${RUNNER_TOKEN:-${GITHUB_PAT}}"
 
 # Parse options
 TEST_API_ONLY=false
@@ -44,11 +44,11 @@ RUNNER_NUM=$(find_next_runner_number)
 RUNNER_NAME="${RUNNER_BASE_NAME}${RUNNER_NUM}"
 WORK_DIR="$WORK_BASE_DIR/$RUNNER_NAME"
 
-# Check if GITHUB_PAT is set
-if [[ -z "$GITHUB_PAT" || "$GITHUB_PAT" == "null" ]]; then
-    echo "Error: GITHUB_PAT environment variable is not set"
+# Check if RUNNER_TOKEN is set
+if [[ -z "$RUNNER_TOKEN" || "$RUNNER_TOKEN" == "null" ]]; then
+    echo "Error: RUNNER_TOKEN environment variable is not set"
     echo "Please set your GitHub Personal Access Token with proper permissions:"
-    echo "export GITHUB_PAT=ghp_xxxxx"
+    echo "export RUNNER_TOKEN=ghp_xxxxx"
     echo ""
     echo "Required permissions for the token:"
     echo "- repo (for private repositories)"
@@ -149,107 +149,84 @@ if [[ -d "$HOME/actions-runner" ]]; then
         exit 1
     fi
 else
-    echo "Downloading GitHub Actions runner (180MB, ~2 minutes on fast network)..."
-    # Download runner nếu chưa có
+    echo "[DOWNLOAD] GitHub Actions runner (180MB)..."
     cd "$WORK_DIR"
-    echo "Download starting..."
-    if ! curl -# -o actions-runner-linux-x64.tar.gz -L --connect-timeout 10 --max-time 120 https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
-        echo "Error: Failed to download GitHub Actions runner (timeout or network error)"
+    
+    # Download với progress bar và timeout ngắn hơn
+    if ! timeout 60 curl -L --progress-bar --connect-timeout 5 \
+        -o actions-runner-linux-x64.tar.gz \
+        https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
+        echo "Error: Download timeout or failed"
         exit 1
     fi
     
-    echo "Extracting runner..."
-    if ! tar xzf actions-runner-linux-x64.tar.gz; then
-        echo "Error: Failed to extract runner archive"
+    echo "[EXTRACT] Extracting..."
+    tar xzf actions-runner-linux-x64.tar.gz 2>/dev/null &
+    TAR_PID=$!
+    
+    # Wait với timeout
+    if ! timeout 30 wait $TAR_PID 2>/dev/null; then
+        kill $TAR_PID 2>/dev/null
+        echo "Error: Extract timeout"
         exit 1
     fi
     
-    rm actions-runner-linux-x64.tar.gz
-    echo "Download and extraction completed!"
+    rm -f actions-runner-linux-x64.tar.gz
+    echo "[DONE] ✓"
 fi
 
 cd "$WORK_DIR"
 
-# Get registration token from GitHub API using PAT
-echo "Getting registration token from GitHub API..."
+# Get registration token from GitHub API
+echo "[API] Getting registration token..."
 
-# Extract owner and repo from URL
-if [[ "$REPO_URL" =~ https://github.com/([^/]+)/([^/]+) ]]; then
-    OWNER="${BASH_REMATCH[1]}"
-    REPO="${BASH_REMATCH[2]}"
-else
-    echo "Error: Invalid repository URL format"
-    echo "Expected: https://github.com/owner/repo"
-    echo "Got: $REPO_URL"
+# API call với timeout ngắn
+REG_TOKEN_RESPONSE=$(timeout 10 curl -sf -w "\nHTTP:%{http_code}" -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token $RUNNER_TOKEN" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" 2>/dev/null)
+
+if [ $? -ne 0 ]; then
+    echo "Error: API timeout or connection failed"
     exit 1
 fi
 
-# Get registration token from GitHub API
-echo "Requesting registration token for $OWNER/$REPO..."
-echo "Using PAT: ${GITHUB_PAT:0:10}..."
-REG_TOKEN_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "Authorization: token $GITHUB_PAT" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+# Extract HTTP code
+HTTP_CODE=$(echo "$REG_TOKEN_RESPONSE" | grep "HTTP:" | cut -d':' -f2)
+RESPONSE_BODY=$(echo "$REG_TOKEN_RESPONSE" | sed '/HTTP:/d')
 
-# Extract HTTP code and response body
-HTTP_CODE=$(echo "$REG_TOKEN_RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
-RESPONSE_BODY=$(echo "$REG_TOKEN_RESPONSE" | sed '/HTTP_CODE:/d')
-
-echo "API Response HTTP Code: $HTTP_CODE"
-echo "API Response Body: $RESPONSE_BODY"
+echo "[API] HTTP $HTTP_CODE"
 
 # Check if request was successful
-if echo "$RESPONSE_BODY" | grep -q '"token"'; then
-    TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-    echo "Registration token obtained successfully"
-    echo "Token: ${TOKEN:0:20}..."
-else
-    echo "Error: Failed to get registration token"
-    echo ""
-    echo "Check that:"
-    echo "1. Personal Access Token has 'repo' permission (and 'admin:org' if org repo)"
-    echo "2. Repository exists and is accessible"
-    echo "3. Token is not expired"
-    echo ""
-    echo "Generate a new token at: https://github.com/settings/tokens"
-    echo "Required scopes: repo, workflow, admin:org (for org repos)"
+if ! echo "$RESPONSE_BODY" | grep -q '"token"'; then
+    echo "Error: No token in response"
+    echo "Response: $RESPONSE_BODY"
     exit 1
 fi
+
+TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+echo "[API] ✓ Token obtained"
 
 # Đăng ký runner
-echo "Registering runner: $RUNNER_NAME"
-if ! ./config.sh --url "$REPO_URL" --token "$TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"; then
-    echo "Error: Failed to register runner"
-    echo "Check that:"
-    echo "1. Repository URL is correct: $REPO_URL"
-    echo "2. Token has proper permissions"
-    echo "3. Repository exists and is accessible"
+echo "[REGISTER] Registering runner..."
+if ! timeout 30 ./config.sh --url "$REPO_URL" --token "$TOKEN" --name "$RUNNER_NAME" --unattended --work "_work" 2>&1 | grep -E "(Connecting|Settings Saved)" ; then
+    echo "Error: Registration failed"
     exit 1
 fi
 
-echo "Runner registered successfully"
+echo "[REGISTER] ✓ Done"
 
-# Verify svc.sh exists before trying to install
-if [[ ! -f "./svc.sh" ]]; then
-    echo "Error: svc.sh script not found. Runner configuration may have failed."
-    exit 1
-fi
+# Verify svc.sh exists
+[[ ! -f "./svc.sh" ]] && echo "Error: svc.sh not found" && exit 1
 
-# Cài như service
-echo "Installing as service..."
-if ! sudo ./svc.sh install; then
-    echo "Error: Failed to install runner service"
-    exit 1
-fi
+# Cài service
+echo "[SERVICE] Installing..."
+timeout 20 sudo ./svc.sh install >/dev/null 2>&1 || { echo "Error: Install failed"; exit 1; }
 
-echo "Starting runner service..."
-if ! sudo ./svc.sh start; then
-    echo "Error: Failed to start runner service"
-    echo "Check service status with: sudo ./svc.sh status"
-    exit 1
-fi
+echo "[SERVICE] Starting..."
+timeout 20 sudo ./svc.sh start >/dev/null 2>&1 || { echo "Error: Start failed"; exit 1; }
 
-echo "Runner $RUNNER_NAME setup completed!"
-echo "Runner directory: $WORK_DIR"
+echo ""
+echo "✅ Runner $RUNNER_NAME setup completed!"
+echo "   Directory: $WORK_DIR"
