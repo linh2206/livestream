@@ -83,6 +83,8 @@ echo "Response: $RESPONSE_BODY"
 
 REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
 
+echo "Parsed token: '$REG_TOKEN'"
+
 if [[ -z "$REG_TOKEN" ]]; then
     echo "Error: Failed to get registration token"
     echo "HTTP Code: $HTTP_CODE"
@@ -94,6 +96,8 @@ echo "Registration token obtained"
 
 # Register runner
 echo "Registering runner..."
+# Clean registration token before passing to config.sh
+REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
 ./config.sh --url "$REPO_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
 # Install service
