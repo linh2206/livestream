@@ -7,23 +7,23 @@ REPO_URL="${REPO_URL:-https://github.com/linh2206/livestream}"
 RUNNER_BASE_NAME="${RUNNER_BASE_NAME:-runner}"
 WORK_BASE_DIR="${WORK_BASE_DIR:-$HOME/workspace}"
 
-# Get token from user if not set
-if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Enter your GitHub Personal Access Token:"
-    read RUNNER_TOKEN
+# Get GitHub Personal Access Token for API calls
+if [[ -z "$GITHUB_PAT" ]]; then
+    echo "Enter your GitHub Personal Access Token (for API calls):"
+    read GITHUB_PAT
 fi
 
-# Clean token from any whitespace/newlines - FORCE CLEAN
-RUNNER_TOKEN=$(printf '%s' "${RUNNER_TOKEN}" | tr -d '\n\r\t ')
+# Clean token from any whitespace/newlines
+GITHUB_PAT=$(printf '%s' "${GITHUB_PAT}" | tr -d '\n\r\t ')
 
-if [[ -z "$RUNNER_TOKEN" ]]; then
-    echo "Error: Token is required"
+if [[ -z "$GITHUB_PAT" ]]; then
+    echo "Error: GitHub PAT is required"
     exit 1
 fi
 
 # Validate token format
-if [[ ! "$RUNNER_TOKEN" =~ ^ghp_[A-Za-z0-9]{36}$ ]]; then
-    echo "Error: Invalid token format. Expected: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]]; then
+    echo "Error: Invalid PAT format. Expected: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     exit 1
 fi
 
@@ -94,16 +94,48 @@ else
     echo "Runner downloaded and extracted successfully"
 fi
 
-# Configure runner (GitHub official way)
+# Get registration token from GitHub API
+echo "Getting registration token from GitHub API..."
+
+OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
+REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
+
+echo "Repository: $OWNER/$REPO"
+
+# Get registration token using PAT
+API_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token ${GITHUB_PAT}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token")
+
+HTTP_CODE=$(echo "$API_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_CODE:/d')
+
+echo "HTTP Code: $HTTP_CODE"
+echo "Response: $RESPONSE_BODY"
+
+REG_TOKEN=$(echo "$RESPONSE_BODY" | sed 's/.*"token": *"\([^"]*\)".*/\1/')
+
+if [[ -z "$REG_TOKEN" ]] || [[ "$HTTP_CODE" != "201" ]]; then
+    echo "Error: Failed to get registration token"
+    echo "HTTP Code: $HTTP_CODE"
+    echo "Response: $RESPONSE_BODY"
+    exit 1
+fi
+
+echo "Registration token obtained: ${REG_TOKEN:0:10}..."
+
+# Configure runner with registration token
 echo "Configuring runner..."
 
 echo "Running config.sh with:"
 echo "  URL: $REPO_URL"
-echo "  Token: ${RUNNER_TOKEN:0:10}..."
+echo "  Token: ${REG_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
 # Create the runner and start the configuration experience
-./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended
+./config.sh --url "$REPO_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended
 
 if [[ $? -eq 0 ]]; then
     echo "Runner configured successfully"
