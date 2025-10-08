@@ -149,11 +149,12 @@ if [[ -d "$HOME/actions-runner" ]]; then
         exit 1
     fi
 else
-    echo "Downloading GitHub Actions runner (this may take a few minutes)..."
+    echo "Downloading GitHub Actions runner (180MB, ~2 minutes on fast network)..."
     # Download runner nếu chưa có
     cd "$WORK_DIR"
-    if ! curl -# -o actions-runner-linux-x64.tar.gz -L --max-time 300 https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
-        echo "Error: Failed to download GitHub Actions runner"
+    echo "Download starting..."
+    if ! curl -# -o actions-runner-linux-x64.tar.gz -L --connect-timeout 10 --max-time 120 https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
+        echo "Error: Failed to download GitHub Actions runner (timeout or network error)"
         exit 1
     fi
     
@@ -164,7 +165,7 @@ else
     fi
     
     rm actions-runner-linux-x64.tar.gz
-    echo "Download completed!"
+    echo "Download and extraction completed!"
 fi
 
 cd "$WORK_DIR"
