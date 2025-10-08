@@ -4,7 +4,7 @@
 REPO_URL="https://github.com/linh2206/livestream.git"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
-GITHUB_PAT="${GITHUB_PAT:-./config.sh --url https://github.com/linh2206/livestream --token AKVNP5C2L2XSC2H2EHWVGIDI4XDOM}"  # lấy từ environment variable hoặc dùng default
+GITHUB_PAT="${GITHUB_PAT:-AKVNP5C2L2XSC2H2EHWVGIDI4XDOM}"  # lấy từ environment variable hoặc dùng default
 
 # Function để tìm số runner tiếp theo
 find_next_runner_number() {
@@ -49,12 +49,9 @@ fi
 
 cd "$WORK_DIR"
 
-# Lấy registration token từ GitHub
-echo "Getting registration token from GitHub..."
-TOKEN=$(curl -s -X POST \
-  -H "Authorization: token $GITHUB_PAT" \
-  -H "Accept: application/vnd.github+json" \
-  "${REPO_URL/github.com/api.github.com\/repos}/actions/runners/registration-token" | jq -r .token)
+# Sử dụng token trực tiếp (đã là registration token)
+echo "Using registration token..."
+TOKEN="$GITHUB_PAT"
 
 if [[ "$TOKEN" == "null" || -z "$TOKEN" ]]; then
     echo "Error: Failed to get registration token"
