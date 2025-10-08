@@ -8,6 +8,16 @@ WORK_BASE_DIR="$HOME/workspace"
 # export GITHUB_PAT="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 GITHUB_PAT="${GITHUB_PAT}"
 
+# Parse options
+TEST_API_ONLY=false
+GET_TOKEN_ONLY=false
+
+if [[ "$1" == "--test-api" ]]; then
+    TEST_API_ONLY=true
+elif [[ "$1" == "--get-token" ]]; then
+    GET_TOKEN_ONLY=true
+fi
+
 # Function để tìm số runner tiếp theo
 find_next_runner_number() {
     local base_dir="$WORK_BASE_DIR"
@@ -17,6 +27,17 @@ find_next_runner_number() {
     done
     echo $num
 }
+
+# Extract owner and repo from URL (needed for API test)
+if [[ "$REPO_URL" =~ https://github.com/([^/]+)/([^/]+) ]]; then
+    OWNER="${BASH_REMATCH[1]}"
+    REPO="${BASH_REMATCH[2]}"
+else
+    echo "Error: Invalid repository URL format"
+    echo "Expected: https://github.com/owner/repo"
+    echo "Got: $REPO_URL"
+    exit 1
+fi
 
 # Lấy số runner tiếp theo
 RUNNER_NUM=$(find_next_runner_number)
@@ -44,6 +65,74 @@ if [[ ! "$GITHUB_PAT" =~ ^ghp_[A-Za-z0-9]{36}$ ]] && [[ ! "$GITHUB_PAT" =~ ^gho_
     echo "Expected format: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     echo "Your token: ${GITHUB_PAT:0:10}..."
     exit 1
+fi
+
+# If test API only mode, just test and exit
+if [[ "$TEST_API_ONLY" == true ]]; then
+    echo "==== Testing GitHub API Connection ===="
+    echo "Repository: $OWNER/$REPO"
+    echo "PAT: ${GITHUB_PAT:0:10}..."
+    echo ""
+    echo "Testing API call..."
+    
+    RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: token $GITHUB_PAT" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+    
+    HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
+    RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
+    
+    echo "HTTP Code: $HTTP_CODE"
+    echo "Response: $RESPONSE_BODY"
+    echo ""
+    
+    if [[ "$HTTP_CODE" == "201" ]] && echo "$RESPONSE_BODY" | grep -q '"token"'; then
+        echo "✅ SUCCESS: API is working! Registration token obtained."
+        TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+        echo "Token: ${TOKEN:0:30}..."
+        exit 0
+    else
+        echo "❌ FAILED: Could not get registration token"
+        echo ""
+        echo "Common issues:"
+        echo "- HTTP 401/403: PAT lacks permissions (need 'repo' + 'admin:org' for org repos)"
+        echo "- HTTP 404: Repository not found or PAT can't access it"
+        echo "- HTTP 422: Invalid request"
+        exit 1
+    fi
+fi
+
+# If get token only mode, get token and print it
+if [[ "$GET_TOKEN_ONLY" == true ]]; then
+    echo "Getting registration token for $OWNER/$REPO..."
+    
+    RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: token $GITHUB_PAT" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
+    
+    HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
+    RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
+    
+    if [[ "$HTTP_CODE" == "201" ]] && echo "$RESPONSE_BODY" | grep -q '"token"'; then
+        TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+        echo ""
+        echo "Registration Token:"
+        echo "$TOKEN"
+        echo ""
+        echo "This token expires in 1 hour."
+        echo "Use it to register runner manually:"
+        echo "./config.sh --url $REPO_URL --token $TOKEN --name runner1"
+        exit 0
+    else
+        echo "Error: Failed to get registration token"
+        echo "HTTP Code: $HTTP_CODE"
+        echo "Response: $RESPONSE_BODY"
+        exit 1
+    fi
 fi
 
 echo "Setting up runner: $RUNNER_NAME"
