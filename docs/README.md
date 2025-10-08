@@ -1,92 +1,162 @@
-# Documentation
+# 🎥 LiveStream Platform Documentation
 
-Tài liệu hướng dẫn cho LiveStream Platform.
+Tài liệu hướng dẫn đầy đủ cho LiveStream Platform - một hệ thống streaming video trực tiếp với RTMP input và HLS output.
 
-## 📚 Danh sách tài liệu
+## 📋 Tổng quan
 
-### 1. [CI/CD Setup](./CICD-SETUP.md)
-Hướng dẫn setup CI/CD với GitHub Actions:
-- Setup GitHub Secrets
-- Cấu hình server (staging/production)
-- SSH key generation
-- Branch Protection
-- Troubleshooting
+LiveStream Platform là một giải pháp streaming video hoàn chỉnh bao gồm:
 
-### 2. [Testing Guide](./TESTING.md)
-Hướng dẫn viết và chạy tests:
-- Unit tests (backend/frontend)
-- Integration tests
-- E2E tests
-- Test coverage
-- Vercel preview deployment
-
-### 3. [Development Workflow](./WORKFLOW.md)
-Quy trình phát triển và git workflow:
-- Branching strategy
-- Commit conventions
-- Pull request process
-- Code review
-
-### 4. [FFmpeg Setup](./FFMPEG-README.md)
-Hướng dẫn cài đặt và sử dụng FFmpeg:
-- Installation methods
-- Compilation from source
-- Troubleshooting
-
----
+- **Frontend**: Next.js React application
+- **Backend**: NestJS API server với WebSocket
+- **Database**: MongoDB + Redis
+- **Streaming**: NGINX RTMP + HLS conversion
+- **Infrastructure**: Docker containerized
 
 ## 🚀 Quick Start
 
-### Development:
+### Cài đặt và chạy
+
 ```bash
-# Clone project
+# Clone repository
 git clone https://github.com/linh2206/livestream.git
 cd livestream
 
-# Start services
-docker-compose up -d
+# Setup và start services
+make setup
 
-# Hoặc dùng Makefile
-make start
+# Hoặc từng bước
+make install-ffmpeg  # Cài FFmpeg
+make start          # Start Docker services
 ```
 
-### Testing:
+### Truy cập ứng dụng
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:9000/api/v1
+- **RTMP Server**: rtmp://localhost:1935/live
+- **HLS Streams**: http://localhost:8080/api/v1/hls
+
+## 📚 Tài liệu chi tiết
+
+### 🛠️ [Setup & Installation](./setup/)
+- [Quick Start Guide](./setup/quick-start.md)
+- [FFmpeg Installation](./setup/ffmpeg.md)
+- [Docker Setup](./setup/docker.md)
+- [Environment Configuration](./setup/environment.md)
+
+### 💻 [Development](./development/)
+- [Development Workflow](./development/workflow.md)
+- [Testing Guide](./development/testing.md)
+- [API Documentation](./development/api.md)
+- [Code Standards](./development/standards.md)
+
+### 🚀 [Deployment](./deployment/)
+- [CI/CD Setup](./deployment/cicd.md)
+- [Production Deployment](./deployment/production.md)
+- [Server Configuration](./deployment/server-config.md)
+- [SSL/HTTPS Setup](./deployment/ssl.md)
+
+### 📊 [Monitoring](./monitoring/)
+- [Health Checks](./monitoring/health.md)
+- [Logging](./monitoring/logging.md)
+- [Performance Monitoring](./monitoring/performance.md)
+- [Troubleshooting](./monitoring/troubleshooting.md)
+
+## 🎯 Các tính năng chính
+
+### Streaming
+- ✅ RTMP input từ OBS Studio
+- ✅ Tự động convert sang HLS
+- ✅ Low-latency streaming
+- ✅ Multiple quality presets
+
+### Web Interface
+- ✅ Real-time video player
+- ✅ Chat system với WebSocket
+- ✅ User authentication
+- ✅ Admin dashboard
+
+### API
+- ✅ RESTful API
+- ✅ WebSocket real-time
+- ✅ JWT authentication
+- ✅ Rate limiting
+
+### DevOps
+- ✅ Docker containerization
+- ✅ CI/CD pipeline
+- ✅ Health monitoring
+- ✅ Auto-scaling ready
+
+## 🏗️ Kiến trúc hệ thống
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        NGINX (Port 80/1935)                    │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│  │   RTMP Server   │  │  HTTP Server    │  │  Reverse Proxy  │ │
+│  │   (Port 1935)   │  │   (Port 80)     │  │                 │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌──────▼──────┐
+        │   Backend     │ │ Frontend  │ │  Database   │
+        │  (Port 9000)  │ │(Port 3000)│ │   Layer     │
+        │               │ │           │ │             │
+        │ ┌───────────┐ │ │ ┌───────┐ │ │ ┌─────────┐ │
+        │ │HLS Ctrl   │ │ │ │Next.js│ │ │ │MongoDB  │ │
+        │ │RTMP Ctrl  │ │ │ │React  │ │ │ │Redis    │ │
+        │ │Auth Ctrl  │ │ │ │UI/UX  │ │ │ │         │ │
+        │ │Stream Ctrl│ │ │ │       │ │ │ │         │ │
+        │ └───────────┘ │ │ └───────┘ │ │ └─────────┘ │
+        └───────────────┘ └───────────┘ └─────────────┘
+```
+
+## 🔄 Workflow
+
+### Stream Publishing
+1. **OBS Studio** → RTMP push to `rtmp://localhost:1935/live/{streamKey}`
+2. **NGINX RTMP** → Auto-convert to HLS format
+3. **Backend API** → Store stream metadata in database
+4. **WebSocket** → Notify clients about new stream
+
+### Stream Viewing
+1. **Client** → Request stream via HTTP
+2. **NGINX** → Proxy to Backend HLS controller
+3. **Backend** → Serve HLS playlist and segments
+4. **Client Player** → Play video stream
+
+## 🛠️ Commands hữu ích
+
 ```bash
-# Backend tests
-cd apps/backend
-npm test
+# Development
+make start          # Start all services
+make stop           # Stop all services
+make logs           # View service logs
+make clean          # Clean up containers
 
-# Frontend tests
-cd apps/frontend
-npm test
+# Setup
+make setup          # Complete setup
+make install-ffmpeg # Install FFmpeg
+make setup-ssh      # Setup SSH server
+
+# Testing
+cd apps/backend && npm test
+cd apps/frontend && npm test
 ```
 
-### Deployment:
-```bash
-# Push code
-git push origin main
+## 📞 Hỗ trợ
 
-# CI/CD tự động:
-# 1. CI chạy tests
-# 2. CD deploy lên production
-```
+- **GitHub Issues**: [Tạo issue](https://github.com/linh2206/livestream/issues)
+- **Documentation**: Xem các tài liệu chi tiết trong thư mục con
+- **CI/CD Logs**: Kiểm tra GitHub Actions
+
+## 📄 License
+
+MIT License - Xem file [LICENSE](../LICENSE) để biết thêm chi tiết.
 
 ---
 
-## 📖 Chi tiết
-
-Xem từng file docs để biết thêm chi tiết về:
-- CI/CD pipeline
-- Testing strategies
-- Development workflow
-- FFmpeg configuration
-
----
-
-## 🆘 Support
-
-Nếu gặp vấn đề:
-1. Kiểm tra GitHub Actions logs
-2. Xem Troubleshooting sections
-3. Tạo issue trên GitHub
-
+**Happy Streaming! 🎥✨**

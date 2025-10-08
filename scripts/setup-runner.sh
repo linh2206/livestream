@@ -20,6 +20,9 @@ usage(){ cat <<EOF
 Usage: GH_URL=... GH_TOKEN=... [COUNT=1] [RUNNER_BASE=
 $PWD] [NAME=runner] [PREFIX=actions-runner] [VERSION=2.316.1] [LABELS=prod]
        [ALLOW_ROOT=1] bash scripts/setup-runner.sh
+
+NOTE: GH_TOKEN must be a REGISTRATION TOKEN, not Personal Access Token!
+Get registration token from: Repository Settings > Actions > Runners > New self-hosted runner
 EOF
 }
 
@@ -48,7 +51,9 @@ if [[ -z "$GH_URL" ]]; then
 fi
 
 if [[ -z "$GH_TOKEN" ]]; then
-    echo -n "Enter GitHub token: "
+    echo "IMPORTANT: You need a REGISTRATION TOKEN, not Personal Access Token!"
+    echo "Get it from: Repository Settings > Actions > Runners > New self-hosted runner"
+    echo -n "Enter GitHub REGISTRATION TOKEN: "
     read -r -s GH_TOKEN
     echo
 fi
