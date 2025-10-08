@@ -106,36 +106,10 @@ echo "Creating runner configuration manually..."
 # Clean registration token
 REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
 
-# Create proper .runner file
-cat > .runner << EOF
-{
-  "agentId": $(shuf -i 1000-9999 -n 1),
-  "agentName": "$RUNNER_NAME",
-  "poolId": 1,
-  "serverUrl": "$REPO_URL",
-  "workFolder": "_work"
-}
-EOF
-
-# Create proper .credentials file  
-cat > .credentials << EOF
-{
-  "scheme": "TokenAuthentication",
-  "data": {
-    "token": "$REG_TOKEN"
-  }
-}
-EOF
-
-# Create proper .service file
-cat > .service << EOF
-{
-  "url": "$REPO_URL",
-  "data": {
-    "token": "$REG_TOKEN"
-  }
-}
-EOF
+# Create minimal configuration files
+echo "$RUNNER_NAME" > .runner
+echo "$REG_TOKEN" > .credentials  
+echo "$REPO_URL" > .service
 
 echo "Runner configuration created successfully"
 
