@@ -52,7 +52,7 @@ setup-ssh:
 # GitHub Actions runner setup
 setup-run:
 	@echo "Setting up GitHub Actions runner..."
-	ALLOW_ROOT=1 ./scripts/setup-runner.sh
+	./scripts/setup-runner.sh
 
 # FFmpeg
 install-ffmpeg:

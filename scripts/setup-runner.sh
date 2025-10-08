@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Allow runner to run as root
+export RUNNER_ALLOW_RUN_AS_ROOT=1
+
 # Fresh installer: purge old → download → configure → install service → start
 # Inputs via env or flags:
 #   GH_URL       (required)   Repo/Org URL, e.g. https://github.com/owner/repo
@@ -22,15 +25,19 @@ EOF
 
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
 
-# Allow running with root/sudo
-echo "Running with elevated privileges"
+# Check if running as root
+if [[ "$EUID" -eq 0 ]]; then
+  echo "Do not run as root. Please run with a regular user." >&2
+  exit 1
+fi
+echo "Running with user: $(whoami)"
 
 GH_URL=${GH_URL:-}
 GH_TOKEN=${GH_TOKEN:-}
 COUNT=${COUNT:-1}
 VERSION=${VERSION:-2.316.1}
 PREFIX=${PREFIX:-actions-runner}
-RUNNER_BASE=${RUNNER_BASE:-/root/workspace}
+RUNNER_BASE=${RUNNER_BASE:-$HOME/workspace}
 NAME=${NAME:-runner}
 LABELS=${LABELS:-}
 
@@ -51,7 +58,8 @@ if [[ -z "$GH_URL" || -z "$GH_TOKEN" ]]; then
     exit 1
 fi
 
-# Deps
+# Deps (install as user, may need sudo)
+echo "Installing dependencies..."
 sudo apt-get update -y >/dev/null 2>&1 || true
 sudo apt-get install -y ca-certificates curl tar gzip file >/dev/null 2>&1 || true
 
@@ -110,16 +118,18 @@ for i in $(seq 1 "$COUNT"); do
     fi
   done
   echo "Configuring runner..."
+  # Set environment variable to allow root
+  export RUNNER_ALLOW_RUN_AS_ROOT=1
   if [[ -n "$LABELS" ]]; then
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace --allow-root --acceptTeeEula
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
   else
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace --allow-root --acceptTeeEula
+    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace
   fi
   
   echo "Installing service..."
-  sudo ./svc.sh install
+  ./svc.sh install
   echo "Starting service..."
-  sudo ./svc.sh start
+  ./svc.sh start
 done
 
 echo "Done. $COUNT runner(s) set up under ${RUNNER_BASE}."
