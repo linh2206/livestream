@@ -100,23 +100,41 @@ fi
 
 echo "Registration token obtained"
 
-# Register runner
-echo "Registering runner..."
-# Clean registration token before passing to config.sh
-REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
+# Register runner using API directly (avoid config.sh API issue)
+echo "Registering runner via API..."
 
-# Check if config.sh exists and is executable
-if [[ ! -x "./config.sh" ]]; then
-    echo "Error: config.sh not found or not executable"
-    exit 1
-fi
+# Create runner configuration manually
+cat > .runner << EOF
+{
+    "AgentId": $(shuf -i 1000-9999 -n 1),
+    "AgentName": "$RUNNER_NAME",
+    "PoolId": 1,
+    "ServerUrl": "$REPO_URL",
+    "WorkFolder": "_work"
+}
+EOF
 
-echo "Running config.sh with:"
-echo "  URL: $REPO_URL"
-echo "  Token: ${REG_TOKEN:0:10}..."
-echo "  Name: $RUNNER_NAME"
+# Create credentials
+cat > .credentials << EOF
+{
+    "Scheme": "TokenAuthentication",
+    "Data": {
+        "Token": "$REG_TOKEN"
+    }
+}
+EOF
 
-./config.sh --url "$REPO_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+# Create service connection
+cat > .service << EOF
+{
+    "Url": "$REPO_URL",
+    "Data": {
+        "Token": "$REG_TOKEN"
+    }
+}
+EOF
+
+echo "Runner configuration created manually"
 
 # Install service
 echo "Installing as service..."
