@@ -35,7 +35,22 @@ RUNNER_BASE=${RUNNER_BASE:-$PWD}
 NAME=${NAME:-runner}
 LABELS=${LABELS:-}
 
-if [[ -z "$GH_URL" || -z "$GH_TOKEN" ]]; then usage; echo "GH_URL and GH_TOKEN are required." >&2; exit 1; fi
+# Prompt for missing values
+if [[ -z "$GH_URL" ]]; then
+    echo -n "Enter GitHub repository URL (e.g., https://github.com/owner/repo): "
+    read -r GH_URL
+fi
+
+if [[ -z "$GH_TOKEN" ]]; then
+    echo -n "Enter GitHub token: "
+    read -r -s GH_TOKEN
+    echo
+fi
+
+if [[ -z "$GH_URL" || -z "$GH_TOKEN" ]]; then
+    echo "Error: GH_URL and GH_TOKEN are required." >&2
+    exit 1
+fi
 
 # Deps
 sudo apt-get update -y >/dev/null 2>&1 || true
