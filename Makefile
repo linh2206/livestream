@@ -15,7 +15,7 @@ help:
 	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
-    @echo ""
+	@echo ""
 	@echo ""
 	@echo "Access URLs:"
 	@echo "  Frontend: http://localhost:3000"
