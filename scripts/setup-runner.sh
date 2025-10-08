@@ -60,20 +60,22 @@ if [[ -d "$HOME/actions-runner" ]]; then
         exit 1
     fi
 else
-    echo "Downloading GitHub Actions runner..."
+    echo "Downloading GitHub Actions runner (this may take a few minutes)..."
     # Download runner nếu chưa có
     cd "$WORK_DIR"
-    if ! curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
+    if ! curl -# -o actions-runner-linux-x64.tar.gz -L --max-time 300 https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz; then
         echo "Error: Failed to download GitHub Actions runner"
         exit 1
     fi
     
+    echo "Extracting runner..."
     if ! tar xzf actions-runner-linux-x64.tar.gz; then
         echo "Error: Failed to extract runner archive"
         exit 1
     fi
     
     rm actions-runner-linux-x64.tar.gz
+    echo "Download completed!"
 fi
 
 cd "$WORK_DIR"
@@ -95,7 +97,7 @@ fi
 # Get registration token from GitHub API
 echo "Requesting registration token for $OWNER/$REPO..."
 echo "Using PAT: ${GITHUB_PAT:0:10}..."
-REG_TOKEN_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
+REG_TOKEN_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" --max-time 30 -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token $GITHUB_PAT" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
