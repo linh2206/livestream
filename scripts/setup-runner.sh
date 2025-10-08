@@ -4,7 +4,7 @@
 REPO_URL="https://github.com/linh2206/livestream.git"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
-GITHUB_PAT="${GITHUB_PAT:-}"  # lấy từ environment variable
+GITHUB_PAT="AKVNP5C2L2XSC2H2EHWVGIDI4XDOM"  # lấy từ environment variable
 
 # Function để tìm số runner tiếp theo
 find_next_runner_number() {
