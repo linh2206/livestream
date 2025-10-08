@@ -22,8 +22,13 @@ EOF
 
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
 
-if [[ "${ALLOW_ROOT:-0}" != "1" && "$EUID" -eq 0 ]]; then
-  echo "Do not run as root. Set ALLOW_ROOT=1 to override." >&2; exit 1;
+# Check if running as root
+if [[ "$EUID" -eq 0 ]]; then
+  if [[ "${ALLOW_ROOT:-0}" != "1" ]]; then
+    echo "Do not run as root. Set ALLOW_ROOT=1 to override." >&2; exit 1;
+  else
+    echo "Running as root with ALLOW_ROOT=1 override"
+  fi
 fi
 
 GH_URL=${GH_URL:-}
