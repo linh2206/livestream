@@ -52,8 +52,6 @@ setup-ssh:
 # GitHub Actions runner setup
 setup-run:
 	@echo "Setting up GitHub Actions runner..."
-	@echo "Usage: GH_URL=<repo_url> GH_TOKEN=<token> [COUNT=1] make setup-run"
-	@echo "Example: GH_URL=https://github.com/owner/repo GH_TOKEN=abc123 make setup-run"
 	ALLOW_ROOT=1 ./scripts/setup-runner.sh
 
 # FFmpeg

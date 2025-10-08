@@ -22,12 +22,12 @@ EOF
 
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
 
-# Check if running as root
-if [[ "$EUID" -eq 0 ]]; then
+# Check if running as root or with sudo
+if [[ "$EUID" -eq 0 ]] || [[ -n "${SUDO_USER:-}" ]]; then
   if [[ "${ALLOW_ROOT:-0}" != "1" ]]; then
     echo "Do not run as root. Set ALLOW_ROOT=1 to override." >&2; exit 1;
   else
-    echo "Running as root with ALLOW_ROOT=1 override"
+    echo "Running with elevated privileges (ALLOW_ROOT=1)"
   fi
 fi
 
@@ -97,12 +97,16 @@ for i in $(seq 1 "$COUNT"); do
       echo "Warning: $file not found after extraction"
     fi
   done
+  echo "Configuring runner..."
   if [[ -n "$LABELS" ]]; then
     ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
   else
     ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace
   fi
+  
+  echo "Installing service..."
   sudo ./svc.sh install
+  echo "Starting service..."
   sudo ./svc.sh start
 done
 
