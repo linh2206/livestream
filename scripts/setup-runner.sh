@@ -13,9 +13,6 @@ if [[ -z "$RUNNER_TOKEN" ]]; then
     read RUNNER_TOKEN
 fi
 
-# Clean token from any newlines/carriage returns
-RUNNER_TOKEN=$(echo "$RUNNER_TOKEN" | tr -d '\n\r' | tr -d ' ')
-
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Error: Token is required"
     exit 1
@@ -49,12 +46,12 @@ echo "Work directory: $WORK_DIR"
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-# Use existing runner files only
+# Use existing runner files
 if [[ ! -d "$WORK_BASE_DIR/actions-runner" ]]; then
     echo "Error: $WORK_BASE_DIR/actions-runner not found"
     echo "Please download runner first:"
     echo "mkdir -p $WORK_BASE_DIR/actions-runner && cd $WORK_BASE_DIR/actions-runner"
-    echo "curl -L -o actions-runner-linux-x64.tar.gz https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz"
+    echo "curl -L -o actions-runner-linux-x64.tar.gz https://github.com/actions/runner/releases/download/v2.318.0/actions-runner-linux-x64-2.318.0.tar.gz"
     echo "tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz"
     exit 1
 fi
@@ -62,9 +59,26 @@ fi
 echo "Using existing runner files..."
 cp -r "$WORK_BASE_DIR/actions-runner"/* .
 
-# Use token directly for registration
-echo "Using token for runner registration..."
-REG_TOKEN="$RUNNER_TOKEN"
+# Get registration token
+echo "Getting registration token from GitHub API..."
+
+OWNER=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\1|')
+REPO=$(echo "$REPO_URL" | sed 's|https://github.com/\([^/]*\)/\([^/]*\)|\2|')
+
+REG_TOKEN=$(curl -s -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token $(printf '%s' "$RUNNER_TOKEN")" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token" | \
+    grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+
+if [[ -z "$REG_TOKEN" ]]; then
+    echo "Error: Failed to get registration token"
+    echo "Check that your token has 'repo' permission"
+    exit 1
+fi
+
+echo "Registration token obtained"
 
 # Register runner
 echo "Registering runner..."
