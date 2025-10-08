@@ -138,7 +138,15 @@ if [[ -z "$REG_TOKEN" ]] || [[ "$HTTP_CODE" != "201" ]]; then
     exit 1
 fi
 
+# Clean registration token aggressively
+REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ' | sed 's/[[:space:]]//g')
+
 echo "Registration token obtained: ${REG_TOKEN:0:10}..."
+echo "Registration token length: ${#REG_TOKEN}"
+
+# Debug: Check registration token for hidden characters
+echo "Registration token hex dump:"
+printf '%s' "$REG_TOKEN" | hexdump -C | head -2
 
 # Configure runner with registration token
 echo "Configuring runner..."
