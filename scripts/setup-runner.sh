@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Config
-REPO_URL="https://github.com/linh2206/livestream.git"
+REPO_URL="https://github.com/linh2206/livestream"
 RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
 WORK_BASE_DIR="$HOME/workspace"
 GITHUB_PAT="${GITHUB_PAT:-AKVNP5C2L2XSC2H2EHWVGIDI4XDOM}"  # lấy từ environment variable hoặc dùng default
