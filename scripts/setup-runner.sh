@@ -139,26 +139,36 @@ echo "  URL: $REPO_URL"
 echo "  Token: ${RUNNER_TOKEN:0:10}..."
 echo "  Name: $RUNNER_NAME"
 
-# Patch runner binary to use correct API endpoint
-echo "Patching runner binary to fix API endpoint..."
+# Test API endpoint directly first
+echo "Testing API endpoint directly..."
+API_TEST=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: token ${RUNNER_TOKEN}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/${OWNER}/${REPO}/actions/runners/registration-token")
 
-# Backup original binary
-cp ./config.sh ./config.sh.backup
+API_HTTP_CODE=$(echo "$API_TEST" | grep "HTTP_CODE:" | cut -d: -f2)
+API_RESPONSE=$(echo "$API_TEST" | sed '/HTTP_CODE:/d')
 
-# Patch the API endpoint in config.sh
-sed -i 's|https://api.github.com/actions/runner-registration|https://api.github.com/repos/'"$OWNER"'/'"$REPO"'/actions/runners/registration-token|g' ./config.sh
+echo "API Test HTTP Code: $API_HTTP_CODE"
+echo "API Test Response: $API_RESPONSE"
 
-echo "Patched config.sh to use correct API endpoint"
+if [[ "$API_HTTP_CODE" != "201" ]]; then
+    echo "Error: API endpoint test failed"
+    echo "Check token permissions and repository access"
+    exit 1
+fi
 
-# Try config.sh with patched binary
+echo "API endpoint test successful"
+
+# Now try config.sh
+echo "Running config.sh..."
 ./config.sh --url "$REPO_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
 
 if [[ $? -eq 0 ]]; then
-    echo "Config.sh succeeded with patched binary"
+    echo "Config.sh succeeded"
 else
-    echo "Config.sh failed even with patch"
-    # Restore original
-    mv ./config.sh.backup ./config.sh
+    echo "Config.sh failed"
     exit 1
 fi
 
