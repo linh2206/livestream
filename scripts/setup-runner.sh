@@ -148,6 +148,17 @@ echo "Registration token length: ${#REG_TOKEN}"
 echo "Registration token hex dump:"
 printf '%s' "$REG_TOKEN" | hexdump -C | head -2
 
+# Patch config.sh to fix API endpoint (GitHub runner bug)
+echo "Patching config.sh to fix API endpoint..."
+
+# Backup original
+cp ./config.sh ./config.sh.backup
+
+# Patch the deprecated API endpoint
+sed -i 's|https://api.github.com/actions/runner-registration|https://api.github.com/repos/'"$OWNER"'/'"$REPO"'/actions/runners/registration-token|g' ./config.sh
+
+echo "Patched config.sh to use correct API endpoint"
+
 # Configure runner with registration token
 echo "Configuring runner..."
 
@@ -161,8 +172,12 @@ echo "  Name: $RUNNER_NAME"
 
 if [[ $? -eq 0 ]]; then
     echo "Runner configured successfully"
+    # Keep the patched version
+    rm ./config.sh.backup
 else
     echo "Error: Failed to configure runner"
+    # Restore original
+    mv ./config.sh.backup ./config.sh
     exit 1
 fi
 
