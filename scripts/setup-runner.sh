@@ -164,13 +164,8 @@ else
     fi
     
     echo "[EXTRACT] Extracting..."
-    tar xzf actions-runner-linux-x64.tar.gz 2>/dev/null &
-    TAR_PID=$!
-    
-    # Wait với timeout
-    if ! timeout 30 wait $TAR_PID 2>/dev/null; then
-        kill $TAR_PID 2>/dev/null
-        echo "Error: Extract timeout"
+    if ! tar xzf actions-runner-linux-x64.tar.gz; then
+        echo "Error: Failed to extract runner archive"
         exit 1
     fi
     
