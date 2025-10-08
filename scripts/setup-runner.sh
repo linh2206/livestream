@@ -13,8 +13,8 @@ if [[ -z "$RUNNER_TOKEN" ]]; then
     read RUNNER_TOKEN
 fi
 
-# Clean token from any whitespace/newlines
-RUNNER_TOKEN=$(echo "${RUNNER_TOKEN}" | tr -d '\n\r\t ')
+# Clean token from any whitespace/newlines - FORCE CLEAN
+RUNNER_TOKEN=$(printf '%s' "${RUNNER_TOKEN}" | tr -d '\n\r\t ')
 
 if [[ -z "$RUNNER_TOKEN" ]]; then
     echo "Error: Token is required"
