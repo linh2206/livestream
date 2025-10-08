@@ -1,5 +1,5 @@
 # LiveStream Platform - Optimized Makefile
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg setup-run
 
 .DEFAULT_GOAL := help
 

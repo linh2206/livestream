@@ -123,8 +123,6 @@ make clean      # Clean up containers
 make logs       # View service logs
 
 # System fixes
-make fix-apt    # Fix APT package issues
-make fix-apt-resolver # Fix APT resolver breaks
 make fix-docker # Fix Docker connectivity
 
 # Admin operations
@@ -275,8 +273,7 @@ docker-compose up -d
 
 3. **APT package resolver breaks**
 ```bash
-# Fix package issues
-make fix-apt-resolver
+# Fix package issues manually or reinstall system packages
 ```
 
 4. **Port conflicts**
@@ -325,7 +322,6 @@ docker-compose ps
 - URL inconsistencies across services
 
 **New Commands:**
-- `make fix-apt-resolver` - Fix APT package issues
 - `make fix-docker` - Fix Docker connectivity
 - Enhanced `make setup` with automatic fixes
 
