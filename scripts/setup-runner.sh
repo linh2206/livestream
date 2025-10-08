@@ -1,142 +1,76 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-# Allow runner to run as root
-export RUNNER_ALLOW_RUN_AS_ROOT=1
+# Config
+REPO_URL="https://github.com/linh2206/livestream.git"
+RUNNER_BASE_NAME="runner"  # tên cơ bản, sẽ tự động thêm số
+WORK_BASE_DIR="$HOME/workspace"
+GITHUB_PAT="${GITHUB_PAT:-}"  # lấy từ environment variable
 
-# Fresh installer: purge old → download → configure → install service → start
-# Inputs via env or flags:
-#   GH_URL       (required)   Repo/Org URL, e.g. https://github.com/owner/repo
-#   GH_TOKEN     (required)   Registration token (valid ~1h)
-#   COUNT        (default 1)  Number of runners
-#   VERSION      (default 2.316.1)
-#   PREFIX       (default actions-runner)
-#   RUNNER_BASE  (default $PWD)
-#   NAME         (default runner)  base name → runner1..N
-#   LABELS       (optional)   comma-separated
-#   ALLOW_ROOT   (0|1) allow run as root (not recommended)
-
-usage(){ cat <<EOF
-Usage: GH_URL=... GH_TOKEN=... [COUNT=1] [RUNNER_BASE=
-$PWD] [NAME=runner] [PREFIX=actions-runner] [VERSION=2.316.1] [LABELS=prod]
-       [ALLOW_ROOT=1] bash scripts/setup-runner.sh
-
-NOTE: GH_TOKEN must be a REGISTRATION TOKEN, not Personal Access Token!
-Get registration token from: Repository Settings > Actions > Runners > New self-hosted runner
-EOF
+# Function để tìm số runner tiếp theo
+find_next_runner_number() {
+    local base_dir="$WORK_BASE_DIR"
+    local num=1
+    while [[ -d "$base_dir/${RUNNER_BASE_NAME}${num}" ]]; do
+        ((num++))
+    done
+    echo $num
 }
 
-[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
+# Lấy số runner tiếp theo
+RUNNER_NUM=$(find_next_runner_number)
+RUNNER_NAME="${RUNNER_BASE_NAME}${RUNNER_NUM}"
+WORK_DIR="$WORK_BASE_DIR/$RUNNER_NAME"
 
-# Check if running as root
-if [[ "$EUID" -eq 0 ]]; then
-  echo "Do not run as root. Please run with a regular user." >&2
-  exit 1
-fi
-echo "Running with user: $(whoami)"
-
-GH_URL=${GH_URL:-}
-GH_TOKEN=${GH_TOKEN:-}
-COUNT=${COUNT:-1}
-VERSION=${VERSION:-2.316.1}
-PREFIX=${PREFIX:-actions-runner}
-RUNNER_BASE=${RUNNER_BASE:-$HOME/workspace}
-NAME=${NAME:-runner}
-LABELS=${LABELS:-}
-
-# Prompt for missing values
-if [[ -z "$GH_URL" ]]; then
-    echo -n "Enter GitHub repository URL (e.g., https://github.com/owner/repo): "
-    read -r GH_URL
-fi
-
-if [[ -z "$GH_TOKEN" ]]; then
-    echo "IMPORTANT: You need a REGISTRATION TOKEN, not Personal Access Token!"
-    echo "Get it from: Repository Settings > Actions > Runners > New self-hosted runner"
-    echo -n "Enter GitHub REGISTRATION TOKEN: "
-    read -r -s GH_TOKEN
-    echo
-fi
-
-if [[ -z "$GH_URL" || -z "$GH_TOKEN" ]]; then
-    echo "Error: GH_URL and GH_TOKEN are required." >&2
+# Check if GITHUB_PAT is set
+if [[ -z "$GITHUB_PAT" ]]; then
+    echo "Error: GITHUB_PAT environment variable is not set"
+    echo "Please set your GitHub Personal Access Token:"
+    echo "export GITHUB_PAT=ghp_xxxxx"
     exit 1
 fi
 
-# Deps (install as user, may need sudo)
-echo "Installing dependencies..."
-sudo apt-get update -y >/dev/null 2>&1 || true
-sudo apt-get install -y ca-certificates curl tar gzip file >/dev/null 2>&1 || true
+echo "Setting up runner: $RUNNER_NAME"
+echo "Work directory: $WORK_DIR"
 
-# Purge old
-for i in $(seq 1 "$COUNT"); do
-  d="${RUNNER_BASE%/}/${PREFIX}${i}"
-  if [[ -d "$d" ]]; then
-    echo "==> Purging $d"
-    (
-      cd "$d" || exit 0
-      [ -f svc.sh ] && chmod +x svc.sh >/dev/null 2>&1 || true
-      [ -f config.sh ] && chmod +x config.sh >/dev/null 2>&1 || true
-      [ -f svc.sh ] && ./svc.sh stop >/dev/null 2>&1 || true
-      [ -f svc.sh ] && ./svc.sh uninstall >/dev/null 2>&1 || true
-      [ -f config.sh ] && ./config.sh remove --token invalid >/dev/null 2>&1 || true
-    )
-    rm -rf "$d"
-  fi
-done
+# Tạo thư mục riêng
+mkdir -p "$WORK_DIR"
 
-# Find next available runner number
-find_next_runner_number() {
-  local base_path="${RUNNER_BASE%/}/${PREFIX}"
-  local num=1
-  while [[ -d "${base_path}${num}" ]]; do
-    ((num++))
-  done
-  echo $num
-}
+# Copy từ thư mục actions-runner gốc (nếu có)
+if [[ -d "$HOME/actions-runner" ]]; then
+    cp -r "$HOME/actions-runner"/* "$WORK_DIR"
+else
+    echo "Downloading GitHub Actions runner..."
+    # Download runner nếu chưa có
+    cd "$WORK_DIR"
+    curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/v2.316.1/actions-runner-linux-x64-2.316.1.tar.gz
+    tar xzf actions-runner-linux-x64.tar.gz
+    rm actions-runner-linux-x64.tar.gz
+fi
 
-# Install fresh
-for i in $(seq 1 "$COUNT"); do
-  if [[ "$COUNT" -eq 1 ]]; then
-    # Single runner - find next available number
-    runner_num=$(find_next_runner_number)
-  else
-    # Multiple runners - use sequential numbers
-    runner_num=$i
-  fi
-  
-  name="${NAME}${runner_num}"
-  dest="${RUNNER_BASE%/}/${PREFIX}${runner_num}"
-  echo "==> Install $name at $dest (runner #${runner_num})"
-  mkdir -p "$dest" && cd "$dest"
-  url="https://github.com/actions/runner/releases/download/v${VERSION}/actions-runner-linux-x64-${VERSION}.tar.gz"
-  curl -fL -H 'Accept: application/octet-stream' -o runner.tgz "$url"
-  tar -tzf runner.tgz >/dev/null 2>&1 || { echo "runner.tgz invalid"; exit 1; }
-  tar -xzf runner.tgz
-  echo "Files extracted: $(ls -la)"
-  for file in config.sh run.sh svc.sh; do
-    if [ -f "$file" ]; then
-      echo "Setting permissions for $file"
-      chmod +x "$file"
-    else
-      echo "Warning: $file not found after extraction"
-    fi
-  done
-  echo "Configuring runner..."
-  # Set environment variable to allow root
-  export RUNNER_ALLOW_RUN_AS_ROOT=1
-  if [[ -n "$LABELS" ]]; then
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --labels "$LABELS" --unattended --replace
-  else
-    ./config.sh --url "$GH_URL" --token "$GH_TOKEN" --name "$name" --unattended --replace
-  fi
-  
-  echo "Installing service..."
-  ./svc.sh install
-  echo "Starting service..."
-  ./svc.sh start
-done
+cd "$WORK_DIR"
 
-echo "Done. $COUNT runner(s) set up under ${RUNNER_BASE}."
+# Lấy registration token từ GitHub
+echo "Getting registration token from GitHub..."
+TOKEN=$(curl -s -X POST \
+  -H "Authorization: token $GITHUB_PAT" \
+  -H "Accept: application/vnd.github+json" \
+  "${REPO_URL/github.com/api.github.com\/repos}/actions/runners/registration-token" | jq -r .token)
 
+if [[ "$TOKEN" == "null" || -z "$TOKEN" ]]; then
+    echo "Error: Failed to get registration token"
+    exit 1
+fi
 
+echo "Registration token obtained successfully"
+
+# Đăng ký runner
+echo "Registering runner: $RUNNER_NAME"
+./config.sh --url "$REPO_URL" --token "$TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+
+# Cài như service
+echo "Installing as service..."
+sudo ./svc.sh install
+sudo ./svc.sh start
+
+echo "Runner $RUNNER_NAME setup completed!"
+echo "Runner directory: $WORK_DIR"
