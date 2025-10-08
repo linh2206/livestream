@@ -94,26 +94,35 @@ fi
 
 # Get registration token from GitHub API
 echo "Requesting registration token for $OWNER/$REPO..."
-REG_TOKEN_RESPONSE=$(curl -s -X POST \
+echo "Using PAT: ${GITHUB_PAT:0:10}..."
+REG_TOKEN_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token $GITHUB_PAT" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/$OWNER/$REPO/actions/runners/registration-token")
 
+# Extract HTTP code and response body
+HTTP_CODE=$(echo "$REG_TOKEN_RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
+RESPONSE_BODY=$(echo "$REG_TOKEN_RESPONSE" | sed '/HTTP_CODE:/d')
+
+echo "API Response HTTP Code: $HTTP_CODE"
+echo "API Response Body: $RESPONSE_BODY"
+
 # Check if request was successful
-if echo "$REG_TOKEN_RESPONSE" | grep -q '"token"'; then
-    TOKEN=$(echo "$REG_TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+if echo "$RESPONSE_BODY" | grep -q '"token"'; then
+    TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
     echo "Registration token obtained successfully"
+    echo "Token: ${TOKEN:0:20}..."
 else
     echo "Error: Failed to get registration token"
-    echo "Response: $REG_TOKEN_RESPONSE"
     echo ""
     echo "Check that:"
-    echo "1. Personal Access Token has 'repo' permission"
+    echo "1. Personal Access Token has 'repo' permission (and 'admin:org' if org repo)"
     echo "2. Repository exists and is accessible"
     echo "3. Token is not expired"
     echo ""
-    echo "Generate token at: https://github.com/settings/tokens"
+    echo "Generate a new token at: https://github.com/settings/tokens"
+    echo "Required scopes: repo, workflow, admin:org (for org repos)"
     exit 1
 fi
 
