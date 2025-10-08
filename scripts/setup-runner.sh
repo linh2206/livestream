@@ -106,12 +106,25 @@ echo "Creating runner configuration manually..."
 # Clean registration token
 REG_TOKEN=$(printf '%s' "$REG_TOKEN" | tr -d '\n\r\t ')
 
-# Create minimal configuration files
-echo "$RUNNER_NAME" > .runner
-echo "$REG_TOKEN" > .credentials  
-echo "$REPO_URL" > .service
+# Try config.sh with organization URL instead of repository URL
+echo "Trying config.sh with organization URL..."
 
-echo "Runner configuration created successfully"
+# Extract organization from repo URL
+ORG_URL="https://github.com/linh2206"
+
+echo "Running config.sh with organization URL:"
+echo "  URL: $ORG_URL"
+echo "  Token: ${REG_TOKEN:0:10}..."
+echo "  Name: $RUNNER_NAME"
+
+./config.sh --url "$ORG_URL" --token "$REG_TOKEN" --name "$RUNNER_NAME" --unattended --work "_work"
+
+if [[ $? -eq 0 ]]; then
+    echo "Config.sh succeeded with organization URL"
+else
+    echo "Config.sh failed with organization URL too"
+    exit 1
+fi
 
 # Install service
 echo "Installing as service..."
