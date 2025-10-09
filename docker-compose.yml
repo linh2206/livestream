@@ -141,12 +141,7 @@ services:
       "
     healthcheck:
       test:
-        [
-          "CMD",
-          "sh",
-          "-c",
-          "test -d /app/hls/stream && echo 'HLS directory exists'",
-        ]
+        ["CMD", "sh", "-c", "test -d /app/hls && echo 'HLS directory exists'"]
       interval: 30s
       timeout: 10s
       retries: 3
