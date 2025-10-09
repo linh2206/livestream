@@ -14,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-MAX_RUNNERS=8  # Từ actions-runner đến actions-runner7
+MAX_RUNNERS=10  # Từ actions-runner đến actions-runner9
 
 # Function to print colored output
 print_status() {
@@ -215,12 +215,12 @@ main() {
             echo "Usage: $0 {all|status|stop}"
             echo ""
             echo "Commands:"
-            echo "  all [count]     - Start all runners (default: 8)"
+            echo "  all [count]     - Start all runners (default: 10)"
             echo "  status          - Show runner status"
             echo "  stop            - Stop all runners"
             echo ""
             echo "Examples:"
-            echo "  $0 all          # Start all 8 runners"
+            echo "  $0 all          # Start all 10 runners"
             echo "  $0 all 4        # Start first 4 runners"
             echo "  $0 status       # Show status"
             echo "  $0 stop         # Stop all runners"
