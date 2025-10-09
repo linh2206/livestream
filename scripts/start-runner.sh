@@ -51,32 +51,32 @@ start_all_runners() {
         fi
 
         if [ -d "$runner_dir" ]; then
-            cd "$runner_dir"
-
             # Check if runner is already running
-            if [ -f "runner-$i.pid" ]; then
-                local pid=$(cat "runner-$i.pid")
+            if [ -f "$runner_dir/runner-$i.pid" ]; then
+                local pid=$(cat "$runner_dir/runner-$i.pid")
                 if ps -p "$pid" > /dev/null 2>&1; then
                     print_warning "Runner $i is already running (PID: $pid)"
                     ((started_count++))
                     continue
                 else
                     print_warning "Stale PID file found, removing..."
-                    rm -f "runner-$i.pid"
+                    rm -f "$runner_dir/runner-$i.pid"
                 fi
             fi
 
             # Check if run.sh exists
-            if [ ! -f "run.sh" ]; then
+            if [ ! -f "$runner_dir/run.sh" ]; then
                 print_error "run.sh not found in $runner_dir"
                 continue
             fi
 
             # Start the runner
-            print_status "Starting runner $i..."
+            print_status "Starting runner $i from $runner_dir..."
+            cd "$runner_dir"
             nohup ./run.sh > "runner-$i.log" 2>&1 &
             local pid=$!
             echo $pid > "runner-$i.pid"
+            cd - > /dev/null
 
             print_success "Runner $i started with PID: $pid"
             ((started_count++))
@@ -93,6 +93,7 @@ start_all_runners() {
     if [ "$started_count" -gt 0 ]; then
         print_status "To check status: ps aux | grep actions-runner"
         print_status "Logs are in: /workspace/actions-runner*/runner-*.log"
+        print_status "Each runner runs from its own directory with ./run.sh"
     fi
 }
 
