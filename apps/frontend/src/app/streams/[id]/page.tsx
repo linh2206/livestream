@@ -13,7 +13,7 @@ import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function StreamDetailPage() {
   const params = useParams();
@@ -31,31 +31,31 @@ export default function StreamDetailPage() {
 
   const streamId = params?.id as string;
 
-  useEffect(() => {
+  const fetchStream = useCallback(async () => {
     if (!streamId) return;
 
-    const fetchStream = async () => {
-      try {
-        setLoading(true);
-        const data: any = await streamService.getStream(streamId);
-        setStream(data);
-        // Set isLiked from backend response (server-side truth)
-        setIsLiked(data.isLikedByUser || false);
-        // Set VOD processing status
-        setVodProcessing(data.vodProcessing || false);
-        // Set viewer counts
-        setViewerCount(data.viewerCount || 0);
-        setTotalViewerCount(data.totalViewerCount || 0);
-      } catch (err) {
-        console.error('Error fetching stream:', err);
-        setError('Failed to load stream');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStream();
+    try {
+      setLoading(true);
+      const data: any = await streamService.getStream(streamId);
+      setStream(data);
+      // Set isLiked from backend response (server-side truth)
+      setIsLiked(data.isLikedByUser || false);
+      // Set VOD processing status
+      setVodProcessing(data.vodProcessing || false);
+      // Set viewer counts
+      setViewerCount(data.viewerCount || 0);
+      setTotalViewerCount(data.totalViewerCount || 0);
+    } catch (err) {
+      console.error('Error fetching stream:', err);
+      setError('Failed to load stream');
+    } finally {
+      setLoading(false);
+    }
   }, [streamId]);
+
+  useEffect(() => {
+    fetchStream();
+  }, [fetchStream]);
 
   // Join chat room and stream room
   useEffect(() => {
