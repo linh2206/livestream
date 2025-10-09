@@ -205,7 +205,7 @@ main() {
             show_status
             ;;
         "stop")
-            stop_all_runners ${2:-$MAX_RUNNERS}
+            stop_all_runners
             ;;
         *)
             echo "Usage: $0 {all|status|stop}"
@@ -213,14 +213,13 @@ main() {
             echo "Commands:"
             echo "  all [count]     - Start all runners (default: 8)"
             echo "  status          - Show runner status"
-            echo "  stop [count]    - Stop all runners (default: 8)"
+            echo "  stop            - Stop all runners"
             echo ""
             echo "Examples:"
             echo "  $0 all          # Start all 8 runners"
             echo "  $0 all 4        # Start first 4 runners"
             echo "  $0 status       # Show status"
-            echo "  $0 stop         # Stop all 8 runners"
-            echo "  $0 stop 4       # Stop first 4 runners"
+            echo "  $0 stop         # Stop all runners"
             exit 1
             ;;
     esac
