@@ -7,11 +7,7 @@ import { StreamsController } from './streams.controller';
 import { StreamsService } from './streams.service';
 
 @Module({
-  imports: [
-    DatabaseModule, 
-    RedisModule, 
-    forwardRef(() => VodModule)
-  ],
+  imports: [DatabaseModule, RedisModule, forwardRef(() => VodModule)],
   controllers: [StreamsController],
   providers: [StreamsService],
   exports: [StreamsService],

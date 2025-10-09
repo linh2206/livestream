@@ -79,9 +79,10 @@ export const VodList: React.FC<VodListProps> = ({
         }
       } catch (err: unknown) {
         console.error('Error fetching VODs:', err);
-        const errorMessage = (err as any)?.response?.data?.message || 
-                           (err as Error).message || 
-                           'Failed to load videos';
+        const errorMessage =
+          (err as any)?.response?.data?.message ||
+          (err as Error).message ||
+          'Failed to load videos';
         setError(errorMessage);
       } finally {
         setLoading(false);
