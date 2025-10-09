@@ -28,6 +28,9 @@ export class Stream {
   viewerCount: number;
 
   @Prop({ default: 0 })
+  totalViewerCount: number; // Total viewers who have watched (live + VOD)
+
+  @Prop({ default: 0 })
   likeCount: number;
 
   @Prop({ required: true, unique: true })

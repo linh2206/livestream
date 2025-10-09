@@ -65,6 +65,7 @@ export interface Stream extends BaseEntity {
   status: 'inactive' | 'active' | 'ended';
   isLive: boolean;
   viewerCount: number;
+  totalViewerCount: number;
   likeCount: number;
   category?: string;
   tags: string[];
@@ -72,7 +73,7 @@ export interface Stream extends BaseEntity {
   user?: User;
   startTime?: string;
   endTime?: string;
-  
+
   // VOD (Video on Demand) fields
   isVod: boolean;
   vodUrl?: string;
@@ -87,12 +88,14 @@ export interface Stream extends BaseEntity {
 // Chat Types
 export interface ChatMessage extends BaseEntity {
   content: string;
-  userId: string;
+  userId: string | { _id: string; username: string; avatar?: string };
   username: string;
   avatar?: string;
   streamId: string;
   streamKey: string;
   timestamp: string;
+  createdAt: string;
+  isModerator?: boolean;
 }
 
 // Auth Types

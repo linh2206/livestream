@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import Link from 'next/link';
+import React from 'react';
 
 export const Sidebar: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -42,6 +42,22 @@ export const Sidebar: React.FC = () => {
                 <path d='M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z' />
               </svg>
               Streams
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              href='/vod'
+              className='flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors'
+            >
+              <svg
+                className='w-4 h-4 mr-2'
+                fill='currentColor'
+                viewBox='0 0 20 20'
+              >
+                <path d='M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2M9 12l2 2 4-4' />
+              </svg>
+              Videos
             </Link>
           </li>
 

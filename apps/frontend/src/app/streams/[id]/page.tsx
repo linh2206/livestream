@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { VideoPlayer } from '@/components/features/VideoPlayer';
+import { RequireAuth } from '@/components/auth/AuthGuard';
 import { Chat } from '@/components/features/Chat';
-import { Stream } from '@/lib/api/types';
-import { streamService } from '@/lib/api/services/stream.service';
-import { Loading } from '@/components/ui/Loading';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { VideoPlayer } from '@/components/features/VideoPlayer';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { RequireAuth } from '@/components/auth/AuthGuard';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Loading } from '@/components/ui/Loading';
+import { streamService } from '@/lib/api/services/stream.service';
+import { Stream } from '@/lib/api/types';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function StreamDetailPage() {
   const params = useParams();
@@ -26,6 +26,8 @@ export default function StreamDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [totalViewerCount, setTotalViewerCount] = useState(0);
+  const [vodProcessing, setVodProcessing] = useState(false);
 
   const streamId = params?.id as string;
 
@@ -39,6 +41,11 @@ export default function StreamDetailPage() {
         setStream(data);
         // Set isLiked from backend response (server-side truth)
         setIsLiked(data.isLikedByUser || false);
+        // Set VOD processing status
+        setVodProcessing(data.vodProcessing || false);
+        // Set viewer counts
+        setViewerCount(data.viewerCount || 0);
+        setTotalViewerCount(data.totalViewerCount || 0);
       } catch (err) {
         console.error('Error fetching stream:', err);
         setError('Failed to load stream');
@@ -63,6 +70,10 @@ export default function StreamDetailPage() {
       const handleViewerCountUpdate = (data: any) => {
         if (data.streamId === stream._id) {
           setViewerCount(data.viewerCount);
+          // Update stream state
+          setStream(prev =>
+            prev ? { ...prev, viewerCount: data.viewerCount } : null
+          );
         }
       };
 
@@ -75,14 +86,47 @@ export default function StreamDetailPage() {
         }
       };
 
+      // Listen for VOD processing updates
+      const handleVodProcessing = (data: any) => {
+        if (data.streamId === stream._id) {
+          setVodProcessing(true);
+          setStream(prev => (prev ? { ...prev, vodProcessing: true } : null));
+        }
+      };
+
+      const handleVodCompleted = (data: any) => {
+        if (data.streamId === stream._id) {
+          setVodProcessing(false);
+          // Refresh stream data to get VOD URL
+          fetchStream();
+        }
+      };
+
+      const handleVodFailed = (data: any) => {
+        if (data.streamId === stream._id) {
+          setVodProcessing(false);
+          setStream(prev =>
+            prev
+              ? { ...prev, vodProcessing: false, vodProcessingStatus: 'failed' }
+              : null
+          );
+        }
+      };
+
       socket.on('stream:viewer_count_update', handleViewerCountUpdate);
       socket.on('stream:like', handleLikeUpdate);
+      socket.on('vod:processing', handleVodProcessing);
+      socket.on('vod:completed', handleVodCompleted);
+      socket.on('vod:failed', handleVodFailed);
 
       return () => {
         leaveStreamChat(stream._id);
         leaveStream(stream._id);
         socket.off('stream:viewer_count_update', handleViewerCountUpdate);
         socket.off('stream:like', handleLikeUpdate);
+        socket.off('vod:processing', handleVodProcessing);
+        socket.off('vod:completed', handleVodCompleted);
+        socket.off('vod:failed', handleVodFailed);
       };
     }
   }, [
@@ -179,6 +223,11 @@ export default function StreamDetailPage() {
                       autoPlay
                       muted={false}
                       controls
+                      vodUrl={stream.vodUrl}
+                      isVod={stream.isVod}
+                      isLive={stream.isLive}
+                      vodProcessing={stream.vodProcessing}
+                      vodProcessingStatus={stream.vodProcessingStatus}
                     />
 
                     <div className='mt-4'>
@@ -213,7 +262,27 @@ export default function StreamDetailPage() {
                                 clipRule='evenodd'
                               />
                             </svg>
-                            <span>{viewerCount} viewers</span>
+                            <span>
+                              {stream?.isLive ? (
+                                <>
+                                  {viewerCount} watching now
+                                  {totalViewerCount > viewerCount && (
+                                    <span className='text-gray-500 ml-1'>
+                                      ({totalViewerCount} total)
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {totalViewerCount} total views
+                                  {viewerCount > 0 && (
+                                    <span className='text-gray-500 ml-1'>
+                                      ({viewerCount} watching VOD)
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </span>
                           </div>
                         </div>
 

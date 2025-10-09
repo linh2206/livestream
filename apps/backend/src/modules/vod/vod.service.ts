@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Response } from 'express';
 import * as fs from 'fs';
 import { Model } from 'mongoose';
 import * as path from 'path';
@@ -27,27 +28,28 @@ export class VodService {
         vodProcessingStatus: 'processing',
       });
 
-      // Get HLS segments directory
-      const hlsDir = path.join(
-        process.cwd(),
-        'hls',
-        'stream',
-        stream.streamKey
-      );
+      // Get recordings directory
+      const recordingsDir = path.join(process.cwd(), 'recordings');
 
-      if (!fs.existsSync(hlsDir)) {
-        throw new Error('HLS directory not found');
+      if (!fs.existsSync(recordingsDir)) {
+        throw new Error('Recordings directory not found');
       }
 
-      // Find all .ts segments
-      const segments = fs
-        .readdirSync(hlsDir)
-        .filter(file => file.endsWith('.ts'))
+      // Find the recording file for this stream
+      const recordingFiles = fs
+        .readdirSync(recordingsDir)
+        .filter(
+          file => file.includes(stream.streamKey) && file.endsWith('.flv')
+        )
         .sort();
 
-      if (segments.length === 0) {
-        throw new Error('No segments found');
+      if (recordingFiles.length === 0) {
+        throw new Error('No recording found for this stream');
       }
+
+      // Use the most recent recording file
+      const recordingFile = recordingFiles[recordingFiles.length - 1];
+      const recordingPath = path.join(recordingsDir, recordingFile);
 
       // Create output directory structure: vod/{streamKey}/{date}/
       const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -56,21 +58,13 @@ export class VodService {
         fs.mkdirSync(vodDir, { recursive: true });
       }
 
-      // Create segments list file for FFmpeg
-      const segmentsListPath = path.join(vodDir, 'segments.txt');
-      const segmentsList = segments
-        .map(segment => `file '${path.join(hlsDir, segment)}'`)
-        .join('\n');
-
-      fs.writeFileSync(segmentsListPath, segmentsList);
-
       // Create unique filename with timestamp to avoid overwriting
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const uniqueFileName = `stream_${timestamp}`;
 
-      // Convert segments to MP4 using FFmpeg
+      // Convert FLV recording to MP4 using FFmpeg
       const outputPath = path.join(vodDir, `${uniqueFileName}.mp4`);
-      const ffmpegCommand = `ffmpeg -f concat -safe 0 -i "${segmentsListPath}" -c copy "${outputPath}"`;
+      const ffmpegCommand = `ffmpeg -i "${recordingPath}" -c:v libx264 -c:a aac -movflags +faststart "${outputPath}"`;
 
       this.logger.log(`Processing VOD for stream ${streamId}...`);
       await exec(ffmpegCommand);
@@ -92,18 +86,23 @@ export class VodService {
       // Update stream with VOD information
       await this.streamModel.findByIdAndUpdate(streamId, {
         isVod: true,
-        vodUrl: `/vod/${stream.streamKey}/${date}/${uniqueFileName}.mp4`,
+        vodUrl: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}.mp4`,
         vodDuration: duration,
         vodFileSize: stats.size,
-        vodThumbnail: `/vod/${stream.streamKey}/${date}/${uniqueFileName}_thumbnail.jpg`,
+        vodThumbnail: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}_thumbnail.jpg`,
         vodProcessing: false,
         vodProcessingStatus: 'completed',
       });
 
       this.logger.log(`VOD processing completed for stream ${streamId}`);
 
-      // Clean up segments list file
-      fs.unlinkSync(segmentsListPath);
+      // Clean up recording file after successful processing
+      try {
+        fs.unlinkSync(recordingPath);
+        this.logger.log(`Cleaned up recording file: ${recordingFile}`);
+      } catch (error) {
+        this.logger.warn(`Failed to clean up recording file: ${error.message}`);
+      }
     } catch (error) {
       this.logger.error(`VOD processing failed for stream ${streamId}:`, error);
 
@@ -117,11 +116,24 @@ export class VodService {
     }
   }
 
-  async getVodList(userId?: string, page: number = 1, limit: number = 10) {
-    const query: any = { isVod: true, vodProcessingStatus: 'completed' };
+  async getVodList(
+    userId?: string,
+    page: number = 1,
+    limit: number = 10,
+    category?: string
+  ) {
+    const query: Record<string, unknown> = {
+      isVod: true,
+      vodProcessingStatus: 'completed',
+      isPublic: true, // Only show public VODs in general list
+    };
 
     if (userId) {
       query.userId = userId;
+    }
+
+    if (category) {
+      query.category = category;
     }
 
     const skip = (page - 1) * limit;
@@ -129,7 +141,10 @@ export class VodService {
     const [vods, total] = await Promise.all([
       this.streamModel
         .find(query)
-        .populate('userId', 'username avatar')
+        .populate('userId', 'username avatar fullName')
+        .select(
+          'title description thumbnail vodUrl vodDuration vodFileSize vodThumbnail tags startTime endTime viewerCount totalViewerCount likeCount userId createdAt'
+        )
         .sort({ endTime: -1 })
         .skip(skip)
         .limit(limit)
@@ -137,8 +152,32 @@ export class VodService {
       this.streamModel.countDocuments(query),
     ]);
 
+    // Format VOD data for frontend
+    const formattedVods = vods.map(vod => ({
+      _id: vod._id,
+      title: vod.title,
+      description: vod.description,
+      thumbnail: vod.vodThumbnail || vod.thumbnail,
+      vodUrl: vod.vodUrl,
+      duration: vod.vodDuration,
+      fileSize: vod.vodFileSize,
+      // category: vod.category, // Removed - not in schema
+      tags: vod.tags,
+      startTime: vod.startTime,
+      endTime: vod.endTime,
+      viewerCount: vod.viewerCount,
+      totalViewerCount: vod.totalViewerCount,
+      likeCount: vod.likeCount,
+      user: vod.userId,
+      // createdAt: vod.createdAt, // Removed - not in select
+      // Calculate duration in human readable format
+      durationFormatted: this.formatDuration(vod.vodDuration),
+      // Calculate file size in human readable format
+      fileSizeFormatted: this.formatFileSize(vod.vodFileSize),
+    }));
+
     return {
-      vods,
+      vods: formattedVods,
       pagination: {
         page,
         limit,
@@ -148,6 +187,27 @@ export class VodService {
         hasPrev: page > 1,
       },
     };
+  }
+
+  private formatDuration(seconds: number): string {
+    if (!seconds) return '0:00';
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (!bytes) return '0 B';
+
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   }
 
   async getVodById(vodId: string) {
@@ -189,5 +249,64 @@ export class VodService {
     });
 
     return { message: 'VOD deleted successfully' };
+  }
+
+  async serveVodFile(
+    streamKey: string,
+    date: string,
+    filename: string,
+    res: Response
+  ): Promise<void> {
+    try {
+      // Construct file path
+      const filePath = path.join(
+        process.cwd(),
+        'vod',
+        streamKey,
+        date,
+        filename
+      );
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        throw new NotFoundException('VOD file not found');
+      }
+
+      // Get file stats
+      const stats = fs.statSync(filePath);
+      const fileSize = stats.size;
+      const range = res.req.headers.range;
+
+      if (range) {
+        // Handle range requests for video streaming
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunksize = end - start + 1;
+        const file = fs.createReadStream(filePath, { start, end });
+
+        res.status(206);
+        res.set({
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': 'video/mp4',
+        });
+
+        file.pipe(res);
+      } else {
+        // Serve entire file
+        res.set({
+          'Content-Length': fileSize,
+          'Content-Type': 'video/mp4',
+          'Accept-Ranges': 'bytes',
+        });
+
+        fs.createReadStream(filePath).pipe(res);
+      }
+    } catch (error) {
+      this.logger.error(`Error serving VOD file: ${error.message}`);
+      throw new NotFoundException('VOD file not found');
+    }
   }
 }

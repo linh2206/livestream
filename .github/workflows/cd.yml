@@ -56,6 +56,10 @@ jobs:
           echo "Stopping existing containers..."
           docker compose down --remove-orphans || true
 
+          echo "Cleaning Docker cache..."
+          docker builder prune -f || true
+          docker system prune -f || true
+
           echo "Building services..."
           docker compose build --no-cache || {
               echo "First build failed, retrying..."
@@ -72,6 +76,10 @@ jobs:
 
           echo "Cleaning up..."
           docker image prune -f || true
+          docker container prune -f || true
+          docker volume prune -f || true
+          docker network prune -f || true
+          docker system prune -f || true
           docker system df
 
       - name: Health check services via Docker

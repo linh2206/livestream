@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAuth } from '@/lib/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Loading } from '@/components/ui/Loading';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Loading } from '@/components/ui/Loading';
 import { streamService } from '@/lib/api/services/stream.service';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useToast } from '@/lib/contexts/ToastContext';
 import {
-  useFormValidation,
   commonValidationRules,
+  useFormValidation,
 } from '@/lib/hooks/useFormValidation';
 import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 export default function CreateStreamPage() {
   const { user, isLoading } = useAuth();
@@ -84,13 +84,13 @@ export default function CreateStreamPage() {
       showSuccess('Stream Created!', 'Your stream is ready to go live! 🚀', {
         action: {
           label: 'Go to Stream',
-          onClick: () => router.push(`/stream/${newStream._id}`),
+          onClick: () => router.push(`/streams/${newStream._id}`),
         },
       });
 
       // Redirect to the new stream page after a short delay
       setTimeout(() => {
-        router.push(`/stream/${newStream._id}`);
+        router.push(`/streams/${newStream._id}`);
       }, 2000);
     } catch (err: any) {
       console.error('Failed to create stream:', err);

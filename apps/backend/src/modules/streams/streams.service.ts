@@ -1,7 +1,7 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,10 +11,10 @@ import {
   StreamDocument,
 } from '../../shared/database/schemas/stream.schema';
 import { User, UserDocument } from '../../shared/database/schemas/user.schema';
-import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 import { RedisService } from '../../shared/redis/redis.service';
 import { WebSocketService } from '../../shared/websocket/websocket.service';
 import { VodService } from '../vod/vod.service';
+import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 
 @Injectable()
 export class StreamsService {
@@ -23,7 +23,7 @@ export class StreamsService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private redisService: RedisService,
     private webSocketService: WebSocketService,
-    private vodService: VodService,
+    private vodService: VodService
   ) {}
 
   async create(
@@ -36,7 +36,7 @@ export class StreamsService {
       throw new NotFoundException('User not found');
     }
 
-    const streamKey = this.generateStreamKey();
+    const streamKey = await this.generateStreamKey();
 
     const stream = new this.streamModel({
       ...createStreamDto,
@@ -62,7 +62,17 @@ export class StreamsService {
   async findAll(
     page: number = 1,
     limit: number = 10
-  ): Promise<{ data: any[]; pagination: any }> {
+  ): Promise<{
+    data: Stream[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> {
     const skip = (page - 1) * limit;
 
     const [streams, total] = await Promise.all([
@@ -106,7 +116,15 @@ export class StreamsService {
       status: stream.status || 'inactive',
       isLive: stream.isLive || false,
       viewerCount: stream.viewerCount || 0,
+      totalViewerCount: stream.totalViewerCount || 0,
       likeCount: stream.likeCount || 0,
+      tags: stream.tags || [],
+      isPublic: stream.isPublic !== undefined ? stream.isPublic : true,
+      allowedViewers: stream.allowedViewers || [],
+      requiresAuth: stream.requiresAuth || false,
+      likedBy: stream.likedBy || [],
+      isVod: stream.isVod || false,
+      vodProcessing: stream.vodProcessing || false,
       user: stream.userId
         ? {
             _id: (stream.userId as any)._id,
@@ -219,6 +237,10 @@ export class StreamsService {
     } as Stream;
   }
 
+  async findByStreamId(streamId: string): Promise<Stream | null> {
+    return this.streamModel.findById(streamId).lean();
+  }
+
   async findActiveStreams(): Promise<any[]> {
     return this.streamModel
       .find(
@@ -328,6 +350,9 @@ export class StreamsService {
   async stopStream(streamKey: string): Promise<Stream> {
     const stream = await this.findByStreamKey(streamKey);
 
+    // Save final viewer count as total viewer count
+    const finalViewerCount = stream.viewerCount || 0;
+
     stream.isLive = false;
     stream.status = 'ended';
     stream.endTime = new Date();
@@ -336,6 +361,11 @@ export class StreamsService {
       isLive: false,
       status: 'ended',
       endTime: new Date(),
+      // Set total viewer count to the peak live viewer count
+      totalViewerCount: Math.max(
+        stream.totalViewerCount || 0,
+        finalViewerCount
+      ),
     });
 
     // Broadcast stream stop
@@ -345,7 +375,9 @@ export class StreamsService {
     // This allows HLS segments to be finalized
     setTimeout(async () => {
       try {
-        await this.vodService.processStreamToVod((stream as any)._id.toString());
+        await this.vodService.processStreamToVod(
+          (stream as any)._id.toString()
+        );
       } catch (error) {
         console.error('Failed to process VOD:', error);
       }
@@ -357,13 +389,25 @@ export class StreamsService {
   async updateViewerCount(streamKey: string, count: number): Promise<void> {
     const stream = await this.streamModel.findOneAndUpdate(
       { streamKey },
-      { viewerCount: count },
+      {
+        viewerCount: count,
+        // Update total viewer count if current count is higher
+        $max: { totalViewerCount: count },
+      },
       { new: true }
     );
 
     if (stream) {
       this.webSocketService.broadcastViewerCount(stream._id.toString(), count);
     }
+  }
+
+  async incrementTotalViewerCount(streamId: string): Promise<void> {
+    await this.streamModel.findByIdAndUpdate(
+      streamId,
+      { $inc: { totalViewerCount: 1 } },
+      { new: true }
+    );
   }
 
   async toggleLike(
@@ -433,10 +477,31 @@ export class StreamsService {
       .exec();
   }
 
-  private generateStreamKey(): string {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `stream_${timestamp}_${random}`;
+  private async generateStreamKey(): Promise<string> {
+    let streamKey: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      const timestamp = Date.now().toString(36);
+      const random = Math.random().toString(36).substring(2, 8);
+      const sessionId = Math.random().toString(36).substring(2, 6);
+      streamKey = `stream_${timestamp}_${random}_${sessionId}`;
+
+      // Check if stream key already exists
+      const existingStream = await this.streamModel.findOne({ streamKey });
+      isUnique = !existingStream;
+      attempts++;
+    } while (!isUnique && attempts < maxAttempts);
+
+    if (!isUnique) {
+      throw new Error(
+        'Failed to generate unique stream key after multiple attempts'
+      );
+    }
+
+    return streamKey;
   }
 
   async syncStreamStatus(streamKey: string): Promise<void> {

@@ -8,8 +8,10 @@ import {
   Post,
   Query,
   Request,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AdminGuard } from '../../shared/guards/admin.guard';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { VodService } from './vod.service';
@@ -23,12 +25,13 @@ export class VodController {
   async getVodList(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('userId') userId?: string
+    @Query('userId') userId?: string,
+    @Query('category') category?: string
   ) {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
 
-    return this.vodService.getVodList(userId, pageNum, limitNum);
+    return this.vodService.getVodList(userId, pageNum, limitNum, category);
   }
 
   @Get('my')
@@ -48,6 +51,17 @@ export class VodController {
   @UseGuards(JwtAuthGuard)
   async getVodById(@Param('id') id: string) {
     return this.vodService.getVodById(id);
+  }
+
+  @Get('serve/:streamKey/:date/:filename')
+  @UseGuards(JwtAuthGuard)
+  async serveVodFile(
+    @Param('streamKey') streamKey: string,
+    @Param('date') date: string,
+    @Param('filename') filename: string,
+    @Res() res: Response
+  ) {
+    return this.vodService.serveVodFile(streamKey, date, filename, res);
   }
 
   @Post('process/:streamId')

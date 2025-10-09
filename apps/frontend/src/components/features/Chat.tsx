@@ -69,15 +69,20 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           const history = await response.json();
           // Transform backend format to frontend format and sort by timestamp (oldest first)
           const formattedMessages = history
-            .map((msg: any) => ({
-              id: msg._id,
-              userId: msg.userId._id || msg.userId,
-              username: msg.userId.username || msg.username,
-              content: msg.content,
-              timestamp: new Date(msg.createdAt),
-              avatar: msg.userId.avatar || msg.avatar,
-              role: msg.isModerator ? 'moderator' : 'user',
-            }))
+            .map((msg: unknown) => {
+              const m = msg as any;
+              return {
+                id: m._id,
+                userId: typeof m.userId === 'object' ? m.userId._id : m.userId,
+                username:
+                  typeof m.userId === 'object' ? m.userId.username : m.username,
+                content: m.content,
+                timestamp: new Date(m.createdAt),
+                avatar:
+                  typeof m.userId === 'object' ? m.userId.avatar : m.avatar,
+                role: m.isModerator ? 'moderator' : 'user',
+              };
+            })
             .sort(
               (a: ChatMessage, b: ChatMessage) =>
                 a.timestamp.getTime() - b.timestamp.getTime()
@@ -86,7 +91,7 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           scrollToBottom();
         }
       } catch (error) {
-        console.error('Failed to load chat history:', error);
+        // console.error('Failed to load chat history:', error);
       }
     };
 
@@ -103,14 +108,24 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
       });
 
       // Connection events
-      socket.on('connect', () => {});
+      socket.on('connect', () => {
+        // Handle connect
+      });
 
-      socket.on('disconnect', () => {});
+      socket.on('disconnect', () => {
+        // Handle disconnect
+      });
 
       // Message events
       socket.on('chat:new_message', (message: ChatMessage) => {
         setMessages(prev => {
-          const newMessages = [...prev, message];
+          const newMessages = [
+            ...prev,
+            {
+              ...message,
+              timestamp: new Date(message.timestamp),
+            },
+          ];
           // Sort by timestamp to ensure proper order
           return newMessages.sort(
             (a: ChatMessage, b: ChatMessage) =>
@@ -176,7 +191,11 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
 
       // Recent messages (fallback)
       socket.on('chat:recent_messages', (messages: ChatMessage[]) => {
-        const sortedMessages = messages.sort(
+        const formattedMessages = messages.map(msg => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        }));
+        const sortedMessages = formattedMessages.sort(
           (a: ChatMessage, b: ChatMessage) =>
             a.timestamp.getTime() - b.timestamp.getTime()
         );

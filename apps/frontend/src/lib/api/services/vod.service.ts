@@ -1,8 +1,39 @@
 import { apiClient } from '../client';
-import { Stream } from '../types';
+
+export interface VodListParams {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  category?: string;
+}
+
+export interface VodItem {
+  _id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  vodUrl: string;
+  duration: number;
+  durationFormatted: string;
+  fileSizeFormatted: string;
+  category?: string;
+  tags: string[];
+  startTime: string;
+  endTime: string;
+  viewerCount: number;
+  totalViewerCount: number;
+  likeCount: number;
+  user: {
+    _id: string;
+    username: string;
+    avatar?: string;
+    fullName?: string;
+  };
+  createdAt: string;
+}
 
 export interface VodListResponse {
-  vods: Stream[];
+  vods: VodItem[];
   pagination: {
     page: number;
     limit: number;
@@ -13,62 +44,59 @@ export interface VodListResponse {
   };
 }
 
-export interface ProcessVodResponse {
-  message: string;
-}
-
 export const vodService = {
-  // Get all VODs with pagination
-  async getVodList(params?: {
-    page?: number;
-    limit?: number;
-    userId?: string;
-  }): Promise<VodListResponse> {
+  async getVodList(params: VodListParams = {}): Promise<VodListResponse> {
     const searchParams = new URLSearchParams();
     
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.userId) searchParams.append('userId', params.userId);
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.userId) searchParams.append('userId', params.userId);
+    if (params.category) searchParams.append('category', params.category);
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/vod?${queryString}` : '/vod';
-    
-    return apiClient.get<VodListResponse>(url);
+    const response = await apiClient.get(`/vod?${searchParams.toString()}`);
+    return response.data;
   },
 
-  // Get current user's VODs
-  async getMyVods(params?: {
-    page?: number;
-    limit?: number;
-  }): Promise<VodListResponse> {
+  async getMyVods(params: Omit<VodListParams, 'userId'> = {}): Promise<VodListResponse> {
     const searchParams = new URLSearchParams();
     
-    if (params?.page) searchParams.append('page', params.page.toString());
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.category) searchParams.append('category', params.category);
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `/vod/my?${queryString}` : '/vod/my';
-    
-    return apiClient.get<VodListResponse>(url);
+    const response = await apiClient.get(`/vod/my?${searchParams.toString()}`);
+    return response.data;
   },
 
-  // Get specific VOD by ID
-  async getVodById(vodId: string): Promise<Stream> {
-    return apiClient.get<Stream>(`/vod/${vodId}`);
+  async getVodById(vodId: string): Promise<VodItem> {
+    const response = await apiClient.get(`/vod/${vodId}`);
+    return response.data;
   },
 
-  // Process stream to VOD
-  async processStreamToVod(streamId: string): Promise<ProcessVodResponse> {
-    return apiClient.post<ProcessVodResponse>(`/vod/process/${streamId}`);
-  },
-
-  // Delete VOD
   async deleteVod(vodId: string): Promise<{ message: string }> {
-    return apiClient.delete<{ message: string }>(`/vod/${vodId}`);
+    const response = await apiClient.delete(`/vod/${vodId}`);
+    return response.data;
   },
 
-  // Admin delete VOD
-  async adminDeleteVod(vodId: string): Promise<{ message: string }> {
-    return apiClient.delete<{ message: string }>(`/vod/admin/${vodId}`);
+  async processStreamToVod(streamId: string): Promise<{ message: string }> {
+    const response = await apiClient.post(`/vod/process/${streamId}`);
+    return response.data;
   },
+
+  getVodStreamUrl(vodUrl: string): string {
+    // Convert VOD URL to streaming URL
+    if (vodUrl.startsWith('/vod/')) {
+      return `${process.env.NEXT_PUBLIC_API_URL}${vodUrl}`;
+    }
+    return vodUrl;
+  },
+
+  getVodThumbnailUrl(thumbnailUrl?: string): string | undefined {
+    if (!thumbnailUrl) return undefined;
+    
+    if (thumbnailUrl.startsWith('/vod/')) {
+      return `${process.env.NEXT_PUBLIC_API_URL}${thumbnailUrl}`;
+    }
+    return thumbnailUrl;
+  }
 };

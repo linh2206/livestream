@@ -1,16 +1,17 @@
 import {
-  WebSocketGateway as WSGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway as WSGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { WebSocketService } from './websocket.service';
 import { ChatService } from '../../modules/chat/chat.service';
+import { StreamsService } from '../../modules/streams/streams.service';
 import { APP_CONSTANTS } from '../constants';
+import { WebSocketService } from './websocket.service';
 
 @WSGateway({
   cors: {
@@ -34,7 +35,8 @@ export class WebSocketGateway
 
   constructor(
     private webSocketService: WebSocketService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private streamsService: StreamsService
   ) {}
 
   afterInit(server: Server) {
@@ -126,6 +128,22 @@ export class WebSocketGateway
       `stream:${streamId}`
     );
 
+    // Update viewer count in database for live streams
+    try {
+      const stream = await this.streamsService.findByStreamId(streamId);
+      if (stream && stream.isLive) {
+        await this.streamsService.updateViewerCount(
+          stream.streamKey,
+          viewerCount
+        );
+      } else if (stream && !stream.isLive) {
+        // For VOD, increment total viewer count
+        await this.streamsService.incrementTotalViewerCount(streamId);
+      }
+    } catch (error) {
+      console.error('Error updating viewer count:', error);
+    }
+
     // Broadcast viewer count to all clients in this stream room
     this.server.to(`stream:${streamId}`).emit('stream:viewer_count_update', {
       streamId,
@@ -140,17 +158,20 @@ export class WebSocketGateway
   @SubscribeMessage('leave_stream')
   async handleLeaveStream(
     @MessageBody() data: { streamId: string; userId: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
-    const { streamId, userId } = data;
+    const { streamId, userId: _userId } = data;
 
-    if (!userId || userId === 'undefined' || !streamId) {
-      console.log('❌ Invalid leave_stream data:', { streamId, userId });
+    if (!_userId || _userId === 'undefined' || !streamId) {
+      console.log('❌ Invalid leave_stream data:', {
+        streamId,
+        userId: _userId,
+      });
       return;
     }
 
     // Leave stream room
-    await client.leave(`stream:${streamId}`);
+    await _client.leave(`stream:${streamId}`);
 
     // Get current viewer count
     const viewerCount = await this.webSocketService.getRoomUserCount(
@@ -164,24 +185,30 @@ export class WebSocketGateway
     });
 
     console.log(
-      `👥 User ${userId} left stream ${streamId}, total viewers: ${viewerCount}`
+      `👥 User ${_userId} left stream ${streamId}, total viewers: ${viewerCount}`
     );
   }
 
   @SubscribeMessage('join_stream_chat')
   async handleJoinStreamChat(
     @MessageBody() data: { streamId: string; userId: string; username: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
-    const { streamId, userId, username } = data;
+    const { streamId, userId, username: _username } = data;
 
-    console.log('💬 [Chat] User joining chat:', { streamId, userId, username });
+    console.log('💬 [Chat] User joining chat:', {
+      streamId,
+      userId,
+      username: _username,
+    });
 
     // Join chat room
-    await client.join(`chat:${streamId}`);
+    await _client.join(`chat:${streamId}`);
 
     // Notify others about new user
-    client.to(`chat:${streamId}`).emit('chat:user_join', { username });
+    _client
+      .to(`chat:${streamId}`)
+      .emit('chat:user_join', { username: _username });
 
     console.log('💬 [Chat] User joined chat room:', `chat:${streamId}`);
   }
@@ -190,18 +217,22 @@ export class WebSocketGateway
   async handleLeaveStreamChat(
     @MessageBody()
     data: { streamId: string; userId: string; username?: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
-    const { streamId, userId, username } = data;
+    const { streamId, userId: _userId, username } = data;
 
-    console.log('💬 [Chat] User leaving chat:', { streamId, userId, username });
+    console.log('💬 [Chat] User leaving chat:', {
+      streamId,
+      userId: _userId,
+      username,
+    });
 
     // Leave chat room
-    await client.leave(`chat:${streamId}`);
+    await _client.leave(`chat:${streamId}`);
 
     // Notify others about user leaving
     if (username) {
-      client.to(`chat:${streamId}`).emit('chat:user_leave', { username });
+      _client.to(`chat:${streamId}`).emit('chat:user_leave', { username });
     }
 
     console.log('💬 [Chat] User left chat room:', `chat:${streamId}`);

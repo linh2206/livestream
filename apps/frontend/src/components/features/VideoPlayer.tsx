@@ -16,6 +16,11 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   muted?: boolean;
   controls?: boolean;
+  vodUrl?: string;
+  isVod?: boolean;
+  isLive?: boolean;
+  vodProcessing?: boolean;
+  vodProcessingStatus?: string;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
@@ -26,25 +31,54 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
     autoPlay = true,
     muted = true,
     controls = true,
+    vodUrl,
+    isVod = false,
+    isLive = false,
+    vodProcessing = false,
+    vodProcessingStatus,
   }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isLive, setIsLive] = useState(false);
+    const [_isLiveState, _setIsLiveState] = useState(false);
     const [autoplayBlocked, setAutoplayBlocked] = useState(false);
     const [userInteracted, setUserInteracted] = useState(false);
 
+    // Determine what to show based on stream status
+    const shouldShowVod = useMemo(() => {
+      // Show VOD if:
+      // 1. Stream is not live AND VOD is available
+      // 2. VOD processing is completed
+      return !isLive && isVod && vodUrl && vodProcessingStatus === 'completed';
+    }, [isLive, isVod, vodUrl, vodProcessingStatus]);
+
+    const shouldShowLive = useMemo(() => {
+      // Show live stream if:
+      // 1. Stream is live
+      // 2. VOD is not available or still processing
+      return isLive || (!isVod && !vodProcessing);
+    }, [isLive, isVod, vodProcessing]);
+
     // Memoize HLS URL to prevent unnecessary re-renders
     const finalHlsUrl = useMemo(() => {
-      if (streamKey) {
+      if (shouldShowVod && vodUrl) {
+        // For VOD, use the serving URL
+        if (vodUrl.startsWith('/vod/')) {
+          const apiBaseUrl =
+            process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1';
+          return `${apiBaseUrl}${vodUrl}`;
+        }
+        return vodUrl;
+      }
+      if (shouldShowLive && streamKey) {
         const hlsBaseUrl =
           process.env.NEXT_PUBLIC_HLS_BASE_URL ||
           'http://localhost:9000/api/v1';
         return `${hlsBaseUrl}/hls/${streamKey}`;
       }
       return null;
-    }, [hlsUrl, streamKey]);
+    }, [shouldShowVod, shouldShowLive, streamKey, vodUrl]);
 
     // Cleanup function
     const cleanup = useCallback(() => {
@@ -99,7 +133,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
           capLevelOnFPSDrop: false,
 
           // Custom loader for authentication
-          xhrSetup: (xhr, url) => {
+          xhrSetup: (xhr, _url) => {
             // Add cache busting headers
             xhr.setRequestHeader('Cache-Control', 'no-cache');
             xhr.setRequestHeader('Pragma', 'no-cache');
@@ -127,7 +161,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
-          setIsLive(true);
+          // setIsLive(true); // Removed - using prop instead
           setError(null);
           if (autoPlay) {
             // Handle autoplay policy
@@ -219,7 +253,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
 
         const handleLoadedMetadata = () => {
           setIsLoading(false);
-          setIsLive(true);
+          // setIsLive(true); // Removed - using prop instead
           setError(null);
           if (autoPlay) {
             const playPromise = video.play();
@@ -234,7 +268,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
           }
         };
 
-        const handleError = (e: Event) => {
+        const handleError = (_e: Event) => {
           const videoError = video.error;
           if (videoError) {
             switch (videoError.code) {
@@ -271,23 +305,81 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         setError('HLS is not supported in this browser');
         setIsLoading(false);
       }
-    }, [streamKey, autoPlay, hlsUrl, cleanup]);
+    }, [streamKey, autoPlay, hlsUrl, cleanup, finalHlsUrl]);
 
     const handleUserInteraction = useCallback(() => {
       setUserInteracted(true);
       setAutoplayBlocked(false);
       const video = videoRef.current;
       if (video && video.paused) {
-        video.play().catch(() => {});
+        video.play().catch(() => {
+          // Handle play error
+        });
       }
     }, []);
+
+    // Show VOD processing state
+    if (vodProcessing) {
+      return (
+        <div
+          className={`aspect-video bg-gray-800 rounded-lg flex items-center justify-center ${className}`}
+        >
+          <div className='text-center'>
+            <div className='w-16 h-16 mx-auto mb-4 bg-blue-900/20 rounded-full flex items-center justify-center'>
+              <div className='w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin'></div>
+            </div>
+            <h3 className='text-lg font-medium text-gray-300 mb-2'>
+              Processing VOD
+            </h3>
+            <p className='text-gray-400 text-sm'>
+              Converting stream to video on demand...
+            </p>
+            <p className='text-gray-500 text-xs mt-2'>
+              This may take a few minutes
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Show VOD if available and stream is offline
+    if (shouldShowVod) {
+      return (
+        <div className={`aspect-video bg-gray-800 rounded-lg ${className}`}>
+          <video
+            ref={videoRef}
+            className='w-full h-full rounded-lg'
+            controls={controls}
+            autoPlay={autoPlay}
+            muted={muted}
+            onLoadedData={() => setIsLoading(false)}
+            onError={() => setError('Failed to load VOD')}
+          >
+            <source src={finalHlsUrl || ''} type='video/mp4' />
+            Your browser does not support the video tag.
+          </video>
+          {isLoading && (
+            <div className='absolute inset-0 bg-gray-800 rounded-lg flex items-center justify-center'>
+              <div className='text-center text-gray-400'>
+                <div className='w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4'></div>
+                <p>Loading VOD...</p>
+              </div>
+            </div>
+          )}
+          {/* VOD indicator */}
+          <div className='absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium'>
+            VOD
+          </div>
+        </div>
+      );
+    }
 
     if (error) {
       const isOfflineError =
         error.includes('offline') || error.includes('unavailable');
       const isNetworkError =
         error.includes('Network') || error.includes('connection');
-      const isNotReadyError =
+      const _isNotReadyError =
         error.includes('not ready') ||
         error.includes('waiting for broadcaster');
 
@@ -386,7 +478,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
           controls={controls}
           playsInline
           onClick={handleUserInteraction}
-        />
+        >
+          {finalHlsUrl && (
+            <source src={finalHlsUrl} type='application/x-mpegURL' />
+          )}
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Live indicator for live streams */}
+        {shouldShowLive && isLive && (
+          <div className='absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center space-x-1'>
+            <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
+            <span>LIVE</span>
+          </div>
+        )}
 
         {isLoading && (
           <div className='absolute inset-0 bg-gray-800 rounded-lg flex items-center justify-center'>

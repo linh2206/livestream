@@ -53,6 +53,7 @@ services:
       - "${BACKEND_PORT:-9000}:9000"
     volumes:
       - hls_data:/app/hls
+      - recordings_data:/app/recordings
     environment:
       - NODE_ENV=production
       - PORT=${PORT:-9000}
@@ -161,6 +162,7 @@ services:
       - "${NGINX_HTTP_PORT:-8080}:8080"
     volumes:
       - hls_data:/app/hls
+      - recordings_data:/app/recordings
     environment:
       - BACKEND_PORT=9000
       - RTMP_PORT=${RTMP_PORT:-1935}
@@ -272,6 +274,7 @@ volumes:
   mongodb_data:
   redis_data:
   hls_data:
+  recordings_data:
   prometheus_data:
   grafana_data:
 
