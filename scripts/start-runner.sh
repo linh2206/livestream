@@ -165,3 +165,6 @@ main() {
 
 # Run main function
 main "$@"
+
+# Always exit with success code
+exit 0
