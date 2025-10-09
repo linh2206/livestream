@@ -72,10 +72,14 @@ start_all_runners() {
 
             # Start the runner
             print_status "Starting runner $i from $runner_dir..."
+            print_status "Changing to directory: $runner_dir"
             cd "$runner_dir"
+            print_status "Current working directory: $(pwd)"
+            print_status "Running ./run.sh..."
             nohup ./run.sh > "runner-$i.log" 2>&1 &
             local pid=$!
             echo $pid > "runner-$i.pid"
+            print_status "Returning to original directory"
             cd - > /dev/null
 
             print_success "Runner $i started with PID: $pid"
