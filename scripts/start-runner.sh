@@ -3,7 +3,8 @@
 # GitHub Actions Runner Start Script
 # Script để khởi động GitHub Actions self-hosted runners
 
-set -e
+# Don't exit on error, handle it manually
+set +e
 
 # Colors for output
 RED='\033[0;31m'
@@ -73,14 +74,17 @@ start_all_runners() {
             # Start the runner
             print_status "Starting runner $i from $runner_dir..."
             print_status "Changing to directory: $runner_dir"
-            cd "$runner_dir"
+            cd "$runner_dir" || {
+                print_error "Failed to change to directory: $runner_dir"
+                continue
+            }
             print_status "Current working directory: $(pwd)"
             print_status "Running ./run.sh..."
             nohup ./run.sh > "runner-$i.log" 2>&1 &
             local pid=$!
             echo $pid > "runner-$i.pid"
             print_status "Returning to original directory"
-            cd - > /dev/null
+            cd - > /dev/null 2>&1 || true
 
             print_success "Runner $i started with PID: $pid"
             ((started_count++))
@@ -161,13 +165,13 @@ stop_all_runners() {
                 local pid=$(cat "$runner_dir/runner-$i.pid")
                 if ps -p "$pid" > /dev/null 2>&1; then
                     print_status "Stopping runner $i (PID: $pid)..."
-                    kill "$pid"
+                    kill "$pid" 2>/dev/null || true
                     sleep 1
 
                     # Force kill if still running
                     if ps -p "$pid" > /dev/null 2>&1; then
                         print_warning "Force killing runner $i..."
-                        kill -9 "$pid"
+                        kill -9 "$pid" 2>/dev/null || true
                     fi
 
                     print_success "Runner $i stopped"
