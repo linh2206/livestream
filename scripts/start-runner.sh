@@ -45,9 +45,9 @@ start_all_runners() {
         local runner_dir
 
         if [ "$i" -eq 0 ]; then
-            runner_dir="/workspace/actions-runner"
+            runner_dir="/home/ubuntu/workspace/actions-runner"
         else
-            runner_dir="/workspace/actions-runner$i"
+            runner_dir="/home/ubuntu/workspace/actions-runner$i"
         fi
 
         if [ -d "$runner_dir" ]; then
@@ -96,7 +96,7 @@ start_all_runners() {
 
     if [ "$started_count" -gt 0 ]; then
         print_status "To check status: ps aux | grep actions-runner"
-        print_status "Logs are in: /workspace/actions-runner*/runner-*.log"
+        print_status "Logs are in: /home/ubuntu/workspace/actions-runner*/runner-*.log"
         print_status "Each runner runs from its own directory with ./run.sh"
     fi
 }
@@ -110,9 +110,9 @@ show_status() {
 
     for i in $(seq 0 $((MAX_RUNNERS-1))); do
         if [ "$i" -eq 0 ]; then
-            runner_dir="/workspace/actions-runner"
+            runner_dir="/home/ubuntu/workspace/actions-runner"
         else
-            runner_dir="/workspace/actions-runner$i"
+            runner_dir="/home/ubuntu/workspace/actions-runner$i"
         fi
 
         if [ -d "$runner_dir" ]; then
