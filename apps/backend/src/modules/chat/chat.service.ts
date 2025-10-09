@@ -1,16 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { Server } from 'socket.io';
 
 import {
   ChatMessage,
   ChatMessageDocument,
 } from '../../shared/database/schemas/chat-message.schema';
-import { User, UserDocument } from '../../shared/database/schemas/user.schema';
 import {
   Stream,
   StreamDocument,
 } from '../../shared/database/schemas/stream.schema';
+import { User, UserDocument } from '../../shared/database/schemas/user.schema';
 import { CreateChatMessageDto } from './dto/chat.dto';
 
 @Injectable()
@@ -172,5 +174,47 @@ export class ChatService {
     ];
 
     return this.chatMessageModel.aggregate(pipeline as any);
+  }
+
+  @OnEvent('chat.message.create')
+  async handleChatMessageCreate(event: {
+    streamId: string;
+    content: string;
+    userId: string;
+    username: string;
+    socket: Server;
+    room: string;
+  }) {
+    try {
+      const {
+        streamId,
+        content,
+        userId,
+        username: _username,
+        socket,
+        room,
+      } = event;
+
+      // Create message in database
+      const message = await this.createMessage(
+        {
+          streamId,
+          content,
+        },
+        userId
+      );
+
+      // Broadcast message to room
+      socket.to(room).emit('chat:new_message', {
+        id: (message as any)._id,
+        content: message.content,
+        userId: message.userId,
+        username: message.username,
+        avatar: message.avatar,
+        timestamp: (message as any).createdAt,
+      });
+    } catch (error) {
+      console.error('Failed to handle chat message creation:', error);
+    }
   }
 }

@@ -54,26 +54,35 @@ export const VodList: React.FC<VodListProps> = ({
     async (pageNum: number = 1, append: boolean = false) => {
       try {
         setLoading(true);
+        setError(null);
         const response = await vodService.getVodList({
           page: pageNum,
           limit,
           userId,
         });
 
-        if (append) {
-          setVods(prev => [
-            ...prev,
-            ...(response.vods as unknown as VodItem[]),
-          ]);
-        } else {
-          setVods(response.vods as unknown as VodItem[]);
-        }
+        // Check if response has the expected structure
+        if (response && response.vods && Array.isArray(response.vods)) {
+          if (append) {
+            setVods(prev => [
+              ...prev,
+              ...(response.vods as unknown as VodItem[]),
+            ]);
+          } else {
+            setVods(response.vods as unknown as VodItem[]);
+          }
 
-        setHasMore(response.pagination.hasNext);
-        setPage(pageNum);
+          setHasMore(response.pagination?.hasNext || false);
+          setPage(pageNum);
+        } else {
+          setError('Invalid response format from server');
+        }
       } catch (err: unknown) {
-        // console.error('Error fetching VODs:', err);
-        setError((err as Error).message || 'Failed to load videos');
+        console.error('Error fetching VODs:', err);
+        const errorMessage = (err as any)?.response?.data?.message || 
+                           (err as Error).message || 
+                           'Failed to load videos';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }

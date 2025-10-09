@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,8 +9,6 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { ChatService } from '../../modules/chat/chat.service';
-import { StreamsService } from '../../modules/streams/streams.service';
 import { APP_CONSTANTS } from '../constants';
 import { WebSocketService } from './websocket.service';
 
@@ -35,8 +34,7 @@ export class WebSocketGateway
 
   constructor(
     private webSocketService: WebSocketService,
-    private chatService: ChatService,
-    private streamsService: StreamsService
+    private eventEmitter: EventEmitter2
   ) {}
 
   afterInit(server: Server) {
@@ -128,21 +126,7 @@ export class WebSocketGateway
       `stream:${streamId}`
     );
 
-    // Update viewer count in database for live streams
-    try {
-      const stream = await this.streamsService.findByStreamId(streamId);
-      if (stream && stream.isLive) {
-        await this.streamsService.updateViewerCount(
-          stream.streamKey,
-          viewerCount
-        );
-      } else if (stream && !stream.isLive) {
-        // For VOD, increment total viewer count
-        await this.streamsService.incrementTotalViewerCount(streamId);
-      }
-    } catch (error) {
-      console.error('Error updating viewer count:', error);
-    }
+    // Viewer count will be updated by StreamsService via API calls
 
     // Broadcast viewer count to all clients in this stream room
     this.server.to(`stream:${streamId}`).emit('stream:viewer_count_update', {
@@ -252,30 +236,17 @@ export class WebSocketGateway
     const { streamId, content, userId, username } = data;
 
     try {
-      // Create message in database
-      const message = await this.chatService.createMessage(
-        {
-          streamId,
-          content,
-        },
-        userId
-      );
-
-      // Broadcast message to room
-      this.webSocketService.broadcastToRoom(
-        `chat:${streamId}`,
-        'chat:new_message',
-        {
-          id: (message as any)._id,
-          content: message.content,
-          userId: message.userId,
-          username: message.username,
-          avatar: message.avatar,
-          timestamp: (message as any).createdAt,
-        }
-      );
+      // Emit event for chat service to handle
+      this.eventEmitter.emit('chat.message.create', {
+        streamId,
+        content,
+        userId,
+        username,
+        socket: this.server,
+        room: `chat:${streamId}`,
+      });
     } catch (error) {
-      console.error('Failed to save chat message:', error);
+      console.error('Failed to send chat message:', error);
       client.emit('chat:error', {
         message: APP_CONSTANTS.ERRORS.INTERNAL_ERROR,
       });
@@ -285,7 +256,7 @@ export class WebSocketGateway
   @SubscribeMessage('typing')
   async handleTyping(
     @MessageBody() data: { room: string; userId: string; username: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
     const { room, userId, username } = data;
     this.webSocketService.broadcastUserTyping(room, userId, username);
@@ -294,18 +265,18 @@ export class WebSocketGateway
   @SubscribeMessage('stop_typing')
   async handleStopTyping(
     @MessageBody() data: { room: string; userId: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
-    const { room, userId } = data;
-    this.webSocketService.broadcastUserStopTyping(room, userId);
+    const { room, userId: _userId } = data;
+    this.webSocketService.broadcastUserStopTyping(room, _userId);
   }
 
   @SubscribeMessage('stream_like')
   async handleStreamLike(
     @MessageBody() data: { streamId: string; userId: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() _client: Socket
   ) {
-    const { streamId, userId } = data;
+    const { streamId, userId: _userId } = data;
 
     // Here you would typically update the like count in the database
     // For now, just broadcast the event
