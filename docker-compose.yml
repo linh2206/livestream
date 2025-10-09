@@ -127,17 +127,26 @@ services:
     command: |
       sh -c "
         echo 'Starting HLS Manager...' &&
-        mkdir -p /app/hls/stream &&
+        mkdir -p /app/hls &&
         chmod -R 777 /app/hls &&
         echo 'HLS directory ready' &&
         while true; do
-          find /app/hls/stream -name '*.ts' -mmin +10 -delete 2>/dev/null || true
-          find /app/hls/stream -name '*.m3u8' -mmin +10 -delete 2>/dev/null || true
+          # Only clean up files older than 30 minutes (not 10 minutes)
+          find /app/hls -name '*.ts' -mmin +30 -delete 2>/dev/null || true
+          find /app/hls -name '*.m3u8' -mmin +30 -delete 2>/dev/null || true
+          # Clean up empty directories
+          find /app/hls -type d -empty -delete 2>/dev/null || true
           sleep 300
         done
       "
     healthcheck:
-      test: ["CMD", "sh", "-c", "test -d /app/hls/stream && echo 'HLS directory exists'"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "test -d /app/hls/stream && echo 'HLS directory exists'",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

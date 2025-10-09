@@ -1,13 +1,13 @@
 'use client';
 
+import Hls from 'hls.js';
 import React, {
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useCallback,
-  useMemo,
 } from 'react';
-import Hls from 'hls.js';
 
 interface VideoPlayerProps {
   streamKey?: string;

@@ -1,21 +1,13 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Res,
-  Header,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
-import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
-import { StreamsService } from '../streams/streams.service';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { join } from 'path';
 import {
   StreamNotFoundException,
   StreamOfflineException,
 } from '../../shared/exceptions';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { StreamsService } from '../streams/streams.service';
 
 @Controller('hls')
 export class HlsController {

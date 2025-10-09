@@ -95,11 +95,11 @@ export const Header: React.FC = () => {
                     )}
 
                     {/* Online Status */}
-                    <div className='absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-800 shadow-sm'></div>
+                    <div className='absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-800 shadow-sm'></div>
                   </div>
 
                   {/* Subtle Dropdown Indicator - Repositioned to avoid overlap */}
-                  <div className='absolute -bottom-1 -left-1 w-3 h-3 bg-slate-600 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity'>
+                  <div className='absolute -bottom-1 -right-1 w-3 h-3 bg-slate-600 rounded-full flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity'>
                     <svg
                       className={`w-2 h-2 text-slate-300 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`}
                       fill='none'
