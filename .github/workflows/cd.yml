@@ -1,63 +1,63 @@
 name: CD
 
 on:
-    workflow_dispatch:
-    workflow_run:
-        workflows: ["CI"]
-        types: [completed]
-        branches: [main]
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
 
 jobs:
-    deploy:
-        name: Deploy to server
-        runs-on: self-hosted
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+  deploy:
+    name: Deploy to server
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Prepare environment file
-              run: |
-                  set -euo pipefail
-                  if [ -f .env ]; then echo '.env exists, keeping it';
-                  elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env;
-                  else echo 'No .env or .env.example found'; fi
+      - name: Prepare environment file
+        run: |
+          set -euo pipefail
+          if [ -f .env ]; then echo '.env exists, keeping it';
+          elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env;
+          else echo 'No .env or .env.example found'; fi
 
-            - name: Docker compose up
-              run: |
-                  set -e
-                  echo "Stopping existing containers..."
-                  docker compose down --remove-orphans || true
-                  
-                  echo "Building services..."
-                  docker compose build --no-cache || {
-                      echo "First build failed, retrying..."
-                      sleep 10
-                      docker compose build --no-cache
-                  }
-                  
-                  echo "Starting services..."
-                  docker compose up -d --remove-orphans || {
-                      echo "First start failed, retrying..."
-                      sleep 10
-                      docker compose up -d --remove-orphans
-                  }
-                  
-                  echo "Cleaning up..."
-                  docker image prune -f || true
-                  docker system df
+      - name: Docker compose up
+        run: |
+          set -e
+          echo "Stopping existing containers..."
+          docker compose down --remove-orphans || true
 
-            - name: Health check services via Docker
-              run: |
-                  set -e
-                  check_health() {
-                    name="$1"
-                    for i in $(seq 1 20); do
-                      status=$(docker inspect --format='{{.State.Health.Status}}' "$name" 2>/dev/null || echo 'unknown')
-                      echo "$name: $status"
-                      if [ "$status" = healthy ]; then return 0; fi
-                      sleep 6
-                    done
-                    return 1
-                  }
-                  check_health livestream-backend && check_health livestream-frontend && echo 'All services healthy'
+          echo "Building services..."
+          docker compose build --no-cache || {
+              echo "First build failed, retrying..."
+              sleep 10
+              docker compose build --no-cache
+          }
+
+          echo "Starting services..."
+          docker compose up -d --remove-orphans || {
+              echo "First start failed, retrying..."
+              sleep 10
+              docker compose up -d --remove-orphans
+          }
+
+          echo "Cleaning up..."
+          docker image prune -f || true
+          docker system df
+
+      - name: Health check services via Docker
+        run: |
+          set -e
+          check_health() {
+            name="$1"
+            for i in $(seq 1 20); do
+              status=$(docker inspect --format='{{.State.Health.Status}}' "$name" 2>/dev/null || echo 'unknown')
+              echo "$name: $status"
+              if [ "$status" = healthy ]; then return 0; fi
+              sleep 6
+            done
+            return 1
+          }
+          check_health livestream-backend && check_health livestream-frontend && echo 'All services healthy'

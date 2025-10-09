@@ -40,7 +40,7 @@ sleep 10
 # Ensure HLS manager is running and setup properly
 if docker-compose ps hls-manager | grep -q "Up"; then
     log_success "HLS manager is running"
-    
+
     # Verify HLS directory is accessible
     if docker-compose exec -T hls-manager ls /app/hls/stream &>/dev/null; then
         log_success "HLS directory is ready - permissions automatically managed"
