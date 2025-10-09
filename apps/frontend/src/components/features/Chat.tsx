@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { AuthWrapper } from '@/components/auth/AuthWrapper';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
-import { AuthWrapper } from '@/components/auth/AuthWrapper';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ChatMessage {
   id: string;
@@ -67,16 +67,21 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
         );
         if (response.ok) {
           const history = await response.json();
-          // Transform backend format to frontend format
-          const formattedMessages = history.map((msg: any) => ({
-            id: msg._id,
-            userId: msg.userId._id || msg.userId,
-            username: msg.userId.username || msg.username,
-            content: msg.content,
-            timestamp: new Date(msg.createdAt),
-            avatar: msg.userId.avatar || msg.avatar,
-            role: msg.isModerator ? 'moderator' : 'user',
-          }));
+          // Transform backend format to frontend format and sort by timestamp (oldest first)
+          const formattedMessages = history
+            .map((msg: any) => ({
+              id: msg._id,
+              userId: msg.userId._id || msg.userId,
+              username: msg.userId.username || msg.username,
+              content: msg.content,
+              timestamp: new Date(msg.createdAt),
+              avatar: msg.userId.avatar || msg.avatar,
+              role: msg.isModerator ? 'moderator' : 'user',
+            }))
+            .sort(
+              (a: ChatMessage, b: ChatMessage) =>
+                a.timestamp.getTime() - b.timestamp.getTime()
+            ); // Sort oldest first
           setMessages(formattedMessages);
           scrollToBottom();
         }
@@ -104,7 +109,14 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
 
       // Message events
       socket.on('chat:new_message', (message: ChatMessage) => {
-        setMessages(prev => [...prev, message]);
+        setMessages(prev => {
+          const newMessages = [...prev, message];
+          // Sort by timestamp to ensure proper order
+          return newMessages.sort(
+            (a: ChatMessage, b: ChatMessage) =>
+              a.timestamp.getTime() - b.timestamp.getTime()
+          );
+        });
         scrollToBottom();
       });
 
@@ -133,7 +145,13 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           timestamp: new Date(),
           role: 'moderator',
         };
-        setMessages(prev => [...prev, systemMessage]);
+        setMessages(prev => {
+          const newMessages = [...prev, systemMessage];
+          return newMessages.sort(
+            (a: ChatMessage, b: ChatMessage) =>
+              a.timestamp.getTime() - b.timestamp.getTime()
+          );
+        });
         scrollToBottom();
       });
 
@@ -146,13 +164,23 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           timestamp: new Date(),
           role: 'moderator',
         };
-        setMessages(prev => [...prev, systemMessage]);
+        setMessages(prev => {
+          const newMessages = [...prev, systemMessage];
+          return newMessages.sort(
+            (a: ChatMessage, b: ChatMessage) =>
+              a.timestamp.getTime() - b.timestamp.getTime()
+          );
+        });
         scrollToBottom();
       });
 
       // Recent messages (fallback)
       socket.on('chat:recent_messages', (messages: ChatMessage[]) => {
-        setMessages(messages);
+        const sortedMessages = messages.sort(
+          (a: ChatMessage, b: ChatMessage) =>
+            a.timestamp.getTime() - b.timestamp.getTime()
+        );
+        setMessages(sortedMessages);
         scrollToBottom();
       });
 
@@ -284,7 +312,6 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
             Live Chat
           </h3>
           <div className='flex items-center space-x-2'>
-            <div className='w-1 h-1 bg-gray-400 rounded-full'></div>
             <span className='text-xs text-gray-300 bg-gray-600/50 px-2 py-1 rounded-full font-medium'>
               {messages.length} messages
             </span>
