@@ -1,5 +1,5 @@
 # LiveStream Platform - Optimized Makefile
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg setup-runner check-runner
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg start-runner check-runner
 
 .DEFAULT_GOAL := help
 
@@ -12,8 +12,9 @@ help:
 	@echo "  make clean      - Clean up containers and images"
 	@echo "  make reset-password - Reset admin password"
 	@echo "  make setup-ssh  - Install & configure SSH server (password + key)"
-	@echo "  make setup-runner - Setup GitHub Actions runner"
-	@echo "  make check-runner - Check running GitHub Actions runners"	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
+	@echo "  make start-runner - Start GitHub Actions runners"
+	@echo "  make check-runner - Check GitHub Actions runners status"
+	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
 	@echo ""
@@ -74,17 +75,15 @@ setup:
 	./scripts/build-start.sh
 	@echo "Setup complete! Access at http://localhost:3000"
 
- 
 
 
-# Check running GitHub Actions runners
+
+# Start GitHub Actions runners
+start-runner:
+	@echo "Starting GitHub Actions runners..."
+	./scripts/start-runner.sh all
+
+# Check GitHub Actions runners status
 check-runner:
 	@echo "Checking GitHub Actions runners status..."
-	@echo "=== Runner Directories ==="
-	@ls -la ~/workspace/runner* 2>/dev/null || echo "No runners found in ~/workspace/"
-	@echo ""
-	@echo "=== Runner Services ==="
-	@systemctl --user list-units --type=service | grep runner || echo "No runner services found"
-	@echo ""
-	@echo "=== Runner Processes ==="
-	@ps aux | grep -E "(runner|actions)" | grep -v grep || echo "No runner processes found"
+	./scripts/start-runner.sh status
