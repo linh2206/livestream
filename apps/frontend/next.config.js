@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
-
-  // Disable telemetry for Docker builds
-  telemetry: false,
 
   // Build optimizations
   output: 'standalone',

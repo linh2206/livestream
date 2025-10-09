@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const Header: React.FC = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -59,41 +59,41 @@ export const Header: React.FC = () => {
           <div className='flex items-center space-x-3'>
             {user && (
               <div className='relative' ref={dropdownRef}>
-                {/* Profile Button */}
+                {/* Profile Button - Simplified */}
                 <button
                   onClick={handleProfileClick}
-                  className='flex items-center space-x-3 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group'
+                  className='flex items-center space-x-2 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors group'
                 >
-                  {/* Avatar */}
-                  <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg'>
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.username}
-                        className='w-8 h-8 rounded-full object-cover'
-                      />
-                    ) : (
-                      <span className='text-white font-bold text-sm'>
-                        {user.username?.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* User Info */}
-                  <div className='text-left'>
-                    <div className='flex items-center space-x-2'>
-                      <span className='text-sm font-medium text-white'>
-                        {user.username}
-                      </span>
-                      {isAdmin && (
-                        <span className='px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium'>
-                          Admin
+                  {/* Avatar with Admin Badge */}
+                  <div className='relative'>
+                    <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg'>
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.username}
+                          className='w-10 h-10 rounded-full object-cover'
+                        />
+                      ) : (
+                        <span className='text-white font-bold text-lg'>
+                          {user.username?.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
-                    <span className='text-xs text-gray-400'>
-                      {user.fullName || user.email}
-                    </span>
+                    {isAdmin && (
+                      <div className='absolute -top-1 -right-1 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center'>
+                        <svg
+                          className='w-2.5 h-2.5 text-white'
+                          fill='currentColor'
+                          viewBox='0 0 20 20'
+                        >
+                          <path
+                            fillRule='evenodd'
+                            d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                            clipRule='evenodd'
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
 
                   {/* Dropdown Arrow */}
@@ -114,29 +114,36 @@ export const Header: React.FC = () => {
 
                 {/* Dropdown Menu */}
                 {isProfileOpen && (
-                  <div className='absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50'>
+                  <div className='absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50'>
                     <div className='py-2'>
-                      {/* Profile Info */}
+                      {/* Profile Info - Compact */}
                       <div className='px-4 py-3 border-b border-gray-700'>
                         <div className='flex items-center space-x-3'>
-                          <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center'>
+                          <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center'>
                             {user.avatar ? (
                               <img
                                 src={user.avatar}
                                 alt={user.username}
-                                className='w-10 h-10 rounded-full object-cover'
+                                className='w-12 h-12 rounded-full object-cover'
                               />
                             ) : (
-                              <span className='text-white font-bold'>
+                              <span className='text-white font-bold text-lg'>
                                 {user.username?.charAt(0).toUpperCase()}
                               </span>
                             )}
                           </div>
-                          <div>
-                            <p className='text-sm font-medium text-white'>
-                              {user.username}
-                            </p>
-                            <p className='text-xs text-gray-400'>
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center space-x-2'>
+                              <p className='text-sm font-medium text-white truncate'>
+                                {user.fullName || user.username}
+                              </p>
+                              {isAdmin && (
+                                <span className='px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium flex-shrink-0'>
+                                  Admin
+                                </span>
+                              )}
+                            </div>
+                            <p className='text-xs text-gray-400 truncate'>
                               {user.email}
                             </p>
                           </div>
