@@ -1,0 +1,30 @@
+# Git attributes để kiểm soát cách xử lý file
+# Ngăn chặn tự động thay đổi line endings
+
+# YAML files - giữ nguyên line endings
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# JSON files - giữ nguyên line endings  
+*.json text eol=lf
+
+# TypeScript/JavaScript files
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# Config files
+Makefile text eol=lf
+*.conf text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
