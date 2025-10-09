@@ -57,7 +57,7 @@ jobs:
           name: ${{ matrix.app }}-build
           path: apps/${{ matrix.app }}/.next
           retention-days: 1
-        if: matrix.app == 'frontend'
+        if: matrix.app == 'frontend' && success()
 
   # Security scan
   security:
@@ -97,18 +97,32 @@ jobs:
           docker-compose --version
 
       - name: Build Docker images
-        run: docker-compose build
+        run: |
+          set -e
+          echo "Building Docker images..."
+          docker-compose build --no-cache || {
+              echo "First build failed, retrying..."
+              sleep 10
+              docker-compose build --no-cache
+          }
         env:
           DOCKER_BUILDKIT: 1
           COMPOSE_DOCKER_CLI_BUILD: 1
 
       - name: Test containers
         run: |
-          docker-compose up -d
+          set -e
+          echo "Testing containers..."
+          docker-compose down --remove-orphans || true
+          docker-compose up -d || {
+              echo "First start failed, retrying..."
+              sleep 10
+              docker-compose up -d
+          }
           sleep 30
           docker-compose ps
           docker-compose logs --tail=50
-          docker-compose down -v
+          docker-compose down -v --remove-orphans
 
   # Summary job
   ci-success:
