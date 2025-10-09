@@ -21,7 +21,7 @@ const nextConfig = {
   },
 
   // Bundle optimization
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev }) => {
     // Optimize for production builds
     if (!dev) {
       config.optimization.splitChunks = {
