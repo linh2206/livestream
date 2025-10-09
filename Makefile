@@ -1,5 +1,5 @@
 # LiveStream Platform - Optimized Makefile
-.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg start-runner check-runner
+.PHONY: help start stop clean setup reset-password logs install-ffmpeg compile-ffmpeg check-ffmpeg setup-ssh clean-ffmpeg start-runner check-runner stop-runner
 
 .DEFAULT_GOAL := help
 
@@ -14,6 +14,7 @@ help:
 	@echo "  make setup-ssh  - Install & configure SSH server (password + key)"
 	@echo "  make start-runner - Start GitHub Actions runners"
 	@echo "  make check-runner - Check GitHub Actions runners status"
+	@echo "  make stop-runner  - Stop GitHub Actions runners"
 	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
@@ -87,3 +88,8 @@ start-runner:
 check-runner:
 	@echo "Checking GitHub Actions runners status..."
 	./scripts/start-runner.sh status
+
+# Stop GitHub Actions runners
+stop-runner:
+	@echo "Stopping GitHub Actions runners..."
+	./scripts/start-runner.sh stop
