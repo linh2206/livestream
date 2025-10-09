@@ -47,40 +47,42 @@ export interface VodListResponse {
 export const vodService = {
   async getVodList(params: VodListParams = {}): Promise<VodListResponse> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.userId) searchParams.append('userId', params.userId);
     if (params.category) searchParams.append('category', params.category);
 
     const response = await apiClient.get(`/vod?${searchParams.toString()}`);
-    return response.data;
+    return (response as any).data;
   },
 
-  async getMyVods(params: Omit<VodListParams, 'userId'> = {}): Promise<VodListResponse> {
+  async getMyVods(
+    params: Omit<VodListParams, 'userId'> = {}
+  ): Promise<VodListResponse> {
     const searchParams = new URLSearchParams();
-    
+
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.category) searchParams.append('category', params.category);
 
     const response = await apiClient.get(`/vod/my?${searchParams.toString()}`);
-    return response.data;
+    return (response as any).data;
   },
 
   async getVodById(vodId: string): Promise<VodItem> {
     const response = await apiClient.get(`/vod/${vodId}`);
-    return response.data;
+    return (response as any).data;
   },
 
   async deleteVod(vodId: string): Promise<{ message: string }> {
     const response = await apiClient.delete(`/vod/${vodId}`);
-    return response.data;
+    return (response as any).data;
   },
 
   async processStreamToVod(streamId: string): Promise<{ message: string }> {
     const response = await apiClient.post(`/vod/process/${streamId}`);
-    return response.data;
+    return (response as any).data;
   },
 
   getVodStreamUrl(vodUrl: string): string {
@@ -93,10 +95,10 @@ export const vodService = {
 
   getVodThumbnailUrl(thumbnailUrl?: string): string | undefined {
     if (!thumbnailUrl) return undefined;
-    
+
     if (thumbnailUrl.startsWith('/vod/')) {
       return `${process.env.NEXT_PUBLIC_API_URL}${thumbnailUrl}`;
     }
     return thumbnailUrl;
-  }
+  },
 };
