@@ -76,11 +76,6 @@ setup:
 
  
 
-# GitHub Actions runner setup
-setup-runner:
-	@echo "Setting up GitHub Actions runner..."
-	@echo "Reading token from GitHub environment..."
-	./scripts/setup-runner.sh
 
 # Check running GitHub Actions runners
 check-runner:

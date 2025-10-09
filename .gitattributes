@@ -5,7 +5,7 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
-# JSON files - giữ nguyên line endings  
+# JSON files - giữ nguyên line endings
 *.json text eol=lf
 
 # TypeScript/JavaScript files
