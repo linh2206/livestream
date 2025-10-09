@@ -99,6 +99,9 @@ start_all_runners() {
         print_status "Logs are in: /home/ubuntu/workspace/actions-runner*/runner-*.log"
         print_status "Each runner runs from its own directory with ./run.sh"
     fi
+
+    # Return success even if no runners were started (they might not be installed yet)
+    return 0
 }
 
 # Function to show runner status
