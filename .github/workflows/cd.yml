@@ -16,12 +16,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare environment file
+      - name: Prepare environment files
         run: |
           set -euo pipefail
-          if [ -f .env ]; then echo '.env exists, keeping it';
-          elif [ -f .env.example ]; then echo 'No .env found, copying .env.example'; cp .env.example .env;
-          else echo 'No .env or .env.example found'; fi
+          echo "Removing old .env files..."
+          rm -f .env
+          rm -f apps/frontend/.env
+          rm -f apps/backend/.env
+
+          echo "Copying .env.example files to .env..."
+          # Root .env
+          if [ -f .env.example ]; then
+            cp .env.example .env
+            echo "Successfully copied .env.example to .env"
+          else
+            echo "Error: .env.example not found"
+            exit 1
+          fi
+
+          # Frontend .env
+          if [ -f apps/frontend/.env.example ]; then
+            cp apps/frontend/.env.example apps/frontend/.env
+            echo "Successfully copied apps/frontend/.env.example to apps/frontend/.env"
+          else
+            echo "Warning: apps/frontend/.env.example not found"
+          fi
+
+          # Backend .env
+          if [ -f apps/backend/.env.example ]; then
+            cp apps/backend/.env.example apps/backend/.env
+            echo "Successfully copied apps/backend/.env.example to apps/backend/.env"
+          else
+            echo "Warning: apps/backend/.env.example not found"
+          fi
 
       - name: Docker compose up
         run: |
