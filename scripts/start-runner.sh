@@ -142,19 +142,19 @@ show_status() {
 stop_all_runners() {
     local max_runners=${1:-$MAX_RUNNERS}
     local stopped_count=0
-    
+
     print_status "Stopping GitHub Actions runners..."
     print_status "================================"
-    
+
     for i in $(seq 0 $((max_runners-1))); do
         local runner_dir
-        
+
         if [ "$i" -eq 0 ]; then
             runner_dir="/home/ubuntu/workspace/actions-runner"
         else
             runner_dir="/home/ubuntu/workspace/actions-runner$i"
         fi
-        
+
         if [ -d "$runner_dir" ]; then
             # Check if runner is running
             if [ -f "$runner_dir/runner-$i.pid" ]; then
@@ -163,19 +163,19 @@ stop_all_runners() {
                     print_status "Stopping runner $i (PID: $pid)..."
                     kill "$pid"
                     sleep 1
-                    
+
                     # Force kill if still running
                     if ps -p "$pid" > /dev/null 2>&1; then
                         print_warning "Force killing runner $i..."
                         kill -9 "$pid"
                     fi
-                    
+
                     print_success "Runner $i stopped"
                     ((stopped_count++))
                 else
                     print_warning "Runner $i was not running (stale PID file)"
                 fi
-                
+
                 # Remove PID file
                 rm -f "$runner_dir/runner-$i.pid"
             else
@@ -185,12 +185,12 @@ stop_all_runners() {
             print_warning "Runner directory not found: $runner_dir"
         fi
     done
-    
+
     # Also kill any remaining runner processes
     print_status "Killing any remaining runner processes..."
     pkill -f "actions-runner" || true
     pkill -f "run\.sh" || true
-    
+
     print_success "Stopped $stopped_count runners"
     print_status "All runners have been stopped"
 }
