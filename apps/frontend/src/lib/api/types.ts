@@ -84,6 +84,7 @@ export interface Stream extends BaseEntity {
   vodProcessing: boolean;
   vodProcessingStatus?: 'processing' | 'completed' | 'failed';
   vodProcessingError?: string;
+  isLikedByUser?: boolean;
 }
 
 // Chat Types

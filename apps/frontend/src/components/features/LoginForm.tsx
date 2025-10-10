@@ -76,8 +76,8 @@ export const LoginForm: React.FC = () => {
         // Wait a bit for state to update then redirect
         setTimeout(() => router.push('/dashboard'), 500);
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'An error occurred';
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'An error occurred';
       showError('Authentication Failed', errorMessage);
     } finally {
       setLoading(false);

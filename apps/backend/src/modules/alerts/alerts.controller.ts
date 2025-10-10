@@ -8,7 +8,7 @@ export class AlertsController {
   constructor(private readonly webhookService: WebhookService) {}
 
   @Post('webhook')
-  async handleWebhook(@Body() alertData: any) {
+  async handleWebhook(@Body() alertData: Record<string, unknown>) {
     this.logger.log(
       'Received alert webhook:',
       JSON.stringify(alertData, null, 2)

@@ -99,6 +99,7 @@ async function bootstrap() {
   // HLS request logging middleware (only in development)
   if (process.env.NODE_ENV !== 'production') {
     app.use('/api/v1/hls', (req, res, next) => {
+      // eslint-disable-next-line no-console
       console.log(`🔍 [HLS] ${req.method} ${req.url}`);
       next();
     });

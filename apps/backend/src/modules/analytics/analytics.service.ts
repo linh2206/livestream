@@ -26,7 +26,7 @@ export interface RealTimeMetrics {
   recentActivity: Array<{
     type: 'stream_started' | 'stream_ended' | 'user_registered' | 'vod_created';
     timestamp: Date;
-    data: any;
+    data: Record<string, unknown>;
   }>;
 }
 
@@ -136,7 +136,7 @@ export class AnalyticsService {
       id: stream._id.toString(),
       title: stream.title,
       viewerCount: stream.viewerCount || 0,
-      username: (stream.userId as any)?.username || 'Unknown',
+      username: (stream.userId as { username?: string })?.username || 'Unknown',
     }));
   }
 
@@ -176,11 +176,14 @@ export class AnalyticsService {
       if (stream.status === 'active') {
         activities.push({
           type: 'stream_started',
-          timestamp: stream.startTime || (stream as any).createdAt,
+          timestamp:
+            stream.startTime ||
+            (stream as { createdAt?: Date }).createdAt ||
+            new Date(),
           data: {
             streamId: stream._id,
             title: stream.title,
-            username: (stream.userId as any)?.username,
+            username: (stream.userId as { username?: string })?.username,
           },
         });
       } else if (stream.endTime) {
@@ -190,7 +193,7 @@ export class AnalyticsService {
           data: {
             streamId: stream._id,
             title: stream.title,
-            username: (stream.userId as any)?.username,
+            username: (stream.userId as { username?: string })?.username,
           },
         });
       }
@@ -200,7 +203,7 @@ export class AnalyticsService {
     recentUsers.forEach(user => {
       activities.push({
         type: 'user_registered',
-        timestamp: (user as any).createdAt,
+        timestamp: (user as unknown as { createdAt: Date }).createdAt,
         data: {
           userId: user._id,
           username: user.username,
@@ -212,11 +215,11 @@ export class AnalyticsService {
     recentVods.forEach(vod => {
       activities.push({
         type: 'vod_created',
-        timestamp: (vod as any).createdAt,
+        timestamp: (vod as unknown as { createdAt: Date }).createdAt,
         data: {
           vodId: vod._id,
           title: vod.title,
-          username: (vod.userId as any)?.username,
+          username: (vod.userId as { username?: string })?.username,
         },
       });
     });
@@ -254,8 +257,8 @@ export class AnalyticsService {
       startTime: stream.startTime,
       endTime: stream.endTime,
       status: stream.isLive ? 'live' : stream.endTime ? 'ended' : 'scheduled',
-      username: (stream.userId as any)?.username || 'Unknown',
-      category: (stream as any).category,
+      username: (stream.userId as { username?: string })?.username || 'Unknown',
+      category: (stream as { category?: string }).category,
       tags: stream.tags || [],
     };
   }

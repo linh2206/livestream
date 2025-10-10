@@ -17,25 +17,25 @@ export const StreamList: React.FC = () => {
   useEffect(() => {
     if (socket) {
       // Listen for stream start events
-      socket.on('stream:started', (streamData: any) => {
+      socket.on('stream:started', (_streamData: unknown) => {
         // Refresh stream list to show new live stream
         mutate();
       });
 
       // Listen for stream end events
-      socket.on('stream:ended', (data: any) => {
+      socket.on('stream:ended', (_data: unknown) => {
         // Refresh stream list to update status
         mutate();
       });
 
       // Listen for stream stop events
-      socket.on('stream:stop', (data: any) => {
+      socket.on('stream:stop', (_data: unknown) => {
         // Refresh stream list to update status
         mutate();
       });
 
       // Listen for viewer count updates
-      socket.on('stream:viewer_count_update', (data: any) => {
+      socket.on('stream:viewer_count_update', (_data: unknown) => {
         // Refresh stream list to update viewer counts
         mutate();
       });

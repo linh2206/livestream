@@ -69,7 +69,16 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           // Transform backend format to frontend format and sort by timestamp (oldest first)
           const formattedMessages = history
             .map((msg: unknown) => {
-              const m = msg as any;
+              const m = msg as { 
+                _id: string; 
+                content: string; 
+                userId: string | { _id: string; username: string; avatar?: string }; 
+                username: string; 
+                timestamp: string;
+                createdAt: string;
+                avatar?: string;
+                isModerator?: boolean;
+              };
               return {
                 id: m._id,
                 userId: typeof m.userId === 'object' ? m.userId._id : m.userId,

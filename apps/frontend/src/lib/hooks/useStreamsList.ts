@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { streamService } from '../api/services/stream.service';
-import { Stream, PaginatedResponse, PaginationParams } from '../api/types';
+import { PaginatedResponse, PaginationParams, Stream } from '../api/types';
 
 // Fetcher function for streams list
 const fetcher = (url: string, params?: PaginationParams) =>
@@ -27,6 +27,7 @@ export function useStreamsList(params?: PaginationParams) {
       // Revalidate data after sync
       mutate();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to sync stream status:', error);
     }
   };
@@ -37,6 +38,7 @@ export function useStreamsList(params?: PaginationParams) {
       // Revalidate data after check
       mutate();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to check stream offline:', error);
     }
   };

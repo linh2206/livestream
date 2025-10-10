@@ -30,15 +30,17 @@ export class StreamsService {
 
   // Helper methods to avoid type casting issues
   private getStreamId(stream: Stream | StreamDocument): string {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (
-      (stream as any)._id?.toString() || (stream as any).id?.toString() || ''
+      (stream as { _id?: { toString(): string } })._id?.toString() ||
+      (stream as { id?: { toString(): string } }).id?.toString() ||
+      ''
     );
   }
 
   private getStreamIdForUpdate(stream: Stream | StreamDocument): string {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (stream as any)._id || (stream as any).id || '';
+    return (
+      (stream as { _id?: string })._id || (stream as { id?: string }).id || ''
+    );
   }
 
   async create(
@@ -287,7 +289,7 @@ export class StreamsService {
     return stream;
   }
 
-  async findActiveStreams(): Promise<any[]> {
+  async findActiveStreams(): Promise<Stream[]> {
     // Try cache first (cache for 30 seconds for live data)
     const cacheKey = 'active_streams';
     const cached = await this.redisService.get(cacheKey);

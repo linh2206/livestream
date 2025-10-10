@@ -2,9 +2,9 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useCallback,
 } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from './AuthContext';
@@ -37,29 +37,31 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Only connect socket when user is loaded and authenticated
-  const { socket, isConnected, isConnecting, error, emit, on, off } = useSocket(
-    {
-      auth:
-        !isLoading &&
-        user &&
-        isAuthenticated &&
-        user._id &&
-        getTokenFromStorage()
-          ? {
-              user: {
-                id: user._id,
-                username: user.username,
-                role: user.role,
-              },
-              token: getTokenFromStorage() || undefined,
-            }
-          : undefined,
-    }
-  );
+  const {
+    socket,
+    isConnected,
+    isConnecting,
+    error,
+    emit,
+    on: _on,
+    off: _off,
+  } = useSocket({
+    auth:
+      !isLoading && user && isAuthenticated && user._id && getTokenFromStorage()
+        ? {
+            user: {
+              id: user._id,
+              username: user.username,
+              role: user.role,
+            },
+            token: getTokenFromStorage() || undefined,
+          }
+        : undefined,
+  });
 
   // Debug socket connection status
   useEffect(() => {
-    const debugInfo = {
+    const _debugInfo = {
       isLoading,
       hasUser: !!user,
       isAuthenticated,
@@ -77,7 +79,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (!isLoading && (!user || !user._id || !isAuthenticated)) {
       // Force disconnect logic can be added here
     }
-  }, [isLoading, user?._id, isAuthenticated]);
+  }, [isLoading, user, user?._id, isAuthenticated]);
 
   // Handle socket connection events silently (no notifications)
   // Socket runs in background without user notifications

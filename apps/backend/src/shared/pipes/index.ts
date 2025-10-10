@@ -12,8 +12,8 @@ import { Types } from 'mongoose';
  * Validation pipe for DTOs
  */
 @Injectable()
-export class ValidationPipe implements PipeTransform<any> {
-  async transform(value: any, { metatype }: ArgumentMetadata) {
+export class ValidationPipe implements PipeTransform<unknown> {
+  async transform(value: unknown, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
@@ -62,9 +62,10 @@ export class ParseObjectIdPipe
  */
 @Injectable()
 export class ParsePaginationPipe implements PipeTransform {
-  transform(value: any) {
-    const page = parseInt(value.page, 10) || 1;
-    const limit = parseInt(value.limit, 10) || 10;
+  transform(value: unknown) {
+    const queryParams = value as { page?: string; limit?: string };
+    const page = parseInt(queryParams.page || '1', 10) || 1;
+    const limit = parseInt(queryParams.limit || '10', 10) || 10;
 
     if (page < 1) {
       throw new BadRequestException('Page must be greater than 0');

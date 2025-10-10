@@ -9,12 +9,12 @@ import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useToast } from '@/lib/contexts/ToastContext';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function StreamPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { showSuccess, showError } = useToast();
 
   const [stream, setStream] = useState<Stream | null>(null);
@@ -26,24 +26,25 @@ export default function StreamPage() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchStream();
-    }
-  }, [id]);
-
-  const fetchStream = async () => {
+  const fetchStream = useCallback(async () => {
     try {
       const response = await streamService.getStream(id as string);
       setStream(response);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to fetch stream:', error);
       showError('Error', 'Failed to load stream details');
       router.push('/streams');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, showError, router]);
+
+  useEffect(() => {
+    if (id) {
+      fetchStream();
+    }
+  }, [id, fetchStream]);
 
   const startStreaming = async () => {
     try {
@@ -88,10 +89,13 @@ export default function StreamPage() {
 
       setIsStreaming(true);
       showSuccess('Streaming Started!', 'Your stream is now live! 🎥');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error('Failed to start streaming:', error);
-      setStreamingError(error.message);
-      showError('Streaming Error', error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      setStreamingError(errorMessage);
+      showError('Streaming Error', errorMessage);
     }
   };
 
@@ -116,12 +120,14 @@ export default function StreamPage() {
       peerConnection.onicecandidate = event => {
         if (event.candidate) {
           // Send ICE candidate to server
+          // eslint-disable-next-line no-console
           console.log('ICE candidate:', event.candidate);
         }
       };
 
       // Handle connection state changes
       peerConnection.onconnectionstatechange = () => {
+        // eslint-disable-next-line no-console
         console.log('Connection state:', peerConnection.connectionState);
       };
 
@@ -132,6 +138,7 @@ export default function StreamPage() {
       // Send offer to server (you'll need to implement this endpoint)
       // await streamService.sendWebRTCOffer(stream._id, offer);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to create peer connection:', error);
       throw error;
     }

@@ -9,8 +9,7 @@ export const APP_CONSTANTS = {
   // Database Configuration
   DATABASE: {
     MONGODB_URI:
-      process.env.MONGODB_URI ||
-      'mongodb://admin:admin123@localhost:27017/livestream?authSource=admin',
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/livestream',
     REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   },
 

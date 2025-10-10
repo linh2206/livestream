@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { SocketEvents, SocketEmitEvents, SocketOptions } from './types';
+import { SocketEmitEvents, SocketEvents, SocketOptions } from './types';
 
 class SocketClient {
   private socket: Socket | null = null;
@@ -69,7 +69,7 @@ class SocketClient {
       this.handleReconnect();
     });
 
-    this.socket.on('reconnect', attemptNumber => {
+    this.socket.on('reconnect', _attemptNumber => {
       // Socket reconnected silently
       this.isConnected = true;
       this.isConnecting = false;

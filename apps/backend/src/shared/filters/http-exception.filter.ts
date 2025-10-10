@@ -40,7 +40,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = exceptionResponse;
         error = exception.constructor.name;
       } else {
-        const responseObj = exceptionResponse as any;
+        const responseObj = exceptionResponse as {
+          message?: string;
+          error?: string;
+          details?: unknown;
+        };
         message = responseObj.message || exception.message;
         error = responseObj.error || exception.constructor.name;
         details = responseObj.details;

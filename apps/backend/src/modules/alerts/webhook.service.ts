@@ -7,31 +7,37 @@ export class WebhookService {
 
   constructor(private readonly webSocketService: WebSocketService) {}
 
-  async processAlert(alertData: any) {
+  async processAlert(alertData: Record<string, unknown>) {
     this.logger.log('Processing alert:', alertData);
 
     // Extract alert information
-    const alerts = alertData.alerts || [];
+    const alerts = (alertData.alerts as unknown[]) || [];
 
     for (const alert of alerts) {
-      const alertName = alert.labels?.alertname || 'Unknown';
-      const severity = alert.labels?.severity || 'info';
-      const status = alert.status || 'unknown';
+      const alertObj = alert as Record<string, unknown>;
+      const alertName =
+        (alertObj.labels as Record<string, unknown>)?.alertname || 'Unknown';
+      const severity =
+        (alertObj.labels as Record<string, unknown>)?.severity || 'info';
+      const status = alertObj.status || 'unknown';
 
       const alertInfo = {
         name: alertName,
         severity,
         status,
-        summary: alert.annotations?.summary || 'No summary available',
+        summary:
+          (alertObj.annotations as Record<string, unknown>)?.summary ||
+          'No summary available',
         description:
-          alert.annotations?.description || 'No description available',
+          (alertObj.annotations as Record<string, unknown>)?.description ||
+          'No description available',
         timestamp: new Date().toISOString(),
-        labels: alert.labels || {},
+        labels: alertObj.labels || {},
       };
 
       // Log the alert
       this.logger.warn(
-        `Alert ${status.toUpperCase()}: ${alertName} - ${alertInfo.summary}`
+        `Alert ${String(status).toUpperCase()}: ${alertName} - ${alertInfo.summary}`
       );
 
       // Broadcast alert to connected clients via WebSocket
@@ -42,8 +48,8 @@ export class WebhookService {
     }
   }
 
-  private async handleSpecificAlert(alertInfo: any) {
-    const { name, severity, status } = alertInfo;
+  private async handleSpecificAlert(alertInfo: Record<string, unknown>) {
+    const { name, status } = alertInfo;
 
     switch (name) {
       case 'ServiceDown':

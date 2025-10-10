@@ -97,10 +97,11 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
       });
       onUserCreated();
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error('Error creating user:', error);
       const errorMessage =
-        error?.response?.data?.message || 'Failed to create user';
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create user';
       showToast({
         type: 'error',
         title: 'Error',

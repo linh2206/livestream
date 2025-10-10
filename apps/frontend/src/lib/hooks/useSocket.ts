@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { socketClient } from '../socket/client';
-import { SocketEvents, SocketEmitEvents, SocketOptions } from '../socket/types';
+import { SocketEmitEvents, SocketEvents, SocketOptions } from '../socket/types';
 
 export function useSocket(options?: SocketOptions) {
   const [isConnected, setIsConnected] = useState(false);
@@ -9,6 +9,7 @@ export function useSocket(options?: SocketOptions) {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
     console.log('useSocket effect triggered:', {
       hasUser: !!options?.auth?.user,
       hasToken: !!options?.auth?.token,
@@ -53,7 +54,7 @@ export function useSocket(options?: SocketOptions) {
       setIsConnected(false);
       setIsConnecting(false);
     }
-  }, [options?.auth?.user?.id, options?.auth?.token]);
+  }, [options]);
 
   const emit = useCallback(
     <K extends keyof SocketEmitEvents>(

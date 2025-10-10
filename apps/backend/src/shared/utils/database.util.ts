@@ -27,7 +27,7 @@ export class DatabaseUtil {
     category?: string,
     tags?: string[]
   ) {
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (searchTerm) {
       query.$or = [
@@ -51,7 +51,7 @@ export class DatabaseUtil {
    * Build sort options
    */
   static buildSortOptions(sortBy?: string, sortOrder?: 'asc' | 'desc') {
-    const sort: any = {};
+    const sort: Record<string, 1 | -1> = {};
 
     switch (sortBy) {
       case 'title':
@@ -77,7 +77,7 @@ export class DatabaseUtil {
    * Build aggregation pipeline for stream statistics
    */
   static buildStreamStatsPipeline(userId?: string) {
-    const pipeline: any[] = [];
+    const pipeline: Record<string, unknown>[] = [];
 
     if (userId) {
       pipeline.push({

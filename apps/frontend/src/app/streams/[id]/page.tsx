@@ -32,7 +32,7 @@ export default function StreamDetailPage() {
   const [isLiked, setIsLiked] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [totalViewerCount, setTotalViewerCount] = useState(0);
-  const [vodProcessing, setVodProcessing] = useState(false);
+  const [_vodProcessing, _setVodProcessing] = useState(false);
 
   const streamId = params?.id as string;
 
@@ -41,12 +41,12 @@ export default function StreamDetailPage() {
 
     try {
       setLoading(true);
-      const data: any = await streamService.getStream(streamId);
+      const data: Stream = await streamService.getStream(streamId);
       setStream(data);
       // Set isLiked from backend response (server-side truth)
       setIsLiked(data.isLikedByUser || false);
       // Set VOD processing status
-      setVodProcessing(data.vodProcessing || false);
+      _setVodProcessing(data.vodProcessing || false);
       // Set viewer counts
       setViewerCount(data.viewerCount || 0);
       setTotalViewerCount(data.totalViewerCount || 0);
@@ -58,11 +58,11 @@ export default function StreamDetailPage() {
       setViewerCount(0);
       setTotalViewerCount(0);
       setIsLiked(false);
-      setVodProcessing(false);
+      _setVodProcessing(false);
     } finally {
       setLoading(false);
     }
-  }, [streamId]);
+  }, [streamId, handleStreamError]);
 
   useEffect(() => {
     fetchStream();
@@ -78,7 +78,10 @@ export default function StreamDetailPage() {
       joinStream(stream._id);
 
       // Listen for viewer count updates
-      const handleViewerCountUpdate = (data: any) => {
+      const handleViewerCountUpdate = (data: {
+        streamId: string;
+        viewerCount: number;
+      }) => {
         if (data.streamId === stream._id) {
           setViewerCount(data.viewerCount);
           // Update stream state
@@ -89,7 +92,11 @@ export default function StreamDetailPage() {
       };
 
       // Listen for like updates (REALTIME)
-      const handleLikeUpdate = (data: any) => {
+      const handleLikeUpdate = (data: {
+        streamId: string;
+        isLiked: boolean;
+        likeCount: number;
+      }) => {
         if (data.streamId === stream._id) {
           setStream(prev =>
             prev ? { ...prev, likeCount: data.likeCount } : null
@@ -98,24 +105,24 @@ export default function StreamDetailPage() {
       };
 
       // Listen for VOD processing updates
-      const handleVodProcessing = (data: any) => {
+      const handleVodProcessing = (data: { streamId: string }) => {
         if (data.streamId === stream._id) {
-          setVodProcessing(true);
+          _setVodProcessing(true);
           setStream(prev => (prev ? { ...prev, vodProcessing: true } : null));
         }
       };
 
-      const handleVodCompleted = (data: any) => {
+      const handleVodCompleted = (data: { streamId: string }) => {
         if (data.streamId === stream._id) {
-          setVodProcessing(false);
+          _setVodProcessing(false);
           // Refresh stream data to get VOD URL
           fetchStream();
         }
       };
 
-      const handleVodFailed = (data: any) => {
+      const handleVodFailed = (data: { streamId: string }) => {
         if (data.streamId === stream._id) {
-          setVodProcessing(false);
+          _setVodProcessing(false);
           setStream(prev =>
             prev
               ? { ...prev, vodProcessing: false, vodProcessingStatus: 'failed' }
@@ -141,6 +148,9 @@ export default function StreamDetailPage() {
       };
     }
   }, [
+    fetchStream,
+    stream,
+    user,
     stream?._id,
     user?._id,
     socket,
@@ -168,13 +178,17 @@ export default function StreamDetailPage() {
     );
 
     try {
-      const result: any = await streamService.likeStream(stream._id);
+      const result = (await streamService.likeStream(stream._id)) as {
+        isLiked: boolean;
+        stream: { likeCount: number };
+      };
       // Update with actual server response
       setIsLiked(result.isLiked);
       setStream(prev =>
         prev ? { ...prev, likeCount: result.stream.likeCount } : null
       );
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error liking stream:', error);
       // Rollback on error
       setIsLiked(previousIsLiked);

@@ -86,7 +86,7 @@ const typeStyles = {
 };
 
 export const Toast: React.FC<ToastProps> = ({
-  id,
+  id: _id,
   type,
   title,
   message,

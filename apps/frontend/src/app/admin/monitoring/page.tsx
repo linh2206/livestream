@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
 import { apiClient } from '@/lib/api/client';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
-import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
+import { useEffect, useState } from 'react';
 
 interface SystemStats {
   timestamp: string;
@@ -72,7 +72,7 @@ interface StreamAnalytics {
 export default function AdminMonitoringPage() {
   // ALL HOOKS AT TOP - NEVER AFTER CONDITIONAL RETURNS
   const { user } = useAuth();
-  const { handleError } = useErrorHandler();
+  const { handleError: _handleError } = useErrorHandler();
   const authLoading = useAuthGuard({ requireAuth: true });
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);

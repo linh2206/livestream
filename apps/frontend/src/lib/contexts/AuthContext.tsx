@@ -1,15 +1,15 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
-  useCallback,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import { authService } from '../api/services/auth.service';
-import { User, LoginRequest, RegisterRequest } from '../api/types';
+import { LoginRequest, RegisterRequest, User } from '../api/types';
 import { useToast } from './ToastContext';
 
 interface AuthContextType {
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const userData = await authService.getProfile();
       setUser(userData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setUser(null);
       // Clear invalid token from localStorage
       localStorage.removeItem('auth_token');
@@ -62,17 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       // Only redirect on 401 (unauthorized), not 404 (not found)
-      if (!isPublicRoute && error.response?.status === 401) {
+      if (!isPublicRoute && (error as { response?: { status?: number } }).response?.status === 401) {
         router.push('/login');
       }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   const login = async (credentials: LoginRequest) => {
     try {

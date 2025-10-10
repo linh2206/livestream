@@ -44,6 +44,11 @@ export class CreateStreamDto {
   @IsString()
   @IsIn(['camera', 'screen'])
   streamType?: 'camera' | 'screen';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  category?: string;
 }
 
 export class UpdateStreamDto {
@@ -83,4 +88,9 @@ export class UpdateStreamDto {
   @IsString()
   @IsIn(['camera', 'screen'])
   streamType?: 'camera' | 'screen';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  category?: string;
 }

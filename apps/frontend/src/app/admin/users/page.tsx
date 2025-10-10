@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { Loading } from '@/components/ui/Loading';
-import { Button } from '@/components/ui/Button';
-import { useUsersList } from '@/lib/hooks/useUsersList';
-import { userService } from '@/lib/api/services/user.service';
-import { User } from '@/lib/api/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { EditUserModal } from '@/components/admin/EditUserModal';
+import { Button } from '@/components/ui/Button';
+import { Loading } from '@/components/ui/Loading';
+import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
+import { userService } from '@/lib/api/services/user.service';
+import { User } from '@/lib/api/types';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
-import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
+import { useUsersList } from '@/lib/hooks/useUsersList';
+import { useCallback, useState } from 'react';
 
 export default function AdminUsersPage() {
   // ALL HOOKS MUST BE AT THE TOP - NEVER AFTER CONDITIONAL RETURNS!
   const { user } = useAuth();
-  const { handleError } = useErrorHandler();
+  const { handleError: _handleError } = useErrorHandler();
   const authLoading = useAuthGuard({ requireAuth: true });
   const {
     users,
@@ -38,6 +38,7 @@ export default function AdminUsersPage() {
         await userService.updateUser(userId, { isActive: !currentStatus });
         mutate();
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('❌ [AdminUsers] Error toggling user status:', err);
       }
     },
@@ -50,6 +51,7 @@ export default function AdminUsersPage() {
         await userService.updateUserRole(userId, newRole);
         mutate();
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('❌ [AdminUsers] Error changing user role:', err);
       }
     },
@@ -281,6 +283,7 @@ export default function AdminUsersPage() {
                                   await userService.deleteUser(user._id);
                                   mutate();
                                 } catch (err) {
+                                  // eslint-disable-next-line no-console
                                   console.error('Delete failed:', err);
                                 }
                               }

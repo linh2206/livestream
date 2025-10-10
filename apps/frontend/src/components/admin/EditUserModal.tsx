@@ -108,10 +108,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       });
       onUserUpdated();
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.error('Error updating user:', error);
       const errorMessage =
-        error?.response?.data?.message || 'Failed to update user';
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update user';
       showToast({
         type: 'error',
         title: 'Error',

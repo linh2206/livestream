@@ -76,6 +76,7 @@ export const VodList: React.FC<VodListProps> = ({
           setPage(pageNum);
         } else {
           // Handle case where response structure is different or empty
+          // eslint-disable-next-line no-console
           console.warn('Unexpected response format:', response);
           if (append) {
             // Don't change existing data if appending
@@ -86,9 +87,10 @@ export const VodList: React.FC<VodListProps> = ({
           setPage(pageNum);
         }
       } catch (err: unknown) {
+        // eslint-disable-next-line no-console
         console.error('Error fetching VODs:', err);
         const errorMessage =
-          (err as any)?.response?.data?.message ||
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           (err as Error).message ||
           'Failed to load videos';
         setError(errorMessage);
