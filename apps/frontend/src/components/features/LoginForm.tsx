@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useToast } from '@/lib/contexts/ToastContext';
 import {
-  useFormValidation,
   commonValidationRules,
+  useFormValidation,
 } from '@/lib/hooks/useFormValidation';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 export const LoginForm: React.FC = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -37,10 +37,15 @@ export const LoginForm: React.FC = () => {
     password: commonValidationRules.password,
   };
 
-  const { errors, validateSingleField, validateForm, clearErrors, clearFieldError } =
-    useFormValidation(
-      isRegister ? registerValidationRules : loginValidationRules
-    );
+  const {
+    errors,
+    validateSingleField,
+    validateForm,
+    clearErrors,
+    clearFieldError,
+  } = useFormValidation(
+    isRegister ? registerValidationRules : loginValidationRules
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
