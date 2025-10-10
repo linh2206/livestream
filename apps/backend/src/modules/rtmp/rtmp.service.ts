@@ -122,17 +122,18 @@ export class RtmpService {
           console.error('Failed to create VOD record:', error);
         }
 
+        // Don't auto-delete streams - keep them for VOD processing
         // Auto-delete stream after 5 minutes if it's not a user-created stream
-        if (!stream.userId) {
-          setTimeout(
-            async () => {
-              try {
-                await this.deleteOfflineStream(streamKey);
-              } catch (error) {}
-            },
-            5 * 60 * 1000
-          ); // 5 minutes
-        }
+        // if (!stream.userId) {
+        //   setTimeout(
+        //     async () => {
+        //       try {
+        //         await this.deleteOfflineStream(streamKey);
+        //       } catch (error) {}
+        //     },
+        //     5 * 60 * 1000
+        //   ); // 5 minutes
+        // }
       }
     } catch (error) {
       console.error(`Error in onPublishDone for ${streamKey}:`, error);
