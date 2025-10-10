@@ -27,7 +27,7 @@ export class ChatController {
   ) {
     return this.chatService.createMessage(
       createChatMessageDto,
-      (req['user'] as any).sub
+      (req['user'] as { sub: string }).sub
     );
   }
 

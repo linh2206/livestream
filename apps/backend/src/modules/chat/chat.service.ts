@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { Server } from 'socket.io';
 
 import {
@@ -130,8 +130,13 @@ export class ChatService {
   async getTopChatters(
     streamId: string,
     limit: number = 10
-  ): Promise<Array<{ user: any; messageCount: number }>> {
-    const pipeline = [
+  ): Promise<
+    Array<{
+      user: { _id: string; username: string; avatar?: string };
+      messageCount: number;
+    }>
+  > {
+    const pipeline: PipelineStage[] = [
       {
         $match: {
           streamId: new Types.ObjectId(streamId),
@@ -173,7 +178,7 @@ export class ChatService {
       },
     ];
 
-    return this.chatMessageModel.aggregate(pipeline as any);
+    return this.chatMessageModel.aggregate(pipeline);
   }
 
   @OnEvent('chat.message.create')
@@ -206,14 +211,15 @@ export class ChatService {
 
       // Broadcast message to room
       socket.to(room).emit('chat:new_message', {
-        id: (message as any)._id,
+        id: (message as unknown as { _id: string })._id,
         content: message.content,
         userId: message.userId,
         username: message.username,
         avatar: message.avatar,
-        timestamp: (message as any).createdAt,
+        timestamp: (message as unknown as { createdAt: Date }).createdAt,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to handle chat message creation:', error);
     }
   }

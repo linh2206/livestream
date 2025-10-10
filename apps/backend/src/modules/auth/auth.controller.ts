@@ -1,18 +1,17 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseGuards,
+  Controller,
+  Get,
+  Post,
   Req,
   Res,
-  Get,
+  UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { AuthGuard } from '@nestjs/passport';
 
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -43,7 +42,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Req() req: Request, @Res() res: Response) {
-    await this.authService.logout((req['user'] as any).sub);
+    await this.authService.logout((req['user'] as { sub: string }).sub);
 
     // No need to clear cookie - frontend will clear localStorage
     return res.json({
@@ -54,13 +53,13 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
   async refreshToken(@Req() req: Request) {
-    return this.authService.refreshToken((req['user'] as any).sub);
+    return this.authService.refreshToken((req['user'] as { sub: string }).sub);
   }
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: Request) {
-    const userId = (req['user'] as any).sub;
+    const userId = (req['user'] as { sub: string }).sub;
     return this.authService.getUserProfile(userId);
   }
 }
