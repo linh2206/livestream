@@ -79,6 +79,15 @@ export const commonValidationRules = {
     minLength: 3,
     maxLength: 100,
   },
+  streamType: {
+    required: true,
+    custom: (value: string) => {
+      if (value && !['camera', 'screen'].includes(value)) {
+        return 'Stream type must be either "camera" or "screen"';
+      }
+      return undefined;
+    },
+  },
 };
 
 export const useFormValidation = (rules: ValidationRules) => {

@@ -35,7 +35,6 @@ export default function CreateStreamPage() {
     streamType: '', // 'camera' or 'screen'
   });
   const [loading, setLoading] = useState(false);
-  const [showStreamOptions, setShowStreamOptions] = useState(false);
 
   const validationRules = {
     title: commonValidationRules.streamTitle,
@@ -43,7 +42,7 @@ export default function CreateStreamPage() {
     category: commonValidationRules.category,
     tags: commonValidationRules.tags,
     streamKey: commonValidationRules.streamKey,
-    streamType: { required: true },
+    streamType: commonValidationRules.streamType,
   };
 
   const { errors, validateForm, validateSingleField, clearErrors } =
@@ -59,7 +58,7 @@ export default function CreateStreamPage() {
     setLoading(true);
     clearErrors();
 
-    // Validate form
+    // Validate all fields
     if (!validateForm(formData)) {
       setLoading(false);
       const errorMessages = Object.values(errors).filter(Boolean);
@@ -67,13 +66,6 @@ export default function CreateStreamPage() {
         'Validation Error',
         errorMessages.join('. ') || 'Please fix the errors below'
       );
-      return;
-    }
-
-    // If stream key is provided, show stream options
-    if (formData.streamKey && !formData.streamType) {
-      setShowStreamOptions(true);
-      setLoading(false);
       return;
     }
 
@@ -115,7 +107,9 @@ export default function CreateStreamPage() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -166,14 +160,33 @@ export default function CreateStreamPage() {
                   rows={4}
                 />
 
-                <Input
-                  label='Category'
-                  name='category'
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  error={errors.category}
-                  placeholder='e.g., Gaming, Music, Education'
-                />
+                <div className='space-y-2'>
+                  <label className='block text-sm font-medium text-gray-300'>
+                    Category
+                  </label>
+                  <select
+                    name='category'
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className='w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  >
+                    <option value=''>Select category...</option>
+                    <option value='Gaming'>Gaming</option>
+                    <option value='Music'>Music</option>
+                    <option value='Education'>Education</option>
+                    <option value='Entertainment'>Entertainment</option>
+                    <option value='Technology'>Technology</option>
+                    <option value='Sports'>Sports</option>
+                    <option value='News'>News</option>
+                    <option value='Art'>Art</option>
+                    <option value='Cooking'>Cooking</option>
+                    <option value='Travel'>Travel</option>
+                    <option value='Other'>Other</option>
+                  </select>
+                  {errors.category && (
+                    <p className='text-red-500 text-sm'>{errors.category}</p>
+                  )}
+                </div>
 
                 <Input
                   label='Tags (comma-separated)'
@@ -194,96 +207,25 @@ export default function CreateStreamPage() {
                   placeholder='Enter your stream key'
                 />
 
-                {showStreamOptions && (
-                  <div className='space-y-4'>
-                    <h3 className='text-lg font-semibold text-white'>
-                      Choose Stream Type
-                    </h3>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <button
-                        type='button'
-                        onClick={() =>
-                          setFormData({ ...formData, streamType: 'camera' })
-                        }
-                        className={`p-6 border-2 rounded-lg text-left transition-colors ${
-                          formData.streamType === 'camera'
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-gray-600 hover:border-gray-500'
-                        }`}
-                      >
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center'>
-                            <svg
-                              className='w-6 h-6 text-white'
-                              fill='none'
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'
-                              />
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className='font-semibold text-white'>
-                              Camera Stream
-                            </h4>
-                            <p className='text-sm text-gray-400'>
-                              Stream using your webcam
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-
-                      <button
-                        type='button'
-                        onClick={() =>
-                          setFormData({ ...formData, streamType: 'screen' })
-                        }
-                        className={`p-6 border-2 rounded-lg text-left transition-colors ${
-                          formData.streamType === 'screen'
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-gray-600 hover:border-gray-500'
-                        }`}
-                      >
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center'>
-                            <svg
-                              className='w-6 h-6 text-white'
-                              fill='none'
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <h4 className='font-semibold text-white'>
-                              Screen Share
-                            </h4>
-                            <p className='text-sm text-gray-400'>
-                              Share your screen or application
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className='space-y-2'>
+                  <label className='block text-sm font-medium text-gray-300'>
+                    Stream Type *
+                  </label>
+                  <select
+                    name='streamType'
+                    value={formData.streamType}
+                    onChange={handleInputChange}
+                    className='w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    required
+                  >
+                    <option value=''>Select stream type...</option>
+                    <option value='camera'>Camera Stream</option>
+                    <option value='screen'>Screen Share</option>
+                  </select>
+                  {errors.streamType && (
+                    <p className='text-red-500 text-sm'>{errors.streamType}</p>
+                  )}
+                </div>
 
                 <div className='flex gap-4'>
                   <Button
