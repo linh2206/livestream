@@ -69,11 +69,13 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
           // Transform backend format to frontend format and sort by timestamp (oldest first)
           const formattedMessages = history
             .map((msg: unknown) => {
-              const m = msg as { 
-                _id: string; 
-                content: string; 
-                userId: string | { _id: string; username: string; avatar?: string }; 
-                username: string; 
+              const m = msg as {
+                _id: string;
+                content: string;
+                userId:
+                  | string
+                  | { _id: string; username: string; avatar?: string };
+                username: string;
                 timestamp: string;
                 createdAt: string;
                 avatar?: string;
@@ -244,7 +246,9 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
   // NOW conditional returns are safe
   if (!user) {
     return (
-      <div className={`h-[600px] flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}>
+      <div
+        className={`h-[600px] flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}
+      >
         <div className='flex-1 flex items-center justify-center'>
           <div className='text-center text-gray-400'>
             <div className='w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4'></div>

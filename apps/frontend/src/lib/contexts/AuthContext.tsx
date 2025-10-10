@@ -62,7 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       // Only redirect on 401 (unauthorized), not 404 (not found)
-      if (!isPublicRoute && (error as { response?: { status?: number } }).response?.status === 401) {
+      if (
+        !isPublicRoute &&
+        (error as { response?: { status?: number } }).response?.status === 401
+      ) {
         router.push('/login');
       }
     } finally {

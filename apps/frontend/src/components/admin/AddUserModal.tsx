@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { userService } from '@/lib/api/services/user.service';
 import { useToast } from '@/lib/contexts/ToastContext';
+import React, { useState } from 'react';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -101,7 +101,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
       // eslint-disable-next-line no-console
       console.error('Error creating user:', error);
       const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create user';
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Failed to create user';
       showToast({
         type: 'error',
         title: 'Error',
