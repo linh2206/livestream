@@ -9,12 +9,15 @@ import { userService } from '@/lib/api/services/user.service';
 import { User } from '@/lib/api/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { EditUserModal } from '@/components/admin/EditUserModal';
-import { AuthWrapper } from '@/components/auth/AuthWrapper';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
 
 export default function AdminUsersPage() {
   // ALL HOOKS MUST BE AT THE TOP - NEVER AFTER CONDITIONAL RETURNS!
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
+  const { handleError } = useErrorHandler();
+  const authLoading = useAuthGuard({ requireAuth: true });
   const {
     users,
     isLoading: usersLoading,
@@ -75,14 +78,14 @@ export default function AdminUsersPage() {
     );
   }
 
+  // Auth guard check
+  if (authLoading) {
+    return authLoading;
+  }
+
   if (!user || user.role !== 'admin') {
     return (
-      <AuthWrapper
-        requireAdmin={true}
-        loadingText='Loading users...'
-        unauthorizedText='Admin Access Required'
-        className='p-6'
-      >
+      <div className='min-h-screen bg-gray-900 flex items-center justify-center'>
         <div className='text-center'>
           <h1 className='text-2xl font-bold text-red-500 mb-4'>
             Access Denied
@@ -94,7 +97,7 @@ export default function AdminUsersPage() {
             Go to Login
           </Button>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 

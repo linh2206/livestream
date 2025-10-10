@@ -7,20 +7,22 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Loading } from '@/components/ui/Loading';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useRouter } from 'next/navigation';
 import { Plus, Play } from 'lucide-react';
-import { RequireAuth } from '@/components/auth/AuthGuard';
 
 export default function DashboardPage() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  
+  // Auth guard
+  const authLoading = useAuthGuard({ requireAuth: true });
 
-  if (isLoading) {
-    return <Loading fullScreen text='Loading...' />;
+  if (authLoading) {
+    return authLoading;
   }
 
   return (
-    <RequireAuth>
       <div className='min-h-screen bg-gray-900'>
         <Header />
         <div className='flex'>
@@ -101,6 +103,5 @@ export default function DashboardPage() {
           </main>
         </div>
       </div>
-    </RequireAuth>
   );
 }

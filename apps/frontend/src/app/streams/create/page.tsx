@@ -13,13 +13,19 @@ import {
   commonValidationRules,
   useFormValidation,
 } from '@/lib/hooks/useFormValidation';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 export default function CreateStreamPage() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError, showLoading } = useToast();
+  const { handleStreamError } = useErrorHandler();
+  
+  // Auth guard - tự động redirect nếu chưa login
+  const authLoading = useAuthGuard({ requireAuth: true });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -35,23 +41,18 @@ export default function CreateStreamPage() {
   const validationRules = {
     title: commonValidationRules.streamTitle,
     description: commonValidationRules.streamDescription,
-    category: { required: false, maxLength: 50 },
-    tags: { required: false, maxLength: 200 },
-    streamKey: { required: true, minLength: 3, maxLength: 50 },
+    category: commonValidationRules.category,
+    tags: commonValidationRules.tags,
+    streamKey: commonValidationRules.streamKey,
     streamType: { required: true },
   };
 
-  const { errors, validateForm, clearErrors } =
+  const { errors, validateForm, validateSingleField, clearErrors } =
     useFormValidation(validationRules);
 
-  if (isLoading) {
-    return <Loading fullScreen text='Loading...' />;
-  }
-
-  if (!user) {
-    // Redirect to login if not authenticated
-    router.push('/login');
-    return <Loading fullScreen text='Redirecting to login...' />;
+  // Nếu đang check auth, hiển thị loading
+  if (authLoading) {
+    return authLoading;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,9 +63,11 @@ export default function CreateStreamPage() {
     // Validate form
     if (!validateForm(formData)) {
       setLoading(false);
-      showError('Validation Error', 'Please fix the errors below');
+      const errorMessages = Object.values(errors).filter(Boolean);
+      showError('Validation Error', errorMessages.join('. ') || 'Please fix the errors below');
       return;
     }
+
 
     // If stream key is provided, show stream options
     if (formData.streamKey && !formData.streamType) {
@@ -104,33 +107,7 @@ export default function CreateStreamPage() {
         router.push(`/streams/${newStream._id}/stream`);
       }, 2000);
     } catch (err: unknown) {
-      const error = err as {
-        response?: { status: number; data?: { message?: string } };
-      };
-
-      // Handle specific error cases
-      if (error.response?.status === 401) {
-        showError(
-          'Authentication Required',
-          'Please log in again to create streams.'
-        );
-        router.push('/login');
-      } else if (error.response?.status === 404) {
-        showError(
-          'User Not Found',
-          'Your account could not be found. Please log in again.'
-        );
-        router.push('/login');
-      } else if (error.response?.status === 403) {
-        showError(
-          'Access Denied',
-          'You do not have permission to create streams.'
-        );
-      } else {
-        const errorMessage =
-          error.response?.data?.message || 'Failed to create stream';
-        showError('Creation Failed', errorMessage);
-      }
+      handleStreamError(err);
     } finally {
       setLoading(false);
     }
@@ -144,6 +121,9 @@ export default function CreateStreamPage() {
       ...prev,
       [name]: value,
     }));
+    
+    // Real-time validation
+    validateSingleField(name, value);
   };
 
   return (

@@ -1,6 +1,5 @@
 'use client';
 
-import { AuthWrapper } from '@/components/auth/AuthWrapper';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -236,18 +235,14 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
   // NOW conditional returns are safe
   if (!user) {
     return (
-      <AuthWrapper
-        className={`h-[600px] flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}
-        loadingText='Loading chat...'
-        unauthorizedText='Login Required'
-      >
+      <div className={`h-[600px] flex flex-col bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700/50 shadow-2xl ${className}`}>
         <div className='flex-1 flex items-center justify-center'>
           <div className='text-center text-gray-400'>
             <div className='w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4'></div>
-            <p>Loading chat...</p>
+            <p>Please login to use chat</p>
           </div>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
-import { AuthWrapper } from '@/components/auth/AuthWrapper';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
 
 interface SystemStats {
@@ -70,7 +71,9 @@ interface StreamAnalytics {
 
 export default function AdminMonitoringPage() {
   // ALL HOOKS AT TOP - NEVER AFTER CONDITIONAL RETURNS
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { handleError } = useErrorHandler();
+  const authLoading = useAuthGuard({ requireAuth: true });
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
   const [streamAnalytics, setStreamAnalytics] = useState<StreamAnalytics[]>([]);
@@ -80,7 +83,7 @@ export default function AdminMonitoringPage() {
   // useEffect BEFORE conditional returns
   useEffect(() => {
     // Only fetch if authenticated and is admin
-    if (!authLoading && user && user.role === 'admin') {
+    if (user && user.role === 'admin') {
       const fetchData = async () => {
         try {
           const [statsData, usersData, streamsData] = await Promise.all([
@@ -118,14 +121,14 @@ export default function AdminMonitoringPage() {
     );
   }
 
+  // Auth guard check
+  if (authLoading) {
+    return authLoading;
+  }
+
   if (!user || user.role !== 'admin') {
     return (
-      <AuthWrapper
-        requireAdmin={true}
-        loadingText='Loading monitoring...'
-        unauthorizedText='Admin Access Required'
-        className='p-6'
-      >
+      <div className='min-h-screen bg-gray-900 flex items-center justify-center'>
         <div className='text-center'>
           <h1 className='text-2xl font-bold text-red-500 mb-4'>
             Access Denied
@@ -134,7 +137,7 @@ export default function AdminMonitoringPage() {
             You need admin privileges to access this page.
           </p>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 

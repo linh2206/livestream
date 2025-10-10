@@ -1,42 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { userService } from '@/lib/api/services/user.service';
-import { User } from '@/lib/api/types';
-import { Loading } from '@/components/ui/Loading';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Loading } from '@/components/ui/Loading';
+import { userService } from '@/lib/api/services/user.service';
+import { User } from '@/lib/api/types';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: currentUser, isLoading: authLoading } = useAuth();
+  const authLoading = useAuthGuard({ requireAuth: true });
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !currentUser) {
-      router.push('/login');
-      return;
-    }
-
     if (params.id) {
       fetchUser(params.id as string);
     }
-  }, [params.id, currentUser, authLoading, router]);
+  }, [params.id]);
 
   const fetchUser = async (id: string) => {
     try {
       setLoading(true);
       const userData = await userService.getUser(id);
       setUser(userData);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch user');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to fetch user');
     } finally {
       setLoading(false);
     }
@@ -44,10 +41,6 @@ export default function UserProfilePage() {
 
   if (authLoading || loading) {
     return <Loading fullScreen text='Loading...' />;
-  }
-
-  if (!currentUser) {
-    return <Loading fullScreen text='Redirecting to login...' />;
   }
 
   if (error) {

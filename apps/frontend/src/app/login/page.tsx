@@ -1,27 +1,14 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AuthContext';
 import { LoginForm } from '@/components/features/LoginForm';
-import { Loading } from '@/components/ui/Loading';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 
 export default function LoginPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
+  // Auth guard - redirect nếu đã login
+  const authLoading = useAuthGuard({ requireAuth: false });
 
-  useEffect(() => {
-    if (!isLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading) {
-    return <Loading fullScreen text='Loading...' />;
-  }
-
-  if (user) {
-    return <Loading fullScreen text='Redirecting to dashboard...' />;
+  if (authLoading) {
+    return authLoading;
   }
 
   return (

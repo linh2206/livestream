@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 
 // Import all schemas
 import { DatabaseIndexes } from './indexes';
+import { DatabaseOptimization } from './optimization';
 import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
 import { Stream, StreamSchema } from './schemas/stream.schema';
 import { User, UserSchema } from './schemas/user.schema';
@@ -36,5 +37,12 @@ export class DatabaseModule implements OnModuleInit {
       this.vodModel,
       this.chatModel
     );
+
+    // Create optimization indexes
+    await DatabaseOptimization.createAllIndexes({
+      streamModel: this.streamModel,
+      userModel: this.userModel,
+      vodModel: this.vodModel,
+    });
   }
 }

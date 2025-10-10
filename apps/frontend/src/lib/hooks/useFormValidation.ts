@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useCallback } from 'react';
 
 export interface ValidationRule {
@@ -7,7 +5,7 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: string) => string | null;
+    custom?: (value: string) => string | undefined;
 }
 
 export interface ValidationRules {
@@ -15,44 +13,70 @@ export interface ValidationRules {
 }
 
 export interface ValidationErrors {
-  [key: string]: string;
+  [key: string]: string | undefined;
 }
 
-export interface UseFormValidationReturn {
-  errors: ValidationErrors;
-  validateField: (name: string, value: string) => string | null;
-  validateForm: (data: Record<string, string>) => boolean;
-  clearErrors: () => void;
-  clearFieldError: (field: string) => void;
-  hasErrors: boolean;
-}
+export const commonValidationRules = {
+  streamTitle: {
+    required: true,
+    minLength: 3,
+    maxLength: 100,
+  },
+  streamDescription: {
+    required: false,
+    maxLength: 1000,
+  },
+  streamKey: {
+    required: true,
+    minLength: 3,
+    maxLength: 50,
+    pattern: /^[a-zA-Z0-9_-]+$/,
+  },
+  category: {
+    required: false,
+    maxLength: 50,
+  },
+  tags: {
+    required: false,
+    maxLength: 200,
+    custom: (value: string) => {
+      if (!value) return undefined;
+      const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tags.length > 10) return 'Maximum 10 tags allowed';
+      for (const tag of tags) {
+        if (tag.length > 20) return `Tag "${tag}" is too long (max 20 characters)`;
+      }
+      return undefined;
+    },
+  },
+};
 
-export function useFormValidation(
-  rules: ValidationRules
-): UseFormValidationReturn {
+export const useFormValidation = (rules: ValidationRules) => {
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const validateField = useCallback(
-    (name: string, value: string): string | null => {
+    (name: string, value: string): string | undefined => {
       const rule = rules[name];
-      if (!rule) return null;
+      if (!rule) return undefined;
 
       // Required validation
-      if (rule.required && (!value || value.trim() === '')) {
+      if (rule.required && (!value || value.trim().length === 0)) {
         return `${name} is required`;
       }
 
       // Skip other validations if value is empty and not required
-      if (!value || value.trim() === '') return null;
+      if (!value || value.trim().length === 0) {
+        return undefined;
+      }
 
       // Min length validation
       if (rule.minLength && value.length < rule.minLength) {
-        return `${name} must be at least ${rule.minLength} characters`;
+        return `${name} must be at least ${rule.minLength} characters long`;
       }
 
       // Max length validation
       if (rule.maxLength && value.length > rule.maxLength) {
-        return `${name} must be no more than ${rule.maxLength} characters`;
+        return `${name} must be less than ${rule.maxLength} characters`;
       }
 
       // Pattern validation
@@ -65,7 +89,7 @@ export function useFormValidation(
         return rule.custom(value);
       }
 
-      return null;
+      return undefined;
     },
     [rules]
   );
@@ -75,99 +99,51 @@ export function useFormValidation(
       const newErrors: ValidationErrors = {};
       let isValid = true;
 
-      Object.keys(rules).forEach(field => {
-        const error = validateField(field, data[field] || '');
+      for (const [fieldName, value] of Object.entries(data)) {
+        const error = validateField(fieldName, value);
         if (error) {
-          newErrors[field] = error;
+          newErrors[fieldName] = error;
           isValid = false;
         }
-      });
+      }
 
       setErrors(newErrors);
       return isValid;
     },
-    [rules, validateField]
+    [validateField]
+  );
+
+  const validateSingleField = useCallback(
+    (name: string, value: string): boolean => {
+      const error = validateField(name, value);
+      setErrors(prev => ({
+        ...prev,
+        [name]: error,
+      }));
+      return !error;
+    },
+    [validateField]
   );
 
   const clearErrors = useCallback(() => {
     setErrors({});
   }, []);
 
-  const clearFieldError = useCallback((field: string) => {
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[field];
-      return newErrors;
-    });
+  const clearFieldError = useCallback((fieldName: string) => {
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: undefined,
+    }));
   }, []);
+
+  const hasErrors = Object.values(errors).some(error => error !== undefined);
 
   return {
     errors,
-    validateField,
     validateForm,
+    validateSingleField,
     clearErrors,
     clearFieldError,
-    hasErrors: Object.keys(errors).length > 0,
+    hasErrors,
   };
-}
-
-// Common validation rules
-export const commonValidationRules = {
-  username: {
-    required: true,
-    minLength: 3,
-    maxLength: 20,
-    pattern: /^[a-zA-Z0-9_]+$/,
-    custom: (value: string) => {
-      if (value.startsWith('_') || value.endsWith('_')) {
-        return 'Username cannot start or end with underscore';
-      }
-      return null;
-    },
-  },
-  email: {
-    required: true,
-    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  },
-  usernameOrEmail: {
-    required: true,
-    minLength: 3,
-    maxLength: 50,
-    custom: (value: string) => {
-      // Check if it's an email format
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (emailPattern.test(value)) {
-        return null; // Valid email
-      }
-      // Check if it's a valid username
-      const usernamePattern = /^[a-zA-Z0-9_]+$/;
-      if (
-        usernamePattern.test(value) &&
-        value.length >= 3 &&
-        value.length <= 20
-      ) {
-        return null; // Valid username
-      }
-      return 'Please enter a valid email or username';
-    },
-  },
-  password: {
-    required: true,
-    minLength: 6,
-    maxLength: 100,
-  },
-  fullName: {
-    required: false,
-    maxLength: 50,
-    pattern: /^[a-zA-Z\s]+$/,
-  },
-  streamTitle: {
-    required: true,
-    minLength: 3,
-    maxLength: 100,
-  },
-  streamDescription: {
-    required: false,
-    maxLength: 1000,
-  },
 };

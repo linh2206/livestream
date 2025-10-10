@@ -7,6 +7,8 @@ import React from 'react';
 export const Sidebar: React.FC = () => {
   const { user, isAdmin } = useAuth();
 
+  // Don't render sidebar if user is not authenticated
+  // This is handled by the layout/pages that use this component
   if (!user) return null;
 
   return (

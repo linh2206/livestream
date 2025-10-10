@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { AuthWrapper } from '@/components/auth/AuthWrapper';
 import { LoadingWrapper } from '@/components/ui/LoadingWrapper';
 import { apiClient } from '@/lib/api/client';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAnalytics } from '@/lib/hooks/useAnalytics';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
+import React, { useMemo, useState } from 'react';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -32,7 +34,17 @@ interface AnalyticsData {
 
 export default function AdminAnalyticsPage() {
   // ALL HOOKS AT TOP
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { handleError } = useErrorHandler();
+  const authLoading = useAuthGuard({ requireAuth: true });
+
+  // Use real-time analytics hook
+  const {
+    metrics: _metrics,
+    loading: _metricsLoading,
+    error: _metricsError,
+  } = useAnalytics();
+
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +52,7 @@ export default function AdminAnalyticsPage() {
 
   // useEffect BEFORE conditional returns
   React.useEffect(() => {
-    if (!authLoading && user && user.role === 'admin') {
+    if (user && user.role === 'admin') {
       const fetchAnalytics = async () => {
         try {
           // Use existing endpoints instead of non-existent /analytics
@@ -51,17 +63,22 @@ export default function AdminAnalyticsPage() {
 
           // Build analytics from available data
           const analyticsData: AnalyticsData = {
-            totalUsers: (usersData as any).data?.length || 0,
+            totalUsers: (usersData as { data?: unknown[] }).data?.length || 0,
             activeUsers:
-              (usersData as any).data?.filter((u: any) => u.isActive).length ||
-              0,
-            totalStreams: (streamsData as any).data?.length || 0,
+              (
+                usersData as { data?: Array<{ isActive?: boolean }> }
+              ).data?.filter(u => u.isActive).length || 0,
+            totalStreams:
+              (streamsData as { data?: unknown[] }).data?.length || 0,
             activeStreams:
-              (streamsData as any).data?.filter((s: any) => s.isLive).length ||
-              0,
+              (
+                streamsData as { data?: Array<{ isLive?: boolean }> }
+              ).data?.filter(s => s.isLive).length || 0,
             totalViews:
-              (streamsData as any).data?.reduce(
-                (sum: number, s: any) => sum + (s.viewerCount || 0),
+              (
+                streamsData as { data?: Array<{ viewerCount?: number }> }
+              ).data?.reduce(
+                (sum: number, s) => sum + (s.viewerCount || 0),
                 0
               ) || 0,
             totalMessages: 0, // Would need to query chat messages
@@ -73,6 +90,7 @@ export default function AdminAnalyticsPage() {
           setAnalytics(analyticsData);
           setLoading(false);
         } catch (err) {
+          handleError(err);
           setError(err instanceof Error ? err.message : 'An error occurred');
           setLoading(false);
         }
@@ -80,7 +98,7 @@ export default function AdminAnalyticsPage() {
 
       fetchAnalytics();
     }
-  }, [authLoading, user, timeRange]);
+  }, [user, timeRange, handleError]);
 
   const memoizedStats = useMemo(() => {
     if (!analytics) return null;
@@ -113,14 +131,14 @@ export default function AdminAnalyticsPage() {
     );
   }
 
+  // Auth guard check
+  if (authLoading) {
+    return authLoading;
+  }
+
   if (!user || user.role !== 'admin') {
     return (
-      <AuthWrapper
-        requireAdmin={true}
-        loadingText='Loading analytics...'
-        unauthorizedText='Admin Access Required'
-        className='p-6'
-      >
+      <div className='min-h-screen bg-gray-900 flex items-center justify-center'>
         <div className='text-center'>
           <h1 className='text-2xl font-bold text-red-500 mb-4'>
             Access Denied
@@ -129,7 +147,7 @@ export default function AdminAnalyticsPage() {
             You need admin privileges to access this page.
           </p>
         </div>
-      </AuthWrapper>
+      </div>
     );
   }
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { RequireAuth } from '@/components/auth/AuthGuard';
 import { Chat } from '@/components/features/Chat';
 import { VideoPlayer } from '@/components/features/VideoPlayer';
 import { Header } from '@/components/layout/Header';
@@ -12,6 +11,8 @@ import { streamService } from '@/lib/api/services/stream.service';
 import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -19,8 +20,12 @@ export default function StreamDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { handleStreamError } = useErrorHandler();
   const { socket, joinStreamChat, leaveStreamChat, joinStream, leaveStream } =
     useSocketContext();
+    
+  // Auth guard
+  const authLoading = useAuthGuard({ requireAuth: true });
   const [stream, setStream] = useState<Stream | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +51,7 @@ export default function StreamDetailPage() {
       setViewerCount(data.viewerCount || 0);
       setTotalViewerCount(data.totalViewerCount || 0);
     } catch (err) {
-      console.error('Error fetching stream:', err);
+      handleStreamError(err);
       setError('Failed to load stream');
       // Reset state when API fails
       setStream(null);
@@ -179,6 +184,11 @@ export default function StreamDetailPage() {
     }
   };
 
+  // Auth guard check
+  if (authLoading) {
+    return authLoading;
+  }
+
   // TẤT CẢ đều cần auth - kể cả video player
   if (loading) {
     return <Loading fullScreen text='Loading stream...' />;
@@ -211,8 +221,7 @@ export default function StreamDetailPage() {
   }
 
   return (
-    <RequireAuth>
-      <div className='min-h-screen bg-gray-900'>
+    <div className='min-h-screen bg-gray-900'>
         <Header />
         <div className='flex'>
           <Sidebar />
@@ -331,6 +340,5 @@ export default function StreamDetailPage() {
           </main>
         </div>
       </div>
-    </RequireAuth>
   );
 }

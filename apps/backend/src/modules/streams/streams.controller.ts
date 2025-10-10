@@ -12,7 +12,9 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
+import { ValidationException } from '../../shared/exceptions/custom.exceptions';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { ValidationUtil } from '../../shared/utils/validation.util';
 import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 import { StreamStatusService } from './stream-status.service';
 import { StreamsService } from './streams.service';
@@ -29,13 +31,13 @@ export class StreamsController {
   async create(@Body() createStreamDto: CreateStreamDto, @Req() req: Request) {
     return this.streamsService.create(
       createStreamDto,
-      (req['user'] as any).sub
+      (req['user'] as { sub: string }).sub
     );
   }
 
   @Get('create')
   @UseGuards(JwtAuthGuard)
-  async getCreatePage(@Req() req: Request) {
+  async getCreatePage(@Req() _req: Request) {
     // Return empty response for GET /streams/create (frontend route)
     return { message: 'Create stream page' };
   }
@@ -76,7 +78,7 @@ export class StreamsController {
   @Get(':id')
   async findById(@Param('id') id: string, @Req() req: Request) {
     // Get userId from JWT if authenticated, otherwise undefined
-    const userId = (req['user'] as any)?.sub;
+    const userId = (req['user'] as { sub: string } | undefined)?.sub;
     return this.streamsService.findById(id, userId);
   }
 
@@ -90,7 +92,7 @@ export class StreamsController {
     };
     return this.streamsService.create(
       createStreamDto,
-      (req['user'] as any).sub
+      (req['user'] as { sub: string }).sub
     );
   }
 
@@ -104,14 +106,14 @@ export class StreamsController {
     return this.streamsService.update(
       id,
       updateStreamDto,
-      (req['user'] as any).sub
+      (req['user'] as { sub: string }).sub
     );
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async delete(@Param('id') id: string, @Req() req: Request) {
-    await this.streamsService.delete(id, (req['user'] as any).sub);
+    await this.streamsService.delete(id, (req['user'] as { sub: string }).sub);
     return { message: 'Stream deleted successfully' };
   }
 
@@ -128,7 +130,7 @@ export class StreamsController {
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
   async toggleLike(@Param('id') id: string, @Req() req: Request) {
-    const userId = (req['user'] as any).sub;
+    const userId = (req['user'] as { sub: string }).sub;
     return this.streamsService.toggleLike(id, userId);
   }
 
@@ -163,5 +165,20 @@ export class StreamsController {
   async forceSyncStreamStatus(@Param('streamKey') streamKey: string) {
     await this.streamStatusService.forceSyncStreamStatus(streamKey);
     return { message: 'Stream status force synchronized successfully' };
+  }
+
+  // Test endpoint for validation (no auth required)
+  @Post('test-validation')
+  async testValidation(@Body() createStreamDto: CreateStreamDto) {
+    // Test validation without creating actual stream
+    if (createStreamDto.streamKey) {
+      ValidationUtil.validateStreamKey(createStreamDto.streamKey);
+    }
+
+    if (createStreamDto.title && createStreamDto.title.trim().length < 3) {
+      throw new ValidationException('Title must be at least 3 characters long');
+    }
+
+    return { message: 'Validation passed', data: createStreamDto };
   }
 }

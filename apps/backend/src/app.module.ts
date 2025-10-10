@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -22,11 +23,18 @@ import { VodModule } from './modules/vod/vod.module';
 
 import { databaseConfig } from './shared/database/database.config';
 import { DatabaseModule } from './shared/database/database.module';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { RedisModule } from './shared/redis/redis.module';
 import { WebSocketModule } from './shared/websocket/websocket.module';
 
 @Module({
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,

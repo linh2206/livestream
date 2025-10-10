@@ -1,10 +1,12 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import {
+  StreamNotFoundException,
+  UnauthorizedStreamAccessException,
+} from '../../shared/exceptions/custom.exceptions';
+import { DatabaseUtil } from '../../shared/utils/database.util';
+import { ValidationUtil } from '../../shared/utils/validation.util';
 
 import {
   Stream,
@@ -26,19 +28,39 @@ export class StreamsService {
     private vodService: VodService
   ) {}
 
+  // Helper methods to avoid type casting issues
+  private getStreamId(stream: Stream | StreamDocument): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (
+      (stream as any)._id?.toString() || (stream as any).id?.toString() || ''
+    );
+  }
+
+  private getStreamIdForUpdate(stream: Stream | StreamDocument): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (stream as any)._id || (stream as any).id || '';
+  }
+
   async create(
     createStreamDto: CreateStreamDto,
     userId: string
   ): Promise<Stream> {
     // Validate user exists
-    const user = await this.userModel.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
+    await ValidationUtil.validateUserExists(userId, this.userModel);
+
+    // Validate stream key if provided
+    if (createStreamDto.streamKey) {
+      ValidationUtil.validateStreamKey(createStreamDto.streamKey);
+      await ValidationUtil.checkStreamKeyExists(
+        createStreamDto.streamKey,
+        this.streamModel
+      );
     }
 
     // Use provided streamKey or generate a new one
     const streamKey =
-      createStreamDto.streamKey || (await this.generateStreamKey());
+      createStreamDto.streamKey ||
+      (await ValidationUtil.generateUniqueStreamKey(this.streamModel));
 
     const stream = new this.streamModel({
       ...createStreamDto,
@@ -76,7 +98,10 @@ export class StreamsService {
       hasPrev: boolean;
     };
   }> {
-    const skip = (page - 1) * limit;
+    const { skip, limit: queryLimit } = DatabaseUtil.buildPaginationQuery(
+      page,
+      limit
+    );
 
     const [streams, total] = await Promise.all([
       this.streamModel
@@ -104,7 +129,7 @@ export class StreamsService {
         })
         .sort({ isLive: -1, createdAt: -1 }) // Live streams first
         .skip(skip)
-        .limit(limit)
+        .limit(queryLimit)
         .lean() // Use lean for better performance
         .exec(),
       this.streamModel.countDocuments().exec(),
@@ -130,16 +155,18 @@ export class StreamsService {
       vodProcessing: stream.vodProcessing || false,
       user: stream.userId
         ? {
-            _id: (stream.userId as any)._id,
-            username: (stream.userId as any).username || 'Unknown User',
-            avatar: (stream.userId as any).avatar,
+            _id: (stream.userId as unknown as { _id: string })._id,
+            username:
+              (stream.userId as { username?: string }).username ||
+              'Unknown User',
+            avatar: (stream.userId as { avatar?: string }).avatar,
           }
         : {
             _id: null,
             username: 'System',
             avatar: null,
           },
-      createdAt: (stream as any).createdAt,
+      createdAt: (stream as unknown as { createdAt: Date }).createdAt,
       startTime: stream.startTime,
       endTime: stream.endTime,
       // Only include URLs if stream is live
@@ -175,7 +202,7 @@ export class StreamsService {
       .exec();
 
     if (!stream) {
-      throw new NotFoundException('Stream not found');
+      throw new StreamNotFoundException(id);
     }
 
     // Check if current user has liked this stream
@@ -218,7 +245,7 @@ export class StreamsService {
       .exec();
 
     if (!stream) {
-      throw new NotFoundException('Stream not found');
+      throw new StreamNotFoundException(streamKey);
     }
 
     // Ensure stream has proper default values
@@ -241,11 +268,36 @@ export class StreamsService {
   }
 
   async findByStreamId(streamId: string): Promise<Stream | null> {
-    return this.streamModel.findById(streamId).lean();
+    // Try cache first
+    const cacheKey = `stream:${streamId}`;
+    const cached = await this.redisService.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // Fetch from database
+    const stream = await this.streamModel.findById(streamId).lean();
+
+    if (stream) {
+      // Cache for 5 minutes
+      await this.redisService.set(cacheKey, JSON.stringify(stream), 300);
+    }
+
+    return stream;
   }
 
   async findActiveStreams(): Promise<any[]> {
-    return this.streamModel
+    // Try cache first (cache for 30 seconds for live data)
+    const cacheKey = 'active_streams';
+    const cached = await this.redisService.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // Fetch from database
+    const streams = await this.streamModel
       .find(
         { isLive: true, status: 'active' },
         {
@@ -267,6 +319,11 @@ export class StreamsService {
       .limit(20) // Limit to prevent large responses
       .lean()
       .exec();
+
+    // Cache for 30 seconds
+    await this.redisService.set(cacheKey, JSON.stringify(streams), 30);
+
+    return streams;
   }
 
   async findByUserId(userId: string): Promise<Stream[]> {
@@ -285,14 +342,14 @@ export class StreamsService {
     const stream = await this.streamModel.findById(id);
 
     if (!stream) {
-      throw new NotFoundException('Stream not found');
+      throw new StreamNotFoundException(id);
     }
 
     // Check if user owns the stream or is admin
     if (stream.userId.toString() !== userId) {
       const user = await this.userModel.findById(userId);
       if (user.role !== 'admin') {
-        throw new ForbiddenException('You can only update your own streams');
+        throw new UnauthorizedStreamAccessException(id, userId);
       }
     }
 
@@ -311,14 +368,14 @@ export class StreamsService {
     const stream = await this.streamModel.findById(id);
 
     if (!stream) {
-      throw new NotFoundException('Stream not found');
+      throw new StreamNotFoundException(id);
     }
 
     // Check if user owns the stream or is admin
     if (stream.userId.toString() !== userId) {
       const user = await this.userModel.findById(userId);
       if (user.role !== 'admin') {
-        throw new ForbiddenException('You can only delete your own streams');
+        throw new UnauthorizedStreamAccessException(id, userId);
       }
     }
 
@@ -333,15 +390,18 @@ export class StreamsService {
     stream.startTime = new Date();
     stream.viewerCount = 0;
 
-    await this.streamModel.findByIdAndUpdate((stream as any)._id, {
-      isLive: true,
-      status: 'active',
-      startTime: new Date(),
-    });
+    await this.streamModel.findByIdAndUpdate(
+      this.getStreamIdForUpdate(stream),
+      {
+        isLive: true,
+        status: 'active',
+        startTime: new Date(),
+      }
+    );
 
     // Broadcast stream start
-    this.webSocketService.broadcastStreamStart((stream as any)._id.toString(), {
-      id: (stream as any)._id,
+    this.webSocketService.broadcastStreamStart(this.getStreamId(stream), {
+      id: this.getStreamIdForUpdate(stream),
       title: stream.title,
       userId: stream.userId,
       streamKey: stream.streamKey,
@@ -360,24 +420,28 @@ export class StreamsService {
     stream.status = 'ended';
     stream.endTime = new Date();
 
-    await this.streamModel.findByIdAndUpdate((stream as any)._id, {
-      isLive: false,
-      status: 'ended',
-      endTime: new Date(),
-      // Set total viewer count to the peak live viewer count
-      totalViewerCount: Math.max(
-        stream.totalViewerCount || 0,
-        finalViewerCount
-      ),
-    });
+    await this.streamModel.findByIdAndUpdate(
+      this.getStreamIdForUpdate(stream),
+      {
+        isLive: false,
+        status: 'ended',
+        endTime: new Date(),
+        // Set total viewer count to the peak live viewer count
+        totalViewerCount: Math.max(
+          stream.totalViewerCount || 0,
+          finalViewerCount
+        ),
+      }
+    );
 
     // Broadcast stream stop
-    this.webSocketService.broadcastStreamStop((stream as any)._id.toString());
+    this.webSocketService.broadcastStreamStop(this.getStreamId(stream));
 
     // Create VOD record immediately
     try {
-      await this.vodService.createVodRecord((stream as any)._id.toString());
+      await this.vodService.createVodRecord(this.getStreamId(stream));
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to create VOD record:', error);
     }
 
@@ -385,10 +449,9 @@ export class StreamsService {
     // This allows HLS segments to be finalized
     setTimeout(async () => {
       try {
-        await this.vodService.processStreamToVod(
-          (stream as any)._id.toString()
-        );
+        await this.vodService.processStreamToVod(this.getStreamId(stream));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Failed to process VOD:', error);
       }
     }, 5000); // 5 second delay
@@ -424,10 +487,10 @@ export class StreamsService {
     streamId: string,
     userId: string
   ): Promise<{ stream: Stream; isLiked: boolean }> {
-    const stream = await this.streamModel.findById(streamId);
-    if (!stream) {
-      throw new NotFoundException('Stream not found');
-    }
+    const stream = await ValidationUtil.validateStreamExists(
+      streamId,
+      this.streamModel
+    );
 
     const userObjectId = new Types.ObjectId(userId);
     const isCurrentlyLiked = stream.likedBy?.includes(userObjectId) || false;
@@ -487,32 +550,7 @@ export class StreamsService {
       .exec();
   }
 
-  private async generateStreamKey(): Promise<string> {
-    let streamKey: string;
-    let isUnique = false;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    do {
-      const timestamp = Date.now().toString(36);
-      const random = Math.random().toString(36).substring(2, 8);
-      const sessionId = Math.random().toString(36).substring(2, 6);
-      streamKey = `stream_${timestamp}_${random}_${sessionId}`;
-
-      // Check if stream key already exists
-      const existingStream = await this.streamModel.findOne({ streamKey });
-      isUnique = !existingStream;
-      attempts++;
-    } while (!isUnique && attempts < maxAttempts);
-
-    if (!isUnique) {
-      throw new Error(
-        'Failed to generate unique stream key after multiple attempts'
-      );
-    }
-
-    return streamKey;
-  }
+  // Removed - using ValidationUtil.generateUniqueStreamKey instead
 
   async syncStreamStatus(streamKey: string): Promise<void> {
     try {
@@ -532,6 +570,8 @@ export class StreamsService {
 
         if (stream.isLive && !isActuallyLive) {
           // Stream is marked as live but HLS is not available, mark as offline
+          // eslint-disable-next-line no-console
+          // eslint-disable-next-line no-console
           console.log(
             `Stream ${streamKey} marked as live but HLS not available, marking as offline`
           );
@@ -539,22 +579,25 @@ export class StreamsService {
           stream.status = 'ended';
           stream.endTime = new Date();
 
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
-            isLive: false,
-            status: 'ended',
-            endTime: new Date(),
-          });
-
-          // Broadcast stream end to frontend
-          this.webSocketService.broadcastStreamStop(
-            (stream as any)._id.toString()
+          await this.streamModel.findByIdAndUpdate(
+            this.getStreamIdForUpdate(stream),
+            {
+              isLive: false,
+              status: 'ended',
+              endTime: new Date(),
+            }
           );
 
+          // Broadcast stream end to frontend
+          this.webSocketService.broadcastStreamStop(this.getStreamId(stream));
+
+          // eslint-disable-next-line no-console
           console.log(
             `Stream status synchronized - marked as offline: ${streamKey}`
           );
         } else if (!stream.isLive && isActuallyLive) {
           // Stream is marked as offline but HLS is available, mark as live
+          // eslint-disable-next-line no-console
           console.log(
             `Stream ${streamKey} marked as offline but HLS available, marking as live`
           );
@@ -562,50 +605,55 @@ export class StreamsService {
           stream.status = 'active';
           stream.startTime = stream.startTime || new Date();
 
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
-            isLive: true,
-            status: 'active',
-            startTime: stream.startTime || new Date(),
-          });
-
-          // Broadcast stream start to frontend
-          this.webSocketService.broadcastStreamStart(
-            (stream as any)._id.toString(),
+          await this.streamModel.findByIdAndUpdate(
+            this.getStreamIdForUpdate(stream),
             {
-              id: (stream as any)._id,
-              title: stream.title,
-              userId: stream.userId,
-              streamKey: stream.streamKey,
+              isLive: true,
+              status: 'active',
+              startTime: stream.startTime || new Date(),
             }
           );
 
+          // Broadcast stream start to frontend
+          this.webSocketService.broadcastStreamStart(this.getStreamId(stream), {
+            id: this.getStreamIdForUpdate(stream),
+            title: stream.title,
+            userId: stream.userId,
+            streamKey: stream.streamKey,
+          });
+
+          // eslint-disable-next-line no-console
           console.log(
             `Stream status synchronized - marked as live: ${streamKey}`
           );
         } else {
+          // eslint-disable-next-line no-console
           console.log(`Stream ${streamKey} status is already correct`);
         }
       } catch (error) {
         // If we can't check HLS, assume stream is offline if it's marked as live
         if (stream.isLive) {
+          // eslint-disable-next-line no-console
           console.log(`Cannot check HLS for ${streamKey}, marking as offline`);
           stream.isLive = false;
           stream.status = 'ended';
           stream.endTime = new Date();
 
-          await this.streamModel.findByIdAndUpdate((stream as any)._id, {
-            isLive: false,
-            status: 'ended',
-            endTime: new Date(),
-          });
+          await this.streamModel.findByIdAndUpdate(
+            this.getStreamIdForUpdate(stream),
+            {
+              isLive: false,
+              status: 'ended',
+              endTime: new Date(),
+            }
+          );
 
           // Broadcast stream end to frontend
-          this.webSocketService.broadcastStreamStop(
-            (stream as any)._id.toString()
-          );
+          this.webSocketService.broadcastStreamStop(this.getStreamId(stream));
         }
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`Error syncing stream status for ${streamKey}:`, error);
       throw error;
     }
