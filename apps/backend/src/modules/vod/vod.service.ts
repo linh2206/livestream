@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import * as path from 'path';
 import { promisify } from 'util';
 import { Stream } from '../../shared/database/schemas/stream.schema';
+import { Vod } from '../../shared/database/schemas/vod.schema';
 
 const exec = promisify(require('child_process').exec);
 
@@ -13,7 +14,10 @@ const exec = promisify(require('child_process').exec);
 export class VodService {
   private readonly logger = new Logger(VodService.name);
 
-  constructor(@InjectModel(Stream.name) private streamModel: Model<Stream>) {}
+  constructor(
+    @InjectModel(Stream.name) private streamModel: Model<Stream>,
+    @InjectModel(Vod.name) private vodModel: Model<Vod>
+  ) {}
 
   async processStreamToVod(streamId: string): Promise<void> {
     try {
@@ -83,6 +87,32 @@ export class VodService {
       const thumbnailCommand = `ffmpeg -i "${outputPath}" -ss 00:00:10 -vframes 1 "${thumbnailPath}"`;
       await exec(thumbnailCommand);
 
+      // Create separate VOD record
+      const vodRecord = new this.vodModel({
+        title: stream.title,
+        description: stream.description,
+        userId: stream.userId,
+        vodUrl: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}.mp4`,
+        vodDuration: duration,
+        vodFileSize: stats.size,
+        vodThumbnail: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}_thumbnail.jpg`,
+        tags: stream.tags || [],
+        category: (stream as any).category,
+        viewerCount: stream.viewerCount || 0,
+        totalViewerCount: stream.totalViewerCount || 0,
+        likeCount: stream.likeCount || 0,
+        likedBy: stream.likedBy || [],
+        isPublic: stream.isPublic,
+        allowedViewers: stream.allowedViewers || [],
+        requiresAuth: stream.requiresAuth,
+        originalStreamKey: stream.streamKey,
+        originalStreamId: stream._id.toString(),
+        startTime: stream.startTime,
+        endTime: stream.endTime,
+      });
+
+      await vodRecord.save();
+
       // Update stream with VOD information
       await this.streamModel.findByIdAndUpdate(streamId, {
         isVod: true,
@@ -123,8 +153,6 @@ export class VodService {
     category?: string
   ) {
     const query: Record<string, unknown> = {
-      isVod: true,
-      vodProcessingStatus: 'completed',
       isPublic: true, // Only show public VODs in general list
     };
 
@@ -139,17 +167,17 @@ export class VodService {
     const skip = (page - 1) * limit;
 
     const [vods, total] = await Promise.all([
-      this.streamModel
+      this.vodModel
         .find(query)
         .populate('userId', 'username avatar fullName')
         .select(
-          'title description thumbnail vodUrl vodDuration vodFileSize vodThumbnail tags startTime endTime viewerCount totalViewerCount likeCount userId createdAt'
+          'title description vodUrl vodDuration vodFileSize vodThumbnail category tags startTime endTime viewerCount totalViewerCount likeCount userId createdAt'
         )
         .sort({ endTime: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      this.streamModel.countDocuments(query),
+      this.vodModel.countDocuments(query),
     ]);
 
     // Format VOD data for frontend
@@ -157,19 +185,19 @@ export class VodService {
       _id: vod._id,
       title: vod.title,
       description: vod.description,
-      thumbnail: vod.vodThumbnail || vod.thumbnail,
+      thumbnail: vod.vodThumbnail,
       vodUrl: vod.vodUrl,
       duration: vod.vodDuration,
       fileSize: vod.vodFileSize,
-      // category: vod.category, // Removed - not in schema
-      tags: vod.tags,
+      category: vod.category,
+      tags: vod.tags || [],
       startTime: vod.startTime,
       endTime: vod.endTime,
-      viewerCount: vod.viewerCount,
-      totalViewerCount: vod.totalViewerCount,
-      likeCount: vod.likeCount,
+      viewerCount: vod.viewerCount || 0,
+      totalViewerCount: vod.totalViewerCount || 0,
+      likeCount: vod.likeCount || 0,
       user: vod.userId,
-      // createdAt: vod.createdAt, // Removed - not in select
+      createdAt: (vod as any).createdAt,
       // Calculate duration in human readable format
       durationFormatted: this.formatDuration(vod.vodDuration),
       // Calculate file size in human readable format
@@ -211,16 +239,15 @@ export class VodService {
   }
 
   async getVodById(vodId: string) {
-    return this.streamModel
-      .findOne({ _id: vodId, isVod: true })
+    return this.vodModel
+      .findOne({ _id: vodId })
       .populate('userId', 'username avatar')
       .lean();
   }
 
   async deleteVod(vodId: string, userId: string) {
-    const vod = await this.streamModel.findOne({
+    const vod = await this.vodModel.findOne({
       _id: vodId,
-      isVod: true,
       userId: userId,
     });
 
@@ -231,22 +258,13 @@ export class VodService {
     // Delete VOD files - extract date from vodUrl
     const vodUrlParts = vod.vodUrl.split('/');
     const date = vodUrlParts[vodUrlParts.length - 2]; // Get date from URL
-    const vodDir = path.join(process.cwd(), 'vod', vod.streamKey, date);
+    const vodDir = path.join(process.cwd(), 'vod', vod.originalStreamKey, date);
     if (fs.existsSync(vodDir)) {
       fs.rmSync(vodDir, { recursive: true, force: true });
     }
 
-    // Update stream to remove VOD
-    await this.streamModel.findByIdAndUpdate(vodId, {
-      isVod: false,
-      vodUrl: null,
-      vodDuration: null,
-      vodFileSize: null,
-      vodThumbnail: null,
-      vodProcessing: false,
-      vodProcessingStatus: null,
-      vodProcessingError: null,
-    });
+    // Delete VOD record
+    await this.vodModel.findByIdAndDelete(vodId);
 
     return { message: 'VOD deleted successfully' };
   }

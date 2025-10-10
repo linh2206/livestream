@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
+import { WebSocketModule } from '../../shared/websocket/websocket.module';
 import { AlertsController } from './alerts.controller';
 import { WebhookService } from './webhook.service';
-import { WebSocketModule } from '../../shared/websocket/websocket.module';
 
 @Module({
   imports: [WebSocketModule],

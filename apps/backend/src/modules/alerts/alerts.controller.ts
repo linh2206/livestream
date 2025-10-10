@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 
 @Controller('alerts')

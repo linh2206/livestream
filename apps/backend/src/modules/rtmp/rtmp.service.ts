@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import * as fs from 'fs';
+import { Model } from 'mongoose';
 import * as path from 'path';
 
 import {
@@ -79,13 +79,6 @@ export class RtmpService {
         return;
       }
 
-      // Update stream status
-      stream.isLive = false;
-      stream.status = 'ended';
-      stream.endTime = new Date();
-
-      await stream.save();
-
       // Remove from Redis
       await this.redisService.del(`stream:${streamKey}:status`);
       await this.redisService.del(`stream:${streamKey}:start_time`);
@@ -97,18 +90,43 @@ export class RtmpService {
         timestamp: new Date(),
       });
 
-      // Auto-delete stream after 5 minutes if it's not a user-created stream
-      if (!stream.userId) {
-        setTimeout(
-          async () => {
-            try {
-              await this.deleteOfflineStream(streamKey);
-            } catch (error) {}
-          },
-          5 * 60 * 1000
-        ); // 5 minutes
+      // If stream has VOD, keep the VOD but delete the stream
+      if (stream.isVod && stream.vodUrl) {
+        console.log(
+          `Stream ${streamKey} has VOD, keeping VOD and deleting stream`
+        );
+
+        // Delete the stream from database but keep VOD files
+        await this.streamModel.findByIdAndDelete(stream._id);
+
+        // Clean up HLS files
+        const hlsDir = path.join('/app', 'hls', streamKey);
+        if (fs.existsSync(hlsDir)) {
+          fs.rmSync(hlsDir, { recursive: true, force: true });
+          console.log(`Cleaned up HLS files for stream: ${streamKey}`);
+        }
+      } else {
+        // No VOD, just mark as ended
+        stream.isLive = false;
+        stream.status = 'ended';
+        stream.endTime = new Date();
+        await stream.save();
+
+        // Auto-delete stream after 5 minutes if it's not a user-created stream
+        if (!stream.userId) {
+          setTimeout(
+            async () => {
+              try {
+                await this.deleteOfflineStream(streamKey);
+              } catch (error) {}
+            },
+            5 * 60 * 1000
+          ); // 5 minutes
+        }
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(`Error in onPublishDone for ${streamKey}:`, error);
+    }
   }
 
   async onPlay(streamKey: string): Promise<void> {

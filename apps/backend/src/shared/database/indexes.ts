@@ -5,6 +5,7 @@ export class DatabaseIndexes {
   static async createIndexes(
     userModel: Model<any>,
     streamModel: Model<any>,
+    vodModel: Model<any>,
     chatModel: Model<any>
   ) {
     try {
@@ -35,6 +36,24 @@ export class DatabaseIndexes {
       });
       await streamModel.collection.createIndex({ userId: 1, isLive: 1 });
       await streamModel.collection.createIndex({ status: 1, viewerCount: -1 });
+
+      // VOD indexes
+      await vodModel.collection.createIndex({ userId: 1 });
+      await vodModel.collection.createIndex({ isPublic: 1, createdAt: -1 });
+      await vodModel.collection.createIndex({ category: 1 });
+      await vodModel.collection.createIndex({ viewerCount: -1 });
+      await vodModel.collection.createIndex({ likeCount: -1 });
+      await vodModel.collection.createIndex({ endTime: -1 });
+      await vodModel.collection.createIndex({ originalStreamKey: 1 });
+      await vodModel.collection.createIndex({ originalStreamId: 1 });
+
+      // Compound indexes for VOD
+      await vodModel.collection.createIndex({ userId: 1, isPublic: 1 });
+      await vodModel.collection.createIndex({
+        category: 1,
+        isPublic: 1,
+        endTime: -1,
+      });
 
       // Chat message indexes
       await chatModel.collection.createIndex({ streamId: 1, createdAt: -1 });

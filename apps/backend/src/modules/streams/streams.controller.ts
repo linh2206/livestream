@@ -1,24 +1,28 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
-  Delete,
-  Body,
-  Param,
   Query,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 
-import { StreamsService } from './streams.service';
-import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
+import { StreamStatusService } from './stream-status.service';
+import { StreamsService } from './streams.service';
 
 @Controller('streams')
 export class StreamsController {
-  constructor(private streamsService: StreamsService) {}
+  constructor(
+    private streamsService: StreamsService,
+    private streamStatusService: StreamStatusService
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -141,5 +145,11 @@ export class StreamsController {
   async syncStreamStatus(@Param('streamKey') streamKey: string) {
     await this.streamsService.syncStreamStatus(streamKey);
     return { message: 'Stream status synchronized successfully' };
+  }
+
+  @Post('force-sync/:streamKey')
+  async forceSyncStreamStatus(@Param('streamKey') streamKey: string) {
+    await this.streamStatusService.forceSyncStreamStatus(streamKey);
+    return { message: 'Stream status force synchronized successfully' };
   }
 }

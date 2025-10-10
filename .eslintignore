@@ -1,0 +1,49 @@
+# Ignore config files that are managed by Docker/monitoring tools
+config/
+*.yml
+*.yaml
+*.json
+
+# Ignore generated files
+dist/
+build/
+.next/
+out/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore environment files
+.env*
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Ignore media files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.flv
+*.wmv
+*.m4v
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Ignore database files
+*.db
+*.sqlite
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

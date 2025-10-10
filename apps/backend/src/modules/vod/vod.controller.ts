@@ -21,7 +21,6 @@ export class VodController {
   constructor(private readonly vodService: VodService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   async getVodList(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
@@ -54,7 +53,6 @@ export class VodController {
   }
 
   @Get('serve/:streamKey/:date/:filename')
-  @UseGuards(JwtAuthGuard)
   async serveVodFile(
     @Param('streamKey') streamKey: string,
     @Param('date') date: string,
@@ -87,6 +85,6 @@ export class VodController {
       throw new Error('VOD not found');
     }
 
-    return this.vodService.deleteVod(id, vod.userId.toString());
+    return this.vodService.deleteVod(id, vod.userId._id.toString());
   }
 }

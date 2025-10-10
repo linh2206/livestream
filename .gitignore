@@ -156,3 +156,9 @@ segments.txt
 *.processing
 *.lock
 
+# Config files that are auto-generated or managed by Docker
+config/grafana/dashboards/*.json
+config/grafana/alerting.yml
+config/prometheus/alerts.yml
+config/prometheus/prometheus.yml
+
