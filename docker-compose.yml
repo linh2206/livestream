@@ -54,6 +54,7 @@ services:
     volumes:
       - hls_data:/app/hls
       - recordings_data:/app/recordings
+      - vod_data:/app/vod
     environment:
       - NODE_ENV=production
       - PORT=${PORT:-9000}
@@ -275,6 +276,7 @@ volumes:
   redis_data:
   hls_data:
   recordings_data:
+  vod_data:
   prometheus_data:
   grafana_data:
 
