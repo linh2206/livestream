@@ -125,6 +125,7 @@ export class MetricsService {
       try {
         await this.updateMetrics();
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Error updating metrics:', error);
       }
     }, 30000);

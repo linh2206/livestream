@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Post,
   Query,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
 import { CreateChatMessageDto } from './dto/chat.dto';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 
 @Controller('chat')
 export class ChatController {
@@ -71,7 +71,10 @@ export class ChatController {
     @Param('messageId') messageId: string,
     @Req() req: Request
   ) {
-    await this.chatService.deleteMessage(messageId, (req['user'] as any).sub);
+    await this.chatService.deleteMessage(
+      messageId,
+      (req['user'] as { sub: string }).sub
+    );
     return { message: 'Message deleted successfully' };
   }
 }

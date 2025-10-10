@@ -22,6 +22,7 @@ export class HlsController {
     @Res() res: Response
   ) {
     try {
+      // eslint-disable-next-line no-console
       console.log(
         `🎥 [HLS Controller] Serving segment: ${filename} for stream: ${streamKey}`
       );
@@ -35,6 +36,7 @@ export class HlsController {
       const segmentPath = join('/app', 'hls', streamKey, filename);
 
       if (!existsSync(segmentPath)) {
+        // eslint-disable-next-line no-console
         console.log(`❌ [HLS Controller] Segment not found: ${segmentPath}`);
         throw new StreamNotFoundException('Segment not found');
       }
@@ -64,6 +66,7 @@ export class HlsController {
         throw error;
       }
 
+      // eslint-disable-next-line no-console
       console.error(
         `❌ [HLS Controller] Error serving segment ${filename} for ${streamKey}:`,
         error
@@ -80,6 +83,7 @@ export class HlsController {
   ) {
     try {
       if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
         console.log(`🎬 [HLS] Playlist request for stream: ${streamKey}`);
       }
 
@@ -94,6 +98,7 @@ export class HlsController {
       // Check if HLS file exists first
       if (!existsSync(playlistPath)) {
         if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
           console.log(`❌ [HLS] File not found: ${playlistPath}`);
         }
         throw new StreamOfflineException('Stream is currently offline');
@@ -133,9 +138,11 @@ export class HlsController {
       playlistContent = modifiedLines.join('\n');
 
       if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
         console.log(
           `📝 [HLS] Original: ${originalContent.replace(/\n/g, '\\n')}`
         );
+        // eslint-disable-next-line no-console
         console.log(
           `📝 [HLS] Modified: ${playlistContent.replace(/\n/g, '\\n')}`
         );
@@ -147,6 +154,7 @@ export class HlsController {
         throw error;
       }
 
+      // eslint-disable-next-line no-console
       console.error(
         `❌ [HLS Controller] Error serving playlist for ${streamKey}:`,
         error
