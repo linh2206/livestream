@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
-import { useStreamsList } from '@/lib/hooks/useStreamsList';
 import { Stream } from '@/lib/api/types';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { useStreamsList } from '@/lib/hooks/useStreamsList';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 export const StreamList: React.FC = () => {
   const { streams, isLoading, error, syncStreamStatus, mutate } =

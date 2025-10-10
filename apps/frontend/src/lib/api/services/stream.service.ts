@@ -75,6 +75,14 @@ class StreamService {
   async checkStreamOffline(streamKey: string): Promise<ApiResponse> {
     return apiClient.post<ApiResponse>(`/rtmp/check-offline/${streamKey}`);
   }
+
+  async updateViewerCount(streamKey: string, count: number): Promise<ApiResponse> {
+    return apiClient.put<ApiResponse>(`/streams/viewer-count/${streamKey}`, { count });
+  }
+
+  async updateViewerCountById(id: string, count: number): Promise<ApiResponse> {
+    return apiClient.put<ApiResponse>(`/streams/viewer-count-by-id/${id}`, { count });
+  }
 }
 
 export const streamService = new StreamService();

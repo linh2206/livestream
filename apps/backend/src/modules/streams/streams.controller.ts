@@ -141,6 +141,18 @@ export class StreamsController {
     return { message: 'Viewer count updated successfully' };
   }
 
+  @Put('viewer-count-by-id/:id')
+  async updateViewerCountById(
+    @Param('id') id: string,
+    @Body('count') count: number
+  ) {
+    const stream = await this.streamsService.findById(id);
+    if (stream) {
+      await this.streamsService.updateViewerCount(stream.streamKey, count);
+    }
+    return { message: 'Viewer count updated successfully' };
+  }
+
   @Post('sync-status/:streamKey')
   async syncStreamStatus(@Param('streamKey') streamKey: string) {
     await this.streamsService.syncStreamStatus(streamKey);

@@ -488,7 +488,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         {/* Live indicator for live streams */}
         {shouldShowLive && isLive && (
           <div className='absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center space-x-1'>
-            <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
             <span>LIVE</span>
           </div>
         )}
