@@ -48,6 +48,12 @@ export default function StreamDetailPage() {
     } catch (err) {
       console.error('Error fetching stream:', err);
       setError('Failed to load stream');
+      // Reset state when API fails
+      setStream(null);
+      setViewerCount(0);
+      setTotalViewerCount(0);
+      setIsLiked(false);
+      setVodProcessing(false);
     } finally {
       setLoading(false);
     }
