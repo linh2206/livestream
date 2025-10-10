@@ -1,5 +1,5 @@
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/contexts/ToastContext';
+import { useRouter } from 'next/navigation';
 
 interface ApiError {
   message?: string;
@@ -28,18 +28,20 @@ export const useErrorHandler = () => {
   const handleError = (error: unknown, customConfig?: ErrorConfig) => {
     // eslint-disable-next-line no-console
     console.error('API Error:', error);
-    
+
     const apiError = error as ApiError;
     const config = customConfig || {};
-    
+
     let errorTitle = config.title || 'Error';
     let errorMessage = config.message || 'An unexpected error occurred';
     let shouldRedirect = false;
     let redirectPath = config.redirectTo;
-    
+
     if (apiError.response?.status === 400) {
       errorTitle = 'Validation Error';
-      errorMessage = apiError.response.data?.message || 'Please check your input and try again';
+      errorMessage =
+        apiError.response.data?.message ||
+        'Please check your input and try again';
     } else if (apiError.response?.status === 401) {
       errorTitle = 'Authentication Required';
       errorMessage = 'Please log in again to continue';
@@ -50,30 +52,36 @@ export const useErrorHandler = () => {
       errorMessage = 'You do not have permission to perform this action';
     } else if (apiError.response?.status === 404) {
       errorTitle = 'Not Found';
-      errorMessage = apiError.response.data?.message || 'The requested resource was not found';
+      errorMessage =
+        apiError.response.data?.message ||
+        'The requested resource was not found';
     } else if (apiError.response?.status === 409) {
       errorTitle = 'Conflict Error';
-      errorMessage = apiError.response.data?.message || 'This resource already exists';
+      errorMessage =
+        apiError.response.data?.message || 'This resource already exists';
     } else if (apiError.response?.status && apiError.response.status >= 500) {
       errorTitle = 'Server Error';
-      errorMessage = 'Server is temporarily unavailable. Please try again later';
+      errorMessage =
+        'Server is temporarily unavailable. Please try again later';
     } else if (apiError.code === 'NETWORK_ERROR' || !apiError.response) {
       errorTitle = 'Connection Error';
-      errorMessage = 'Cannot connect to server. Please check your internet connection';
+      errorMessage =
+        'Cannot connect to server. Please check your internet connection';
     } else {
-      errorMessage = apiError.response?.data?.message || apiError.message || errorMessage;
+      errorMessage =
+        apiError.response?.data?.message || apiError.message || errorMessage;
     }
-    
+
     // Show error toast if enabled (default: true)
     if (config.showToast !== false) {
       showError(errorTitle, errorMessage);
     }
-    
+
     // Redirect if needed
     if (shouldRedirect && redirectPath) {
       router.push(redirectPath);
     }
-    
+
     return {
       title: errorTitle,
       message: errorMessage,
@@ -86,7 +94,7 @@ export const useErrorHandler = () => {
   const handleStreamError = (error: unknown) => {
     return handleError(error, {
       title: 'Stream Error',
-      message: 'Failed to process stream request'
+      message: 'Failed to process stream request',
     });
   };
 
@@ -94,14 +102,14 @@ export const useErrorHandler = () => {
     return handleError(error, {
       title: 'Authentication Error',
       message: 'Please log in again',
-      redirectTo: '/login'
+      redirectTo: '/login',
     });
   };
 
   const handleValidationError = (error: unknown) => {
     return handleError(error, {
       title: 'Validation Error',
-      message: 'Please check your input and try again'
+      message: 'Please check your input and try again',
     });
   };
 
@@ -109,6 +117,6 @@ export const useErrorHandler = () => {
     handleError,
     handleStreamError,
     handleAuthError,
-    handleValidationError
+    handleValidationError,
   };
 };

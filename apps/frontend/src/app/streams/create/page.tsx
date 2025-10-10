@@ -5,16 +5,15 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Loading } from '@/components/ui/Loading';
 import { streamService } from '@/lib/api/services/stream.service';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useToast } from '@/lib/contexts/ToastContext';
+import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import {
   commonValidationRules,
   useFormValidation,
 } from '@/lib/hooks/useFormValidation';
-import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
-import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -23,7 +22,7 @@ export default function CreateStreamPage() {
   const router = useRouter();
   const { showSuccess, showError, showLoading } = useToast();
   const { handleStreamError } = useErrorHandler();
-  
+
   // Auth guard - tự động redirect nếu chưa login
   const authLoading = useAuthGuard({ requireAuth: true });
 
@@ -64,10 +63,12 @@ export default function CreateStreamPage() {
     if (!validateForm(formData)) {
       setLoading(false);
       const errorMessages = Object.values(errors).filter(Boolean);
-      showError('Validation Error', errorMessages.join('. ') || 'Please fix the errors below');
+      showError(
+        'Validation Error',
+        errorMessages.join('. ') || 'Please fix the errors below'
+      );
       return;
     }
-
 
     // If stream key is provided, show stream options
     if (formData.streamKey && !formData.streamType) {
@@ -121,7 +122,7 @@ export default function CreateStreamPage() {
       ...prev,
       [name]: value,
     }));
-    
+
     // Real-time validation
     validateSingleField(name, value);
   };

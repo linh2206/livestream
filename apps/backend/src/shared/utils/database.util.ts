@@ -1,4 +1,4 @@
-import { Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 export class DatabaseUtil {
   /**
@@ -22,7 +22,11 @@ export class DatabaseUtil {
   /**
    * Build search query for streams
    */
-  static buildStreamSearchQuery(searchTerm?: string, category?: string, tags?: string[]) {
+  static buildStreamSearchQuery(
+    searchTerm?: string,
+    category?: string,
+    tags?: string[]
+  ) {
     const query: any = {};
 
     if (searchTerm) {
@@ -48,7 +52,7 @@ export class DatabaseUtil {
    */
   static buildSortOptions(sortBy?: string, sortOrder?: 'asc' | 'desc') {
     const sort: any = {};
-    
+
     switch (sortBy) {
       case 'title':
         sort.title = sortOrder === 'desc' ? -1 : 1;
@@ -77,26 +81,24 @@ export class DatabaseUtil {
 
     if (userId) {
       pipeline.push({
-        $match: { userId: new Types.ObjectId(userId) }
+        $match: { userId: new Types.ObjectId(userId) },
       });
     }
 
-    pipeline.push(
-      {
-        $group: {
-          _id: null,
-          totalStreams: { $sum: 1 },
-          totalViews: { $sum: '$viewerCount' },
-          totalLikes: { $sum: '$likeCount' },
-          averageViewerCount: { $avg: '$viewerCount' },
-          activeStreams: {
-            $sum: {
-              $cond: [{ $eq: ['$status', 'live'] }, 1, 0]
-            }
-          }
-        }
-      }
-    );
+    pipeline.push({
+      $group: {
+        _id: null,
+        totalStreams: { $sum: 1 },
+        totalViews: { $sum: '$viewerCount' },
+        totalLikes: { $sum: '$likeCount' },
+        averageViewerCount: { $avg: '$viewerCount' },
+        activeStreams: {
+          $sum: {
+            $cond: [{ $eq: ['$status', 'live'] }, 1, 0],
+          },
+        },
+      },
+    });
 
     return pipeline;
   }

@@ -11,8 +11,8 @@ import { streamService } from '@/lib/api/services/stream.service';
 import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
-import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -23,7 +23,7 @@ export default function StreamDetailPage() {
   const { handleStreamError } = useErrorHandler();
   const { socket, joinStreamChat, leaveStreamChat, joinStream, leaveStream } =
     useSocketContext();
-    
+
   // Auth guard
   const authLoading = useAuthGuard({ requireAuth: true });
   const [stream, setStream] = useState<Stream | null>(null);
@@ -222,123 +222,123 @@ export default function StreamDetailPage() {
 
   return (
     <div className='min-h-screen bg-gray-900'>
-        <Header />
-        <div className='flex'>
-          <Sidebar />
-          <main className='flex-1 p-6'>
-            <div className='max-w-7xl mx-auto'>
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-                {/* Video Player */}
-                <div className='lg:col-span-2'>
-                  <Card>
-                    <VideoPlayer
-                      streamKey={stream.streamKey}
-                      hlsUrl={stream.hlsUrl}
-                      className='aspect-video'
-                      autoPlay
-                      muted={false}
-                      controls
-                      vodUrl={stream.vodUrl}
-                      isVod={stream.isVod}
-                      isLive={stream.isLive}
-                      vodProcessing={stream.vodProcessing}
-                      vodProcessingStatus={stream.vodProcessingStatus}
-                    />
+      <Header />
+      <div className='flex'>
+        <Sidebar />
+        <main className='flex-1 p-6'>
+          <div className='max-w-7xl mx-auto'>
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+              {/* Video Player */}
+              <div className='lg:col-span-2'>
+                <Card>
+                  <VideoPlayer
+                    streamKey={stream.streamKey}
+                    hlsUrl={stream.hlsUrl}
+                    className='aspect-video'
+                    autoPlay
+                    muted={false}
+                    controls
+                    vodUrl={stream.vodUrl}
+                    isVod={stream.isVod}
+                    isLive={stream.isLive}
+                    vodProcessing={stream.vodProcessing}
+                    vodProcessingStatus={stream.vodProcessingStatus}
+                  />
 
-                    <div className='mt-4'>
-                      <h1 className='text-2xl font-bold text-white mb-2'>
-                        {stream.title}
-                      </h1>
-                      <p className='text-gray-300 mb-4'>{stream.description}</p>
+                  <div className='mt-4'>
+                    <h1 className='text-2xl font-bold text-white mb-2'>
+                      {stream.title}
+                    </h1>
+                    <p className='text-gray-300 mb-4'>{stream.description}</p>
 
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center space-x-4'>
-                          <div className='flex items-center space-x-2'>
-                            <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg'>
-                              <span className='text-white font-bold text-sm'>
-                                {stream.user?.username?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <span className='text-white font-medium'>
-                              {stream.user?.username}
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center space-x-4'>
+                        <div className='flex items-center space-x-2'>
+                          <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg'>
+                            <span className='text-white font-bold text-sm'>
+                              {stream.user?.username?.charAt(0).toUpperCase()}
                             </span>
                           </div>
-
-                          <div className='flex items-center space-x-2 text-gray-400'>
-                            <svg
-                              className='w-4 h-4'
-                              fill='currentColor'
-                              viewBox='0 0 20 20'
-                            >
-                              <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
-                              <path
-                                fillRule='evenodd'
-                                d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
-                                clipRule='evenodd'
-                              />
-                            </svg>
-                            <span>
-                              {stream?.isLive ? (
-                                <>
-                                  {viewerCount} watching now
-                                  {totalViewerCount > viewerCount && (
-                                    <span className='text-gray-500 ml-1'>
-                                      ({totalViewerCount} total)
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  {totalViewerCount} total views
-                                  {viewerCount > 0 && (
-                                    <span className='text-gray-500 ml-1'>
-                                      ({viewerCount} watching VOD)
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </span>
-                          </div>
+                          <span className='text-white font-medium'>
+                            {stream.user?.username}
+                          </span>
                         </div>
 
-                        <div className='flex items-center space-x-2'>
-                          <button
-                            onClick={handleLike}
-                            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                              isLiked
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border border-gray-600'
-                            }`}
+                        <div className='flex items-center space-x-2 text-gray-400'>
+                          <svg
+                            className='w-4 h-4'
+                            fill='currentColor'
+                            viewBox='0 0 20 20'
                           >
-                            <svg
-                              className='w-4 h-4'
-                              fill={isLiked ? 'currentColor' : 'none'}
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
-                              />
-                            </svg>
-                            <span>{stream.likeCount || 0}</span>
-                          </button>
+                            <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
+                            <path
+                              fillRule='evenodd'
+                              d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
+                              clipRule='evenodd'
+                            />
+                          </svg>
+                          <span>
+                            {stream?.isLive ? (
+                              <>
+                                {viewerCount} watching now
+                                {totalViewerCount > viewerCount && (
+                                  <span className='text-gray-500 ml-1'>
+                                    ({totalViewerCount} total)
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {totalViewerCount} total views
+                                {viewerCount > 0 && (
+                                  <span className='text-gray-500 ml-1'>
+                                    ({viewerCount} watching VOD)
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                </div>
 
-                {/* Chat */}
-                <div className='lg:col-span-1'>
-                  <Chat streamId={stream._id} />
-                </div>
+                      <div className='flex items-center space-x-2'>
+                        <button
+                          onClick={handleLike}
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                            isLiked
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border border-gray-600'
+                          }`}
+                        >
+                          <svg
+                            className='w-4 h-4'
+                            fill={isLiked ? 'currentColor' : 'none'}
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
+                            />
+                          </svg>
+                          <span>{stream.likeCount || 0}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Chat */}
+              <div className='lg:col-span-1'>
+                <Chat streamId={stream._id} />
               </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
+    </div>
   );
 }

@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export interface ValidationRule {
   required?: boolean;
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-    custom?: (value: string) => string | undefined;
+  custom?: (value: string) => string | undefined;
 }
 
 export interface ValidationRules {
@@ -41,10 +41,14 @@ export const commonValidationRules = {
     maxLength: 200,
     custom: (value: string) => {
       if (!value) return undefined;
-      const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+      const tags = value
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag);
       if (tags.length > 10) return 'Maximum 10 tags allowed';
       for (const tag of tags) {
-        if (tag.length > 20) return `Tag "${tag}" is too long (max 20 characters)`;
+        if (tag.length > 20)
+          return `Tag "${tag}" is too long (max 20 characters)`;
       }
       return undefined;
     },

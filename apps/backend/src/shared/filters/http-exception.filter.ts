@@ -1,7 +1,7 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
   Logger,
@@ -35,7 +35,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
         error = exception.constructor.name;
@@ -50,11 +50,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Internal server error';
       error = 'InternalServerError';
-      
+
       // Log unexpected errors
       this.logger.error(
         `Unexpected error: ${exception}`,
-        exception instanceof Error ? exception.stack : undefined,
+        exception instanceof Error ? exception.stack : undefined
       );
     }
 
@@ -70,7 +70,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Log all errors for debugging
     this.logger.error(
-      `${request.method} ${request.url} - ${status} - ${message}`,
+      `${request.method} ${request.url} - ${status} - ${message}`
     );
 
     response.status(status).json(errorResponse);

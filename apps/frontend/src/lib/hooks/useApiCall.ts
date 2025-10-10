@@ -16,7 +16,11 @@ export const useApiCall = (options: UseApiCallOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  const { onSuccess: _onSuccess, onError: _onError, showErrorToast = true } = options;
+  const {
+    onSuccess: _onSuccess,
+    onError: _onError,
+    showErrorToast = true,
+  } = options;
 
   const execute = useCallback(
     async <T>(

@@ -1,8 +1,8 @@
 import { Model } from 'mongoose';
-import { 
-  ValidationException, 
-  StreamKeyExistsException, 
-  InvalidStreamKeyException 
+import {
+  InvalidStreamKeyException,
+  StreamKeyExistsException,
+  ValidationException,
 } from '../exceptions/custom.exceptions';
 
 export class ValidationUtil {
@@ -20,8 +20,8 @@ export class ValidationUtil {
    * Check if stream key already exists
    */
   static async checkStreamKeyExists(
-    streamKey: string, 
-    streamModel: Model<any>, 
+    streamKey: string,
+    streamModel: Model<any>,
     excludeId?: string
   ): Promise<void> {
     const query: any = { streamKey };
@@ -39,7 +39,7 @@ export class ValidationUtil {
    * Validate user exists
    */
   static async validateUserExists(
-    userId: string, 
+    userId: string,
     userModel: Model<any>
   ): Promise<any> {
     const user = await userModel.findById(userId);
@@ -53,7 +53,7 @@ export class ValidationUtil {
    * Validate stream exists
    */
   static async validateStreamExists(
-    streamId: string, 
+    streamId: string,
     streamModel: Model<any>
   ): Promise<any> {
     const stream = await streamModel.findById(streamId);
@@ -74,7 +74,9 @@ export class ValidationUtil {
     if (stream.userId.toString() !== userId) {
       const user = await userModel.findById(userId);
       if (!user || user.role !== 'admin') {
-        throw new ValidationException('You do not have permission to access this stream');
+        throw new ValidationException(
+          'You do not have permission to access this stream'
+        );
       }
     }
   }
@@ -93,7 +95,7 @@ export class ValidationUtil {
     do {
       streamKey = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
       attempts++;
-      
+
       if (attempts > maxAttempts) {
         throw new ValidationException('Unable to generate unique stream key');
       }

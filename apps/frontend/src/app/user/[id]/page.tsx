@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
 import { userService } from '@/lib/api/services/user.service';
 import { User } from '@/lib/api/types';
-import { useAuth } from '@/lib/contexts/AuthContext';
 import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
