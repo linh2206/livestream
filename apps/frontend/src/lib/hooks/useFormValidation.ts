@@ -53,6 +53,32 @@ export const commonValidationRules = {
       return undefined;
     },
   },
+  // Auth validation rules
+  username: {
+    required: true,
+    minLength: 3,
+    maxLength: 30,
+    pattern: /^[a-zA-Z0-9_]+$/,
+  },
+  email: {
+    required: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  },
+  password: {
+    required: true,
+    minLength: 6,
+    maxLength: 100,
+  },
+  fullName: {
+    required: true,
+    minLength: 2,
+    maxLength: 100,
+  },
+  usernameOrEmail: {
+    required: true,
+    minLength: 3,
+    maxLength: 100,
+  },
 };
 
 export const useFormValidation = (rules: ValidationRules) => {

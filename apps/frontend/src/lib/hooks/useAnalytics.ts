@@ -17,7 +17,7 @@ export interface RealTimeMetrics {
   }>;
   recentActivity: Array<{
     type: 'stream_started' | 'stream_ended' | 'user_registered' | 'vod_created';
-    timestamp: Date;
+    timestamp: string | Date;
     data: any;
   }>;
 }
@@ -29,8 +29,8 @@ export interface StreamAnalytics {
   likeCount: number;
   totalViewerCount: number;
   duration: number;
-  startTime: Date;
-  endTime?: Date;
+  startTime: Date | string;
+  endTime?: Date | string;
   status: 'live' | 'ended' | 'scheduled';
   username: string;
   category?: string;

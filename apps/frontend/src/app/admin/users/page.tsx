@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
   }, []);
 
   // NOW conditional returns are safe
-  if (isLoading) {
+  if (usersLoading) {
     return (
       <div className='flex items-center justify-center p-6'>
         <Loading fullScreen text='Loading...' />

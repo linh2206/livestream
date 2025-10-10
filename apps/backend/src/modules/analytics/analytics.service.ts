@@ -69,7 +69,7 @@ export class AnalyticsService {
     const metrics = await this.calculateRealTimeMetrics();
 
     // Cache for 10 seconds for real-time feel
-    await this.redisService.setex(cacheKey, 10, JSON.stringify(metrics));
+    await this.redisService.set(cacheKey, JSON.stringify(metrics), 10);
 
     return metrics;
   }
@@ -176,7 +176,7 @@ export class AnalyticsService {
       if (stream.status === 'active') {
         activities.push({
           type: 'stream_started',
-          timestamp: stream.startTime || stream.createdAt,
+          timestamp: stream.startTime || (stream as any).createdAt,
           data: {
             streamId: stream._id,
             title: stream.title,
@@ -200,7 +200,7 @@ export class AnalyticsService {
     recentUsers.forEach(user => {
       activities.push({
         type: 'user_registered',
-        timestamp: user.createdAt,
+        timestamp: (user as any).createdAt,
         data: {
           userId: user._id,
           username: user.username,
@@ -212,7 +212,7 @@ export class AnalyticsService {
     recentVods.forEach(vod => {
       activities.push({
         type: 'vod_created',
-        timestamp: vod.createdAt,
+        timestamp: (vod as any).createdAt,
         data: {
           vodId: vod._id,
           title: vod.title,
@@ -255,7 +255,7 @@ export class AnalyticsService {
       endTime: stream.endTime,
       status: stream.isLive ? 'live' : stream.endTime ? 'ended' : 'scheduled',
       username: (stream.userId as any)?.username || 'Unknown',
-      category: stream.category,
+      category: (stream as any).category,
       tags: stream.tags || [],
     };
   }
@@ -320,7 +320,7 @@ export class AnalyticsService {
    */
   async broadcastMetrics(): Promise<void> {
     const metrics = await this.getRealTimeMetrics();
-    this.webSocketService.broadcast('analytics:metrics', metrics);
+    this.webSocketService.broadcastToAll('analytics:metrics', metrics);
   }
 
   /**

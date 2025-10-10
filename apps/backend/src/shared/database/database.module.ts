@@ -6,9 +6,9 @@ import { Model } from 'mongoose';
 import { DatabaseIndexes } from './indexes';
 import { DatabaseOptimization } from './optimization';
 import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
-import { Stream, StreamSchema } from './schemas/stream.schema';
-import { User, UserSchema } from './schemas/user.schema';
-import { Vod, VodSchema } from './schemas/vod.schema';
+import { Stream, StreamDocument, StreamSchema } from './schemas/stream.schema';
+import { User, UserDocument, UserSchema } from './schemas/user.schema';
+import { Vod, VodDocument, VodSchema } from './schemas/vod.schema';
 
 @Module({
   imports: [
@@ -23,9 +23,9 @@ import { Vod, VodSchema } from './schemas/vod.schema';
 })
 export class DatabaseModule implements OnModuleInit {
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel(Stream.name) private streamModel: Model<Stream>,
-    @InjectModel(Vod.name) private vodModel: Model<Vod>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
+    @InjectModel(Vod.name) private vodModel: Model<VodDocument>,
     @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessage>
   ) {}
 

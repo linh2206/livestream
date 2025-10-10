@@ -37,7 +37,7 @@ export const LoginForm: React.FC = () => {
     password: commonValidationRules.password,
   };
 
-  const { errors, validateField, validateForm, clearErrors, clearFieldError } =
+  const { errors, validateSingleField, validateForm, clearErrors, clearFieldError } =
     useFormValidation(
       isRegister ? registerValidationRules : loginValidationRules
     );
@@ -88,7 +88,7 @@ export const LoginForm: React.FC = () => {
     clearFieldError(field);
 
     // Real-time validation
-    const error = validateField(field, value);
+    const error = validateSingleField(field, value);
     if (error) {
       // Don't show error immediately, wait for blur or submit
     }
