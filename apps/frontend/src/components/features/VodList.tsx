@@ -63,13 +63,15 @@ export const VodList: React.FC<VodListProps> = ({
 
         // Check if response has the expected structure
         if (response && response.vods && Array.isArray(response.vods)) {
+          // Filter out VODs with null/empty vodUrl
+          const validVods = (response.vods as unknown as VodItem[]).filter(
+            vod => vod.vodUrl && vod.vodUrl.trim() !== ''
+          );
+
           if (append) {
-            setVods(prev => [
-              ...prev,
-              ...(response.vods as unknown as VodItem[]),
-            ]);
+            setVods(prev => [...prev, ...validVods]);
           } else {
-            setVods(response.vods as unknown as VodItem[]);
+            setVods(validVods);
           }
 
           setHasMore(response.pagination?.hasNext || false);

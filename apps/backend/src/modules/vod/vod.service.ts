@@ -32,8 +32,8 @@ export class VodService {
         vodProcessingStatus: 'processing',
       });
 
-      // Get recordings directory
-      const recordingsDir = path.join(process.cwd(), 'recordings');
+      // Get recordings directory - always use /app/recordings in Docker
+      const recordingsDir = '/app/recordings';
 
       if (!fs.existsSync(recordingsDir)) {
         throw new Error('Recordings directory not found');
@@ -154,6 +154,7 @@ export class VodService {
   ) {
     const query: Record<string, unknown> = {
       isPublic: true, // Only show public VODs in general list
+      vodUrl: { $exists: true, $ne: null }, // Only show VODs with valid URLs
     };
 
     if (userId) {
