@@ -53,8 +53,9 @@ export const vodService = {
     if (params.userId) searchParams.append('userId', params.userId);
     if (params.category) searchParams.append('category', params.category);
 
-    const response = await apiClient.get(`/vod?${searchParams.toString()}`);
-    return (response as any).data;
+    return await apiClient.get<VodListResponse>(
+      `/vod?${searchParams.toString()}`
+    );
   },
 
   async getMyVods(
@@ -66,23 +67,23 @@ export const vodService = {
     if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.category) searchParams.append('category', params.category);
 
-    const response = await apiClient.get(`/vod/my?${searchParams.toString()}`);
-    return (response as any).data;
+    return await apiClient.get<VodListResponse>(
+      `/vod/my?${searchParams.toString()}`
+    );
   },
 
   async getVodById(vodId: string): Promise<VodItem> {
-    const response = await apiClient.get(`/vod/${vodId}`);
-    return (response as any).data;
+    return await apiClient.get<VodItem>(`/vod/${vodId}`);
   },
 
   async deleteVod(vodId: string): Promise<{ message: string }> {
-    const response = await apiClient.delete(`/vod/${vodId}`);
-    return (response as any).data;
+    return await apiClient.delete<{ message: string }>(`/vod/${vodId}`);
   },
 
   async processStreamToVod(streamId: string): Promise<{ message: string }> {
-    const response = await apiClient.post(`/vod/process/${streamId}`);
-    return (response as any).data;
+    return await apiClient.post<{ message: string }>(
+      `/vod/process/${streamId}`
+    );
   },
 
   getVodStreamUrl(vodUrl: string): string {

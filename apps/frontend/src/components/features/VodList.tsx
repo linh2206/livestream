@@ -75,7 +75,15 @@ export const VodList: React.FC<VodListProps> = ({
           setHasMore(response.pagination?.hasNext || false);
           setPage(pageNum);
         } else {
-          setError('Invalid response format from server');
+          // Handle case where response structure is different or empty
+          console.warn('Unexpected response format:', response);
+          if (append) {
+            // Don't change existing data if appending
+          } else {
+            setVods([]);
+          }
+          setHasMore(false);
+          setPage(pageNum);
         }
       } catch (err: unknown) {
         console.error('Error fetching VODs:', err);

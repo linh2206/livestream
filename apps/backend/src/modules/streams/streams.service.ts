@@ -36,12 +36,15 @@ export class StreamsService {
       throw new NotFoundException('User not found');
     }
 
-    const streamKey = await this.generateStreamKey();
+    // Use provided streamKey or generate a new one
+    const streamKey =
+      createStreamDto.streamKey || (await this.generateStreamKey());
 
     const stream = new this.streamModel({
       ...createStreamDto,
       userId: new Types.ObjectId(userId),
       streamKey,
+      streamType: createStreamDto.streamType || 'camera',
       hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${streamKey}`,
       rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${streamKey}`,
     });

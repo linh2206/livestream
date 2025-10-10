@@ -36,6 +36,13 @@ export class Stream {
   @Prop({ required: true, unique: true })
   streamKey: string;
 
+  @Prop({
+    type: String,
+    enum: ['camera', 'screen'],
+    default: 'camera',
+  })
+  streamType?: 'camera' | 'screen';
+
   @Prop({ default: null })
   hlsUrl?: string;
 

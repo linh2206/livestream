@@ -1,10 +1,11 @@
 import {
-  IsString,
-  IsOptional,
-  MaxLength,
   IsArray,
-  IsUrl,
   IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateStreamDto {
@@ -33,6 +34,16 @@ export class CreateStreamDto {
   @IsOptional()
   @IsBoolean()
   requiresAuth?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  streamKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['camera', 'screen'])
+  streamType?: 'camera' | 'screen';
 }
 
 export class UpdateStreamDto {
@@ -62,4 +73,14 @@ export class UpdateStreamDto {
   @IsOptional()
   @IsBoolean()
   requiresAuth?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  streamKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['camera', 'screen'])
+  streamType?: 'camera' | 'screen';
 }
