@@ -5,23 +5,11 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { streamService } from '@/lib/api/services/stream.service';
+import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { useToast } from '@/lib/hooks/useToast';
+import { useToast } from '@/lib/contexts/ToastContext';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-
-interface Stream {
-  _id: string;
-  title: string;
-  description: string;
-  streamKey: string;
-  streamType: 'camera' | 'screen';
-  userId: {
-    _id: string;
-    username: string;
-    avatar?: string;
-  };
-}
 
 export default function StreamPage() {
   const { id } = useParams();
@@ -46,7 +34,7 @@ export default function StreamPage() {
 
   const fetchStream = async () => {
     try {
-      const response = await streamService.getStreamById(id as string);
+      const response = await streamService.getStream(id as string);
       setStream(response);
     } catch (error) {
       console.error('Failed to fetch stream:', error);
@@ -310,7 +298,7 @@ export default function StreamPage() {
                     Instructions
                   </h3>
                   <div className='space-y-3 text-sm text-gray-300'>
-                    <p>1. Click "Start Stream" to begin</p>
+                    <p>1. Click &quot;Start Stream&quot; to begin</p>
                     <p>2. Allow camera/microphone access</p>
                     <p>3. Your stream will be live immediately</p>
                     <p>4. Share the stream URL with viewers</p>

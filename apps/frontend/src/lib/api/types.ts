@@ -60,6 +60,7 @@ export interface Stream extends BaseEntity {
   title: string;
   description?: string;
   streamKey: string;
+  streamType?: 'camera' | 'screen';
   hlsUrl?: string;
   rtmpUrl?: string;
   status: 'inactive' | 'active' | 'ended';
