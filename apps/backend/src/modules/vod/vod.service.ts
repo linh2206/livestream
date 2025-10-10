@@ -19,6 +19,65 @@ export class VodService {
     @InjectModel(Vod.name) private vodModel: Model<Vod>
   ) {}
 
+  async createVodRecord(streamId: string): Promise<void> {
+    try {
+      const stream = await this.streamModel.findById(streamId);
+      if (!stream) {
+        throw new Error('Stream not found');
+      }
+
+      // Check if VOD record already exists
+      const existingVod = await this.vodModel.findOne({
+        originalStreamId: streamId,
+      });
+
+      if (existingVod) {
+        this.logger.log(`VOD record already exists for stream ${streamId}`);
+        return;
+      }
+
+      // Create VOD record immediately (without vodUrl, will be updated after processing)
+      const vodRecord = new this.vodModel({
+        title: stream.title,
+        description: stream.description,
+        userId: stream.userId,
+        vodUrl: null, // Will be set after processing
+        vodDuration: 0, // Will be set after processing
+        vodFileSize: 0, // Will be set after processing
+        vodThumbnail: null, // Will be set after processing
+        tags: stream.tags || [],
+        category: (stream as any).category || null,
+        viewerCount: stream.viewerCount || 0,
+        totalViewerCount: stream.totalViewerCount || 0,
+        likeCount: stream.likeCount || 0,
+        likedBy: stream.likedBy || [],
+        isPublic: stream.isPublic,
+        allowedViewers: stream.allowedViewers || [],
+        requiresAuth: stream.requiresAuth,
+        originalStreamKey: stream.streamKey,
+        originalStreamId: stream._id.toString(),
+        startTime: stream.startTime,
+        endTime: stream.endTime,
+      });
+
+      await vodRecord.save();
+      this.logger.log(`Created VOD record for stream ${streamId}`);
+
+      // Update stream to mark as VOD
+      await this.streamModel.findByIdAndUpdate(streamId, {
+        isVod: true,
+        vodProcessing: true,
+        vodProcessingStatus: 'processing',
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error creating VOD record for stream ${streamId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
   async processStreamToVod(streamId: string): Promise<void> {
     try {
       const stream = await this.streamModel.findById(streamId);
@@ -87,31 +146,16 @@ export class VodService {
       const thumbnailCommand = `ffmpeg -i "${outputPath}" -ss 00:00:10 -vframes 1 "${thumbnailPath}"`;
       await exec(thumbnailCommand);
 
-      // Create separate VOD record
-      const vodRecord = new this.vodModel({
-        title: stream.title,
-        description: stream.description,
-        userId: stream.userId,
-        vodUrl: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}.mp4`,
-        vodDuration: duration,
-        vodFileSize: stats.size,
-        vodThumbnail: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}_thumbnail.jpg`,
-        tags: stream.tags || [],
-        category: (stream as any).category,
-        viewerCount: stream.viewerCount || 0,
-        totalViewerCount: stream.totalViewerCount || 0,
-        likeCount: stream.likeCount || 0,
-        likedBy: stream.likedBy || [],
-        isPublic: stream.isPublic,
-        allowedViewers: stream.allowedViewers || [],
-        requiresAuth: stream.requiresAuth,
-        originalStreamKey: stream.streamKey,
-        originalStreamId: stream._id.toString(),
-        startTime: stream.startTime,
-        endTime: stream.endTime,
-      });
-
-      await vodRecord.save();
+      // Update existing VOD record with processed data
+      await this.vodModel.findOneAndUpdate(
+        { originalStreamId: streamId },
+        {
+          vodUrl: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}.mp4`,
+          vodDuration: duration,
+          vodFileSize: stats.size,
+          vodThumbnail: `/vod/serve/${stream.streamKey}/${date}/${uniqueFileName}_thumbnail.jpg`,
+        }
+      );
 
       // Update stream with VOD information
       await this.streamModel.findByIdAndUpdate(streamId, {
@@ -154,7 +198,7 @@ export class VodService {
   ) {
     const query: Record<string, unknown> = {
       isPublic: true, // Only show public VODs in general list
-      vodUrl: { $exists: true, $ne: null }, // Only show VODs with valid URLs
+      // Remove vodUrl filter to show all VODs, even if processing
     };
 
     if (userId) {
@@ -198,7 +242,7 @@ export class VodService {
       totalViewerCount: vod.totalViewerCount || 0,
       likeCount: vod.likeCount || 0,
       user: vod.userId,
-      createdAt: (vod as any).createdAt,
+      createdAt: (vod as any).createdAt || new Date(),
       // Calculate duration in human readable format
       durationFormatted: this.formatDuration(vod.vodDuration),
       // Calculate file size in human readable format

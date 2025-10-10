@@ -14,13 +14,13 @@ export class Vod {
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   userId?: Types.ObjectId;
 
-  @Prop({ required: true })
-  vodUrl: string;
+  @Prop({ default: null })
+  vodUrl?: string;
 
-  @Prop({ required: true })
+  @Prop({ default: 0 })
   vodDuration: number; // in seconds
 
-  @Prop({ required: true })
+  @Prop({ default: 0 })
   vodFileSize: number; // in bytes
 
   @Prop({ default: null })

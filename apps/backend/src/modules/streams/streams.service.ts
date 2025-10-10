@@ -374,6 +374,13 @@ export class StreamsService {
     // Broadcast stream stop
     this.webSocketService.broadcastStreamStop((stream as any)._id.toString());
 
+    // Create VOD record immediately
+    try {
+      await this.vodService.createVodRecord((stream as any)._id.toString());
+    } catch (error) {
+      console.error('Failed to create VOD record:', error);
+    }
+
     // Automatically process stream to VOD after a short delay
     // This allows HLS segments to be finalized
     setTimeout(async () => {

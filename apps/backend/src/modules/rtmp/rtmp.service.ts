@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as fs from 'fs';
 import { Model } from 'mongoose';
@@ -10,13 +10,16 @@ import {
 } from '../../shared/database/schemas/stream.schema';
 import { RedisService } from '../../shared/redis/redis.service';
 import { WebSocketService } from '../../shared/websocket/websocket.service';
+import { VodService } from '../vod/vod.service';
 
 @Injectable()
 export class RtmpService {
   constructor(
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     private redisService: RedisService,
-    private webSocketService: WebSocketService
+    private webSocketService: WebSocketService,
+    @Inject(forwardRef(() => VodService))
+    private vodService: VodService
   ) {}
 
   async onPublish(streamKey: string): Promise<void> {
@@ -111,6 +114,13 @@ export class RtmpService {
         stream.status = 'ended';
         stream.endTime = new Date();
         await stream.save();
+
+        // Create VOD record immediately
+        try {
+          await this.vodService.createVodRecord(stream._id.toString());
+        } catch (error) {
+          console.error('Failed to create VOD record:', error);
+        }
 
         // Auto-delete stream after 5 minutes if it's not a user-created stream
         if (!stream.userId) {

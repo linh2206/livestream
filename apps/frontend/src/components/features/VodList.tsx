@@ -63,10 +63,8 @@ export const VodList: React.FC<VodListProps> = ({
 
         // Check if response has the expected structure
         if (response && response.vods && Array.isArray(response.vods)) {
-          // Filter out VODs with null/empty vodUrl
-          const validVods = (response.vods as unknown as VodItem[]).filter(
-            vod => vod.vodUrl && vod.vodUrl.trim() !== ''
-          );
+          // Show all VODs, handle null vodUrl in UI
+          const validVods = response.vods as unknown as VodItem[];
 
           if (append) {
             setVods(prev => [...prev, ...validVods]);
@@ -112,7 +110,12 @@ export const VodList: React.FC<VodListProps> = ({
   };
 
   const handleVodClick = (vod: VodItem) => {
-    router.push(`/streams/${vod._id}`);
+    if (vod.vodUrl) {
+      router.push(`/streams/${vod._id}`);
+    } else {
+      // VOD is still processing, show message
+      alert('Video is still processing. Please wait...');
+    }
   };
 
   if (loading && vods.length === 0) {
@@ -239,13 +242,15 @@ const VodCard: React.FC<{
           )}
 
           {/* Duration badge */}
-          <div className='absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium'>
-            {vod.durationFormatted}
-          </div>
+          {vod.durationFormatted && (
+            <div className='absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium'>
+              {vod.durationFormatted}
+            </div>
+          )}
 
-          {/* VOD badge */}
+          {/* Status badge */}
           <div className='absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium'>
-            VOD
+            {vod.vodUrl ? 'VOD' : 'Processing...'}
           </div>
         </div>
 
