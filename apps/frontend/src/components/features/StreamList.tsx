@@ -1,54 +1,72 @@
 'use client';
 
 import { Card } from '@/components/ui/Card';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Loading } from '@/components/ui/Loading';
+import { streamService } from '@/lib/api/services/stream.service';
 import { Stream } from '@/lib/api/types';
-import { useSocketContext } from '@/lib/contexts/SocketContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
+// import { useSocketContext } from '@/lib/contexts/SocketContext'; // TODO: Implement socket functionality
+import { useToast } from '@/lib/contexts/ToastContext';
+import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { useStreamsList } from '@/lib/hooks/useStreamsList';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 
 export const StreamList: React.FC = () => {
   const { streams, isLoading, error, syncStreamStatus, mutate } =
     useStreamsList();
-  const { socket } = useSocketContext();
+  // const { socket } = useSocketContext(); // TODO: Implement socket functionality
+  const { showError: _showError } = useToast();
+
+  // Memoize the refresh function to prevent infinite re-renders
+  const _refreshStreams = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   // Listen to WebSocket events for real-time updates
-  useEffect(() => {
-    if (socket) {
-      // Listen for stream start events
-      socket.on('stream:started', (_streamData: unknown) => {
-        // Refresh stream list to show new live stream
-        mutate();
-      });
-
-      // Listen for stream end events
-      socket.on('stream:ended', (_data: unknown) => {
-        // Refresh stream list to update status
-        mutate();
-      });
-
-      // Listen for stream stop events
-      socket.on('stream:stop', (_data: unknown) => {
-        // Refresh stream list to update status
-        mutate();
-      });
-
-      // Listen for viewer count updates
-      socket.on('stream:viewer_count_update', (_data: unknown) => {
-        // Refresh stream list to update viewer counts
-        mutate();
-      });
-
-      // Cleanup event listeners
-      return () => {
-        socket.off('stream:started');
-        socket.off('stream:ended');
-        socket.off('stream:stop');
-        socket.off('stream:viewer_count_update');
-      };
-    }
-  }, [socket, mutate]);
+  // TODO: Implement socket listeners for real-time updates
+  // useEffect(() => {
+  //   if (socket && typeof socket === 'object' && socket !== null) {
+  //     const socketObj = socket as {
+  //       on: (event: string, callback: (data: unknown) => void) => void;
+  //       off: (event: string) => void;
+  //     };
+  //
+  //     // Listen for stream start events
+  //     socketObj.on('stream:started', (_streamData: unknown) => {
+  //       // Refresh stream list to show new live stream
+  //       refreshStreams();
+  //     });
+  //
+  //     // Listen for stream end events
+  //     socketObj.on('stream:ended', (_data: unknown) => {
+  //       // Refresh stream list to update status
+  //       refreshStreams();
+  //     });
+  //
+  //     // Listen for stream stop events
+  //     socketObj.on('stream:stop', (_data: unknown) => {
+  //       // Refresh stream list to update status
+  //       refreshStreams();
+  //     });
+  //
+  //     // Listen for viewer count updates
+  //     socketObj.on('stream:viewer_count_update', (_data: unknown) => {
+  //       // Refresh stream list to update viewer counts
+  //       refreshStreams();
+  //     });
+  //
+  //     // Cleanup event listeners
+  //     return () => {
+  //       socketObj.off('stream:started');
+  //       socketObj.off('stream:ended');
+  //       socketObj.off('stream:stop');
+  //       socketObj.off('stream:viewer_count_update');
+  //     };
+  //   }
+  // }, [socket, refreshStreams]);
 
   if (isLoading) {
     return (
@@ -98,6 +116,11 @@ const StreamCard: React.FC<{
   onSyncStatus?: (streamKey: string) => void;
 }> = ({ stream, onSyncStatus }) => {
   const router = useRouter();
+  const { user } = useAuth();
+  const { handleError } = useErrorHandler();
+  const { showError } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleClick = () => {
     router.push(`/streams/${stream._id}`);
@@ -110,11 +133,47 @@ const StreamCard: React.FC<{
     }
   };
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation when clicking delete button
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await streamService.deleteStream(stream._id);
+      setShowDeleteModal(false);
+      // Refresh the stream list
+      window.location.reload();
+    } catch (error) {
+      handleError(error);
+      showError('Delete Failed', 'Failed to delete stream. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Check if user can delete this stream (owner or admin)
+  const canDelete =
+    user && (user._id === stream.userId || user.role === 'admin');
+
   return (
     <Card
-      className='cursor-pointer hover:border-blue-500 transition-colors'
+      className='cursor-pointer hover:border-blue-500 transition-colors relative'
       onClick={handleClick}
     >
+      {/* Delete button - only show if user can delete */}
+      {canDelete && (
+        <button
+          onClick={handleDeleteClick}
+          disabled={isDeleting}
+          className='absolute top-2 right-2 z-10 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs font-bold transition-colors disabled:opacity-50'
+          title='Delete stream'
+        >
+          {isDeleting ? '...' : '×'}
+        </button>
+      )}
+
       <div className='space-y-4'>
         <div className='aspect-video bg-gray-700 rounded-lg flex items-center justify-center'>
           <div className='text-gray-400 text-center'>
@@ -197,9 +256,11 @@ const StreamCard: React.FC<{
           <div className='mt-3 flex items-center justify-between'>
             <div className='flex items-center'>
               {stream.user?.avatar ? (
-                <img
+                <Image
                   src={stream.user.avatar}
                   alt={stream.user.username}
+                  width={24}
+                  height={24}
                   className='w-6 h-6 rounded-full mr-2'
                 />
               ) : (
@@ -216,6 +277,19 @@ const StreamCard: React.FC<{
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title='Delete Stream'
+        message={`Are you sure you want to delete "${stream.title}"? This action cannot be undone and will permanently remove the stream and all its data.`}
+        confirmText='Delete'
+        cancelText='Cancel'
+        isLoading={isDeleting}
+        variant='danger'
+      />
     </Card>
   );
 };

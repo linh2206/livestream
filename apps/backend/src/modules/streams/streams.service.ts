@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -19,14 +20,32 @@ import { VodService } from '../vod/vod.service';
 import { CreateStreamDto, UpdateStreamDto } from './dto/stream.dto';
 
 @Injectable()
-export class StreamsService {
+export class StreamsService implements OnModuleInit {
   constructor(
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private redisService: RedisService,
     private webSocketService: WebSocketService,
-    private vodService: VodService
+    private vodService: VodService,
+    private eventEmitter: EventEmitter2
   ) {}
+
+  onModuleInit() {
+    // Listen for viewer join/leave events from WebSocket gateway
+    this.eventEmitter.on(
+      'stream.viewer_joined',
+      (data: { streamId: string; viewerCount: number }) => {
+        this.updateViewerCountById(data.streamId, data.viewerCount);
+      }
+    );
+
+    this.eventEmitter.on(
+      'stream.viewer_left',
+      (data: { streamId: string; viewerCount: number }) => {
+        this.updateViewerCountById(data.streamId, data.viewerCount);
+      }
+    );
+  }
 
   // Helper methods to avoid type casting issues
   private getStreamId(stream: Stream | StreamDocument): string {
@@ -262,7 +281,7 @@ export class StreamsService {
         stream.requiresAuth !== undefined ? stream.requiresAuth : false,
       hlsUrl:
         stream.hlsUrl ||
-        `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+        `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/hls'}/${stream.streamKey}`,
       rtmpUrl:
         stream.rtmpUrl ||
         `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
@@ -474,6 +493,22 @@ export class StreamsService {
 
     if (stream) {
       this.webSocketService.broadcastViewerCount(stream._id.toString(), count);
+    }
+  }
+
+  async updateViewerCountById(streamId: string, count: number): Promise<void> {
+    const stream = await this.streamModel.findByIdAndUpdate(
+      streamId,
+      {
+        viewerCount: count,
+        // Update total viewer count if current count is higher
+        $max: { totalViewerCount: count },
+      },
+      { new: true }
+    );
+
+    if (stream) {
+      this.webSocketService.broadcastViewerCount(streamId, count);
     }
   }
 

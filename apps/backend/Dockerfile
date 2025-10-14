@@ -26,10 +26,10 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install curl and netcat for health checks with network resilience
+# Install curl, netcat, and ffmpeg for health checks and streaming
 RUN apk update --no-cache && \
-    apk add --no-cache curl netcat-openbsd || \
-    (sleep 5 && apk update --no-cache && apk add --no-cache curl netcat-openbsd)
+    apk add --no-cache curl netcat-openbsd ffmpeg || \
+    (sleep 5 && apk update --no-cache && apk add --no-cache curl netcat-openbsd ffmpeg)
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

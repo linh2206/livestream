@@ -37,8 +37,12 @@ class ApiClient {
       },
       error => {
         if (error.response?.status === 401) {
-          // Handle unauthorized access - NEVER redirect, let the app handle it
+          // Handle unauthorized access - clear token and redirect to login
           this.clearToken();
+          // Redirect to login page
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
         } else if (error.response?.status === 404) {
           // Don't reload on 404, just return the error
         }
@@ -48,10 +52,12 @@ class ApiClient {
   }
 
   private getToken(): string | null {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('auth_token');
   }
 
   private clearToken() {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('auth_token');
   }
 
@@ -63,7 +69,7 @@ class ApiClient {
 
   async post<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
@@ -72,7 +78,7 @@ class ApiClient {
 
   async put<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
@@ -86,7 +92,7 @@ class ApiClient {
 
   async patch<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
@@ -95,6 +101,7 @@ class ApiClient {
 
   // Utility methods
   setAuthToken(token: string) {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('auth_token', token);
   }
 

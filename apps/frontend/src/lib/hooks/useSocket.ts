@@ -1,65 +1,58 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { socketClient } from '../socket/client';
-import { SocketEmitEvents, SocketEvents, SocketOptions } from '../socket/types';
+import { socketClient, SocketConfig, SocketEvents } from '../socket/client';
 
-export function useSocket(options?: SocketOptions) {
+export interface UseSocketResult {
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  connect: (config: SocketConfig) => Promise<void>;
+  disconnect: () => void;
+  emit: <K extends keyof import('../socket/client').SocketEmitEvents>(
+    event: K,
+    data: Parameters<import('../socket/client').SocketEmitEvents[K]>[0]
+  ) => void;
+  on: <K extends keyof import('../socket/client').SocketEvents>(
+    event: K,
+    listener: import('../socket/client').SocketEvents[K]
+  ) => void;
+  off: <K extends keyof import('../socket/client').SocketEvents>(
+    event: K,
+    listener?: import('../socket/client').SocketEvents[K]
+  ) => void;
+}
+
+export function useSocket(): UseSocketResult {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const socketRef = useRef<any>(null);
+  const listenersRef = useRef<Map<string, Function>>(new Map());
 
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('useSocket effect triggered:', {
-      hasUser: !!options?.auth?.user,
-      hasToken: !!options?.auth?.token,
-      userId: options?.auth?.user?.id,
-    });
-
-    if (options?.auth?.user && options?.auth?.token) {
+  const connect = useCallback(async (config: SocketConfig) => {
+    try {
       setIsConnecting(true);
-      socketClient.connect(options);
-
-      // Listen to connection events
-      const handleConnect = () => {
-        setIsConnected(true);
-        setIsConnecting(false);
-        setError(null);
-      };
-
-      const handleDisconnect = () => {
-        setIsConnected(false);
-        setIsConnecting(false);
-      };
-
-      const handleError = (err: Error) => {
-        setError(err.message);
-        setIsConnecting(false);
-      };
-
-      socketClient.on('connect', handleConnect);
-      socketClient.on('disconnect', handleDisconnect);
-      socketClient.on('connect_error', handleError);
-
-      socketRef.current = socketClient;
-
-      return () => {
-        socketClient.off('connect', handleConnect);
-        socketClient.off('disconnect', handleDisconnect);
-        socketClient.off('connect_error', handleError);
-        socketClient.disconnect();
-      };
-    } else {
-      socketClient.disconnect();
-      setIsConnected(false);
+      setError(null);
+      await socketClient.connect(config);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Connection failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
       setIsConnecting(false);
     }
-  }, [options]);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    socketClient.disconnect();
+    setIsConnected(false);
+    setIsConnecting(false);
+    setError(null);
+  }, []);
 
   const emit = useCallback(
-    <K extends keyof SocketEmitEvents>(
+    <K extends keyof import('../socket/client').SocketEmitEvents>(
       event: K,
-      data: Parameters<SocketEmitEvents[K]>[0]
+      data: Parameters<import('../socket/client').SocketEmitEvents[K]>[0]
     ) => {
       socketClient.emit(event, data);
     },
@@ -67,24 +60,75 @@ export function useSocket(options?: SocketOptions) {
   );
 
   const on = useCallback(
-    <K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) => {
-      socketClient.on(event, callback);
+    <K extends keyof import('../socket/client').SocketEvents>(
+      event: K,
+      listener: import('../socket/client').SocketEvents[K]
+    ) => {
+      socketClient.on(event, listener);
+      listenersRef.current.set(event as string, listener);
     },
     []
   );
 
   const off = useCallback(
-    <K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]) => {
-      socketClient.off(event, callback);
+    <K extends keyof import('../socket/client').SocketEvents>(
+      event: K,
+      listener?: import('../socket/client').SocketEvents[K]
+    ) => {
+      socketClient.off(event, listener);
+      if (listener) {
+        listenersRef.current.delete(event as string);
+      }
     },
     []
   );
 
+  // Monitor connection state
+  useEffect(() => {
+    const handleConnect = () => {
+      setIsConnected(true);
+      setError(null);
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+    };
+
+    const handleError = (error: { message: string; code: string }) => {
+      setError(error.message);
+    };
+
+    socketClient.on('connect', handleConnect);
+    socketClient.on('disconnect', handleDisconnect);
+    socketClient.on('error', handleError);
+
+    // Set initial state
+    setIsConnected(socketClient.isConnected());
+
+    return () => {
+      socketClient.off('connect', handleConnect);
+      socketClient.off('disconnect', handleDisconnect);
+      socketClient.off('error', handleError);
+    };
+  }, []);
+
+  // Cleanup listeners on unmount
+  useEffect(() => {
+    const currentListeners = listenersRef.current;
+    return () => {
+      currentListeners.forEach((listener, event) => {
+        socketClient.off(event as keyof SocketEvents, listener as () => void);
+      });
+      currentListeners.clear();
+    };
+  }, []);
+
   return {
-    socket: socketRef.current,
     isConnected,
     isConnecting,
     error,
+    connect,
+    disconnect,
     emit,
     on,
     off,

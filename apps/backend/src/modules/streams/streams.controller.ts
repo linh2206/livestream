@@ -20,6 +20,7 @@ import { StreamStatusService } from './stream-status.service';
 import { StreamsService } from './streams.service';
 
 @Controller('streams')
+@UseGuards(JwtAuthGuard)
 export class StreamsController {
   constructor(
     private streamsService: StreamsService,
@@ -83,7 +84,6 @@ export class StreamsController {
   }
 
   @Get('test/create')
-  @UseGuards(JwtAuthGuard)
   async createTestStream(@Req() req: Request) {
     // This endpoint is for creating a new stream via GET (for testing)
     const createStreamDto = {

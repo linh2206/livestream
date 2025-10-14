@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
 import { vodService } from '@/lib/api/services/vod.service';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -63,8 +64,10 @@ export const VodList: React.FC<VodListProps> = ({
 
         // Check if response has the expected structure
         if (response && response.vods && Array.isArray(response.vods)) {
-          // Show all VODs, handle null vodUrl in UI
-          const validVods = response.vods as unknown as VodItem[];
+          // Filter out VODs with null user or invalid data
+          const validVods = response.vods.filter(
+            (vod: any) => vod && vod._id && vod.title && vod.user
+          ) as VodItem[];
 
           if (append) {
             setVods(prev => [...prev, ...validVods]);
@@ -90,7 +93,8 @@ export const VodList: React.FC<VodListProps> = ({
         // eslint-disable-next-line no-console
         console.error('Error fetching VODs:', err);
         const errorMessage =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          (err as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
           (err as Error).message ||
           'Failed to load videos';
         setError(errorMessage);
@@ -220,10 +224,11 @@ const VodCard: React.FC<{
         {/* Thumbnail */}
         <div className='aspect-video bg-gray-700 rounded-lg overflow-hidden relative'>
           {vod.thumbnail ? (
-            <img
+            <Image
               src={vod.thumbnail}
               alt={vod.title}
-              className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-200'
+              fill
+              className='object-cover group-hover:scale-105 transition-transform duration-200'
             />
           ) : (
             <div className='w-full h-full flex items-center justify-center'>
@@ -270,20 +275,24 @@ const VodCard: React.FC<{
 
           {/* User info */}
           <div className='flex items-center space-x-2'>
-            {vod.user.avatar ? (
-              <img
+            {vod.user?.avatar ? (
+              <Image
                 src={vod.user.avatar}
-                alt={vod.user.username}
-                className='w-6 h-6 rounded-full'
+                alt={vod.user?.username || 'Unknown'}
+                width={24}
+                height={24}
+                className='rounded-full'
               />
             ) : (
               <div className='w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center'>
                 <span className='text-xs text-white'>
-                  {vod.user.username.charAt(0).toUpperCase()}
+                  {(vod.user?.username || 'U').charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
-            <span className='text-sm text-gray-400'>{vod.user.username}</span>
+            <span className='text-sm text-gray-400'>
+              {vod.user?.username || 'Unknown'}
+            </span>
           </div>
 
           {/* Stats */}

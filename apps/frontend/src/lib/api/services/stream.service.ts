@@ -54,11 +54,7 @@ class StreamService {
     return apiClient.post<ApiResponse>(`/streams/${id}/like`);
   }
 
-  async unlikeStream(id: string): Promise<ApiResponse> {
-    return apiClient.delete<ApiResponse>(`/streams/${id}/like`);
-  }
-
-  async getStreamAnalytics(id: string): Promise<any> {
+  async getStreamAnalytics(id: string): Promise<Record<string, unknown>> {
     return apiClient.get(`/streams/${id}/analytics`);
   }
 

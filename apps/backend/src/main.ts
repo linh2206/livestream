@@ -1,10 +1,9 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 import helmet from 'helmet';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -109,6 +108,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   logger.log(`🚀 API Server running on: http://localhost:${port}/api/v1`);
+  logger.log(`🔌 WebSocket Server running on: ws://localhost:${port}`);
   logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.log(
     `🔒 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`

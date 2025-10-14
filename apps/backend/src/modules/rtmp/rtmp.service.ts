@@ -95,6 +95,7 @@ export class RtmpService {
 
       // If stream has VOD, keep the VOD but delete the stream
       if (stream.isVod && stream.vodUrl) {
+        // eslint-disable-next-line no-console
         console.log(
           `Stream ${streamKey} has VOD, keeping VOD and deleting stream`
         );
@@ -106,6 +107,7 @@ export class RtmpService {
         const hlsDir = path.join('/app', 'hls', streamKey);
         if (fs.existsSync(hlsDir)) {
           fs.rmSync(hlsDir, { recursive: true, force: true });
+          // eslint-disable-next-line no-console
           console.log(`Cleaned up HLS files for stream: ${streamKey}`);
         }
       } else {
@@ -119,23 +121,24 @@ export class RtmpService {
         try {
           await this.vodService.createVodRecord(stream._id.toString());
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('Failed to create VOD record:', error);
         }
 
-        // Don't auto-delete streams - keep them for VOD processing
         // Auto-delete stream after 5 minutes if it's not a user-created stream
-        // if (!stream.userId) {
-        //   setTimeout(
-        //     async () => {
-        //       try {
-        //         await this.deleteOfflineStream(streamKey);
-        //       } catch (error) {}
-        //     },
-        //     5 * 60 * 1000
-        //   ); // 5 minutes
-        // }
+        if (!stream.userId) {
+          setTimeout(
+            async () => {
+              try {
+                await this.deleteOfflineStream(streamKey);
+              } catch (error) {}
+            },
+            5 * 60 * 1000
+          ); // 5 minutes
+        }
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`Error in onPublishDone for ${streamKey}:`, error);
     }
   }

@@ -2,8 +2,15 @@
 export interface SocketEvents {
   // Connection events
   connect: () => void;
+  connected: (data: {
+    message: string;
+    userId?: string;
+    username?: string;
+    anonymous?: boolean;
+  }) => void;
   disconnect: (reason: string) => void;
   connect_error: (error: Error) => void;
+  error: (error: { message: string; code?: string; event?: string }) => void;
 
   // Chat events
   'chat:new_message': (message: ChatMessage) => void;
@@ -13,6 +20,10 @@ export interface SocketEvents {
   }) => void;
   'chat:user_joined': (data: { streamId: string; user: User }) => void;
   'chat:user_left': (data: { streamId: string; userId: string }) => void;
+  'chat:user_join': (data: { username: string }) => void;
+  'chat:user_leave': (data: { username: string }) => void;
+  'chat:user_typing': (data: { username: string }) => void;
+  'chat:user_stop_typing': (data: { username: string }) => void;
 
   // Stream events
   'stream:started': (stream: Stream) => void;
@@ -65,6 +76,15 @@ export interface SocketEmitEvents {
     username: string;
   }) => void;
   delete_message: (data: { messageId: string; streamId: string }) => void;
+  typing: (data: {
+    room: string;
+    userId: string;
+    username: string;
+  }) => void;
+  stop_typing: (data: {
+    room: string;
+    userId: string;
+  }) => void;
 
   // Stream events
   stream_like: (data: { streamId: string; userId: string }) => void;
@@ -135,7 +155,7 @@ export interface SocketOptions {
 
 // Socket Hook Return Type
 export interface UseSocketReturn {
-  socket: any | null;
+  socket: unknown | null;
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;

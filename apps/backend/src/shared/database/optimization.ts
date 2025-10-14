@@ -15,50 +15,56 @@ export class DatabaseOptimization {
   ): Promise<void> {
     try {
       // Compound index for efficient queries
-      await streamModel.collection.createIndex(
-        {
-          status: 1,
-          isLive: 1,
-          createdAt: -1,
-        },
-        { name: 'status_live_created_idx' }
-      );
+      await streamModel.collection
+        .createIndex(
+          {
+            status: 1,
+            isLive: 1,
+            createdAt: -1,
+          },
+          { name: 'status_live_created_idx' }
+        )
+        .catch(() => {}); // Ignore if already exists
 
       // Index for stream key lookups
-      await streamModel.collection.createIndex(
-        { streamKey: 1 },
-        { unique: true, name: 'stream_key_unique_idx' }
-      );
+      await streamModel.collection
+        .createIndex(
+          { streamKey: 1 },
+          { unique: true, name: 'stream_key_unique_idx' }
+        )
+        .catch(() => {}); // Ignore if already exists
 
       // Index for user streams
-      await streamModel.collection.createIndex(
-        { userId: 1, createdAt: -1 },
-        { name: 'user_streams_idx' }
-      );
+      await streamModel.collection
+        .createIndex({ userId: 1, createdAt: -1 }, { name: 'user_streams_idx' })
+        .catch(() => {}); // Ignore if already exists
 
       // Index for search functionality
-      await streamModel.collection.createIndex(
-        {
-          title: 'text',
-          description: 'text',
-        },
-        {
-          name: 'stream_search_idx',
-          weights: { title: 10, description: 5 },
-        }
-      );
+      await streamModel.collection
+        .createIndex(
+          {
+            title: 'text',
+            description: 'text',
+          },
+          {
+            name: 'stream_search_idx',
+            weights: { title: 10, description: 5 },
+          }
+        )
+        .catch(() => {}); // Ignore if already exists
 
       // Index for category filtering
-      await streamModel.collection.createIndex(
-        { category: 1, status: 1 },
-        { name: 'category_status_idx' }
-      );
+      await streamModel.collection
+        .createIndex(
+          { category: 1, status: 1 },
+          { name: 'category_status_idx' }
+        )
+        .catch(() => {}); // Ignore if already exists
 
       // Index for tags
-      await streamModel.collection.createIndex(
-        { tags: 1 },
-        { name: 'tags_idx' }
-      );
+      await streamModel.collection
+        .createIndex({ tags: 1 }, { name: 'tags_idx' })
+        .catch(() => {}); // Ignore if already exists
 
       // eslint-disable-next-line no-console
       console.log('✅ Stream indexes created successfully');
@@ -76,22 +82,22 @@ export class DatabaseOptimization {
   ): Promise<void> {
     try {
       // Unique index for username
-      await userModel.collection.createIndex(
-        { username: 1 },
-        { unique: true, name: 'username_unique_idx' }
-      );
+      await userModel.collection
+        .createIndex(
+          { username: 1 },
+          { unique: true, name: 'username_unique_idx' }
+        )
+        .catch(() => {}); // Ignore if already exists
 
       // Unique index for email
-      await userModel.collection.createIndex(
-        { email: 1 },
-        { unique: true, name: 'email_unique_idx' }
-      );
+      await userModel.collection
+        .createIndex({ email: 1 }, { unique: true, name: 'email_unique_idx' })
+        .catch(() => {}); // Ignore if already exists
 
       // Index for role-based queries
-      await userModel.collection.createIndex(
-        { role: 1, isActive: 1 },
-        { name: 'role_active_idx' }
-      );
+      await userModel.collection
+        .createIndex({ role: 1, isActive: 1 }, { name: 'role_active_idx' })
+        .catch(() => {}); // Ignore if already exists
 
       // eslint-disable-next-line no-console
       console.log('✅ User indexes created successfully');

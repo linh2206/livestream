@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/contexts/AuthContext';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -69,10 +70,12 @@ export const Header: React.FC = () => {
                     {/* Main Avatar */}
                     <div className='w-11 h-11 bg-gradient-to-br from-slate-600 to-slate-800 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-500/30 group-hover:border-slate-400/50 transition-all duration-200'>
                       {user.avatar ? (
-                        <img
+                        <Image
                           src={user.avatar}
                           alt={user.username}
-                          className='w-11 h-11 rounded-full object-cover'
+                          width={44}
+                          height={44}
+                          className='rounded-full object-cover'
                         />
                       ) : (
                         <span className='text-slate-200 font-semibold text-lg'>
@@ -124,10 +127,12 @@ export const Header: React.FC = () => {
                       <div className='flex items-center space-x-3'>
                         <div className='w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-full flex items-center justify-center border border-slate-500/30'>
                           {user.avatar ? (
-                            <img
+                            <Image
                               src={user.avatar}
                               alt={user.username}
-                              className='w-12 h-12 rounded-full object-cover'
+                              width={48}
+                              height={48}
+                              className='rounded-full object-cover'
                             />
                           ) : (
                             <span className='text-slate-200 font-semibold text-lg'>

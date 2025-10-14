@@ -12,6 +12,21 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'axios', '@tanstack/react-table'],
   },
 
+  // Add custom headers to disable LocatorJS
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-LocatorJS-Disabled',
+            value: 'true',
+          },
+        ],
+      },
+    ];
+  },
+
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -22,6 +37,19 @@ const nextConfig = {
 
   // Bundle optimization
   webpack: (config, { dev }) => {
+    // Disable LocatorJS completely
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@locator/runtime': false,
+      '@locator/react': false,
+      'locatorjs': false,
+    };
+
+    // Disable LocatorJS plugin
+    config.plugins = config.plugins.filter(plugin => {
+      return plugin.constructor.name !== 'LocatorPlugin';
+    });
+
     // Optimize for production builds
     if (!dev) {
       config.optimization.splitChunks = {

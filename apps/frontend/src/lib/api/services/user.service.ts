@@ -38,7 +38,7 @@ class UserService {
     return apiClient.get<User[]>('/users/online');
   }
 
-  async getUserAnalytics(id: string): Promise<any> {
+  async getUserAnalytics(id: string): Promise<Record<string, unknown>> {
     return apiClient.get(`/users/${id}/analytics`);
   }
 

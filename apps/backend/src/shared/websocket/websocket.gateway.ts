@@ -9,6 +9,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { StreamsService } from '../../modules/streams/streams.service';
 import { APP_CONSTANTS } from '../constants';
 import { WebSocketService } from './websocket.service';
 
@@ -32,19 +33,52 @@ export class WebSocketGateway
   @WebSocketServer()
   server: Server;
 
+  // Track last viewer count to prevent duplicate broadcasts
+  private lastViewerCount = new Map<string, number>();
+
   constructor(
     private webSocketService: WebSocketService,
-    private eventEmitter: EventEmitter2
+    private eventEmitter: EventEmitter2,
+    private streamsService: StreamsService
   ) {}
 
   afterInit(server: Server) {
     this.webSocketService.setServer(server);
   }
 
+  // Update viewer count only when it changes
+  private updateViewerCount(streamId: string, viewerCount: number) {
+    // Check if count actually changed
+    const lastCount = this.lastViewerCount.get(streamId);
+    if (lastCount === viewerCount) {
+      return; // No change, don't broadcast
+    }
+
+    // Update last count
+    this.lastViewerCount.set(streamId, viewerCount);
+
+    // Emit event to update viewer count in database
+    this.eventEmitter.emit('stream.viewer_joined', {
+      streamId,
+      viewerCount,
+    });
+
+    // Broadcast viewer count to all clients in this stream room
+    this.server.to(`stream:${streamId}`).emit('stream:viewer_count_update', {
+      streamId,
+      viewerCount,
+    });
+  }
+
   async handleConnection(client: Socket) {
+    // eslint-disable-next-line no-console
+    console.log('🔌 [WebSocket] New connection:', client.id);
+
     // Extract user info from handshake (if authenticated)
     const user = client.handshake.auth?.user;
     if (user) {
+      // eslint-disable-next-line no-console
+      console.log('👤 [WebSocket] User authenticated:', user.username);
       const success = this.webSocketService.addUser(
         user.id,
         user.username,
@@ -54,6 +88,9 @@ export class WebSocketGateway
         client.disconnect(true);
         return;
       }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('👤 [WebSocket] Anonymous connection');
     }
   }
 
@@ -114,6 +151,7 @@ export class WebSocketGateway
     const { streamId, userId } = data;
 
     if (!userId || userId === 'undefined' || !streamId) {
+      // eslint-disable-next-line no-console
       console.log('❌ Invalid join_stream data:', { streamId, userId });
       return;
     }
@@ -121,19 +159,18 @@ export class WebSocketGateway
     // Join stream room
     await client.join(`stream:${streamId}`);
 
+    // Add user to room tracking
+    this.webSocketService.addUserToRoom(userId, `stream:${streamId}`);
+
     // Get current viewer count
     const viewerCount = await this.webSocketService.getRoomUserCount(
       `stream:${streamId}`
     );
 
-    // Viewer count will be updated by StreamsService via API calls
+    // Update viewer count only when it changes
+    this.updateViewerCount(streamId, viewerCount);
 
-    // Broadcast viewer count to all clients in this stream room
-    this.server.to(`stream:${streamId}`).emit('stream:viewer_count_update', {
-      streamId,
-      viewerCount,
-    });
-
+    // eslint-disable-next-line no-console
     console.log(
       `👥 User ${userId} joined stream ${streamId}, total viewers: ${viewerCount}`
     );
@@ -147,6 +184,7 @@ export class WebSocketGateway
     const { streamId, userId: _userId } = data;
 
     if (!_userId || _userId === 'undefined' || !streamId) {
+      // eslint-disable-next-line no-console
       console.log('❌ Invalid leave_stream data:', {
         streamId,
         userId: _userId,
@@ -157,17 +195,18 @@ export class WebSocketGateway
     // Leave stream room
     await _client.leave(`stream:${streamId}`);
 
+    // Remove user from room tracking
+    this.webSocketService.removeUserFromRoom(_userId, `stream:${streamId}`);
+
     // Get current viewer count
     const viewerCount = await this.webSocketService.getRoomUserCount(
       `stream:${streamId}`
     );
 
-    // Broadcast viewer count to all clients in this stream room
-    this.server.to(`stream:${streamId}`).emit('stream:viewer_count_update', {
-      streamId,
-      viewerCount,
-    });
+    // Update viewer count only when it changes
+    this.updateViewerCount(streamId, viewerCount);
 
+    // eslint-disable-next-line no-console
     console.log(
       `👥 User ${_userId} left stream ${streamId}, total viewers: ${viewerCount}`
     );
@@ -180,6 +219,7 @@ export class WebSocketGateway
   ) {
     const { streamId, userId, username: _username } = data;
 
+    // eslint-disable-next-line no-console
     console.log('💬 [Chat] User joining chat:', {
       streamId,
       userId,
@@ -194,6 +234,7 @@ export class WebSocketGateway
       .to(`chat:${streamId}`)
       .emit('chat:user_join', { username: _username });
 
+    // eslint-disable-next-line no-console
     console.log('💬 [Chat] User joined chat room:', `chat:${streamId}`);
   }
 
@@ -205,6 +246,7 @@ export class WebSocketGateway
   ) {
     const { streamId, userId: _userId, username } = data;
 
+    // eslint-disable-next-line no-console
     console.log('💬 [Chat] User leaving chat:', {
       streamId,
       userId: _userId,
@@ -219,6 +261,7 @@ export class WebSocketGateway
       _client.to(`chat:${streamId}`).emit('chat:user_leave', { username });
     }
 
+    // eslint-disable-next-line no-console
     console.log('💬 [Chat] User left chat room:', `chat:${streamId}`);
   }
 
@@ -233,7 +276,17 @@ export class WebSocketGateway
     },
     @ConnectedSocket() client: Socket
   ) {
+    // eslint-disable-next-line no-console
+    console.log('🔍 [WebSocket] Received send_message event:', data);
     const { streamId, content, userId, username } = data;
+
+    // eslint-disable-next-line no-console
+    console.log('💬 [Chat] Received message:', {
+      streamId,
+      content,
+      userId,
+      username,
+    });
 
     try {
       // Emit event for chat service to handle
@@ -245,7 +298,11 @@ export class WebSocketGateway
         socket: this.server,
         room: `chat:${streamId}`,
       });
+
+      // eslint-disable-next-line no-console
+      console.log('💬 [Chat] Event emitted for chat service');
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to send chat message:', error);
       client.emit('chat:error', {
         message: APP_CONSTANTS.ERRORS.INTERNAL_ERROR,
@@ -278,8 +335,25 @@ export class WebSocketGateway
   ) {
     const { streamId, userId: _userId } = data;
 
-    // Here you would typically update the like count in the database
-    // For now, just broadcast the event
-    this.webSocketService.broadcastStreamLike(streamId, 0); // You'd get actual count from DB
+    try {
+      // Get the actual stream to get current like count
+      const stream = await this.streamsService.findById(streamId);
+      if (stream) {
+        // Broadcast the actual like count
+        this.webSocketService.broadcastStreamLike(streamId, stream.likeCount);
+        // eslint-disable-next-line no-console
+        console.log(
+          `❤️ [Stream] User ${_userId} liked stream ${streamId}, count: ${stream.likeCount}`
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error handling stream like:', error);
+    }
+  }
+
+  @SubscribeMessage('ping')
+  async handlePing(@ConnectedSocket() client: Socket) {
+    client.emit('pong');
   }
 }

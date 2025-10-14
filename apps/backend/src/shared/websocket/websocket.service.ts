@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
-import { RedisService } from '../redis/redis.service';
+import { Server } from 'socket.io';
 import { APP_CONSTANTS } from '../constants';
+import { RedisService } from '../redis/redis.service';
 
 export interface SocketUser {
   id: string;
@@ -84,8 +84,20 @@ export class WebSocketService {
       existingUser &&
       existingUser.connectionCount >= this.MAX_CONNECTIONS_PER_USER
     ) {
-      this.logger.warn(`Maximum connections per user reached for ${userId}`);
-      return false;
+      this.logger.warn(
+        `Maximum connections per user reached for ${userId}, disconnecting old connection`
+      );
+      // Disconnect the old socket
+      if (this.server && this.server.sockets && this.server.sockets.sockets) {
+        const oldSocket = this.server.sockets.sockets.get(
+          existingUser.socketId
+        );
+        if (oldSocket) {
+          oldSocket.disconnect(true);
+        }
+      }
+      // Remove old user
+      this.connectedUsers.delete(userId);
     }
 
     return true;
@@ -318,7 +330,7 @@ export class WebSocketService {
   }
 
   broadcastViewerCount(streamId: string, count: number): void {
-    this.broadcastToAll('stream:viewer_count_update', {
+    this.broadcastToRoom(`stream:${streamId}`, 'stream:viewer_count_update', {
       streamId,
       viewerCount: count,
       timestamp: new Date(),
@@ -328,12 +340,19 @@ export class WebSocketService {
   async getRoomUserCount(room: string): Promise<number> {
     if (!this.server) return 0;
 
+    // Use internal room tracking for more accurate count
+    const roomUsers = this.roomUsers.get(room);
+    if (roomUsers) {
+      return roomUsers.size;
+    }
+
+    // Fallback to server count
     const roomSockets = await this.server.in(room).fetchSockets();
     return roomSockets.length;
   }
 
   broadcastStreamLike(streamId: string, likeCount: number): void {
-    this.broadcastToAll('stream:like', {
+    this.broadcastToRoom(`stream:${streamId}`, 'stream:like_update', {
       streamId,
       likeCount,
       timestamp: new Date(),

@@ -124,6 +124,8 @@ export interface CreateStreamRequest {
   description?: string;
   category?: string;
   tags?: string[];
+  streamKey?: string;
+  streamType?: 'camera' | 'screen';
 }
 
 export interface UpdateStreamRequest {

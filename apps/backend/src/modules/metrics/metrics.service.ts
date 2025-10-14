@@ -161,7 +161,7 @@ export class MetricsService {
 
       // Update WebSocket connections
       const wsStats = this.webSocketService.getConnectionStats();
-      this.websocketConnectionsGauge.set(wsStats.totalConnections);
+      this.websocketConnectionsGauge.set(Number(wsStats.totalConnections));
 
       // Update stream viewer counts
       const liveStreams = await this.streamModel

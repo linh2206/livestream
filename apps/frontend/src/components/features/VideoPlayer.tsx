@@ -21,6 +21,7 @@ interface VideoPlayerProps {
   isLive?: boolean;
   vodProcessing?: boolean;
   vodProcessingStatus?: string;
+  viewerCount?: number;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
@@ -36,6 +37,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
     isLive = false,
     vodProcessing = false,
     vodProcessingStatus,
+    viewerCount = 0,
   }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -143,6 +145,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
             if (token) {
               xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             }
+
+            // Handle 401 responses
+            xhr.addEventListener('load', () => {
+              if (xhr.status === 401) {
+                // Clear token and redirect to login
+                localStorage.removeItem('auth_token');
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/login';
+                }
+              }
+            });
           },
         });
 
@@ -485,10 +498,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
           Your browser does not support the video tag.
         </video>
 
-        {/* Live indicator for live streams */}
-        {shouldShowLive && isLive && (
-          <div className='absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center space-x-1'>
-            <span>LIVE</span>
+        {/* TikTok-style Live indicator and viewer count */}
+        {shouldShowLive && (
+          <div className='absolute top-4 left-4 flex items-center space-x-2'>
+            {/* Live Badge - TikTok style */}
+            <div className='flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg'>
+              <div className='w-1.5 h-1.5 bg-white rounded-full animate-pulse'></div>
+              <span>LIVE</span>
+            </div>
+
+            {/* Viewer Count - TikTok style */}
+            <div className='flex items-center space-x-1 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium'>
+              <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
+                <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
+                <path
+                  fillRule='evenodd'
+                  d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
+                  clipRule='evenodd'
+                />
+              </svg>
+              <span>{viewerCount.toLocaleString()}</span>
+            </div>
           </div>
         )}
 
@@ -521,12 +551,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
                 Browser autoplay is disabled
               </p>
             </div>
-          </div>
-        )}
-
-        {isLive && !autoplayBlocked && (
-          <div className='absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium'>
-            LIVE
           </div>
         )}
       </div>

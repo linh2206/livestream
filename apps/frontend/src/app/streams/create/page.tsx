@@ -21,7 +21,7 @@ export default function CreateStreamPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError, showLoading } = useToast();
-  const { handleStreamError } = useErrorHandler();
+  const { handleError } = useErrorHandler();
 
   // Auth guard - tự động redirect nếu chưa login
   const authLoading = useAuthGuard({ requireAuth: true });
@@ -32,9 +32,10 @@ export default function CreateStreamPage() {
     category: '',
     tags: '',
     streamKey: '',
-    streamType: '', // 'camera' or 'screen'
+    streamType: 'camera' as 'camera' | 'screen', // Default to camera
   });
   const [loading, setLoading] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
 
   const validationRules = {
     title: commonValidationRules.streamTitle,
@@ -45,8 +46,50 @@ export default function CreateStreamPage() {
     streamType: commonValidationRules.streamType,
   };
 
-  const { errors, validateForm, validateSingleField, clearErrors } =
-    useFormValidation(validationRules);
+  const {
+    errors,
+    validateForm: _validateForm,
+    validateSingleField,
+    clearErrors,
+  } = useFormValidation(validationRules);
+
+  // Load draft on component mount
+  React.useEffect(() => {
+    const savedDraft = localStorage.getItem('stream-draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setFormData(draft);
+        setIsDraft(true);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to load draft:', error);
+      }
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!loading) {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }
+      }
+      // Escape to cancel
+      if (e.key === 'Escape') {
+        router.back();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [loading, router]);
 
   // Nếu đang check auth, hiển thị loading
   if (authLoading) {
@@ -55,20 +98,34 @@ export default function CreateStreamPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent double submission
+    if (loading) return;
+
     setLoading(true);
     clearErrors();
+    setIsDraft(false);
 
-    // Validate all fields
-    if (!validateForm(formData)) {
+    // Validate required fields only
+    const requiredFields = ['title'];
+    const hasRequiredErrors = requiredFields.some(field => {
+      const value = formData[field as keyof typeof formData];
+      return !value || value.trim() === '';
+    });
+
+    if (hasRequiredErrors) {
       setLoading(false);
-      const errorMessages = Object.values(errors).filter(Boolean);
       showError(
-        'Validation Error',
-        errorMessages.join('. ') || 'Please fix the errors below'
+        'Required Fields Missing',
+        'Please fill in the stream title at minimum',
+        {
+          replaceType: 'loading',
+        }
       );
       return;
     }
 
+    // Show loading with progress indication
     showLoading('Creating Stream', 'Setting up your stream...');
 
     try {
@@ -78,29 +135,46 @@ export default function CreateStreamPage() {
         .filter(tag => tag);
 
       const streamData = {
-        title: formData.title || `${user?.username}'s Stream`,
-        description: formData.description || `Live stream by ${user?.username}`,
-        category: formData.category,
+        title: formData.title.trim(),
+        description:
+          formData.description?.trim() || `Live stream by ${user?.username}`,
+        category: formData.category?.trim() || 'General',
         tags: tagsArray,
-        streamKey: formData.streamKey,
+        streamKey: formData.streamKey?.trim() || undefined,
         streamType: formData.streamType,
       };
 
       const newStream = await streamService.createStream(streamData);
 
+      // Clear draft on success
+      clearDraft();
+
+      // Success notification with action
       showSuccess('Stream Created!', 'Your stream is ready to go live! 🚀', {
+        replaceType: 'loading',
+        duration: 4000,
         action: {
           label: 'Start Streaming',
           onClick: () => router.push(`/streams/${newStream._id}/stream`),
         },
       });
 
-      // Redirect to the streaming page after a short delay
+      // Auto redirect to streaming page
       setTimeout(() => {
         router.push(`/streams/${newStream._id}/stream`);
       }, 2000);
     } catch (err: unknown) {
-      handleStreamError(err);
+      // Enhanced error handling
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as { response: { data: { message?: string } } };
+        const errorMessage =
+          apiError.response?.data?.message || 'Failed to create stream';
+        showError('Creation Failed', errorMessage, {
+          replaceType: 'loading',
+        });
+      } else {
+        handleError(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -119,6 +193,20 @@ export default function CreateStreamPage() {
 
     // Real-time validation
     validateSingleField(name, value);
+
+    // Auto-save draft to localStorage
+    const draftData = {
+      ...formData,
+      [name]: value,
+    };
+    localStorage.setItem('stream-draft', JSON.stringify(draftData));
+    setIsDraft(true);
+  };
+
+  // Clear draft when stream is created successfully
+  const clearDraft = () => {
+    localStorage.removeItem('stream-draft');
+    setIsDraft(false);
   };
 
   return (
@@ -129,11 +217,28 @@ export default function CreateStreamPage() {
         <main className='flex-1 p-6'>
           <div className='max-w-4xl mx-auto'>
             <div className='mb-8'>
-              <h1 className='text-3xl font-bold text-white mb-2'>
-                Create New Stream
-              </h1>
+              <div className='flex items-center justify-between mb-2'>
+                <h1 className='text-3xl font-bold text-white'>
+                  Create New Stream
+                </h1>
+                {isDraft && (
+                  <div className='flex items-center space-x-2'>
+                    <span className='text-sm text-yellow-400'>Draft saved</span>
+                    <button
+                      type='button'
+                      onClick={clearDraft}
+                      className='text-xs text-gray-400 hover:text-white underline'
+                    >
+                      Clear draft
+                    </button>
+                  </div>
+                )}
+              </div>
               <p className='text-gray-400'>
                 Set up your live stream and start broadcasting to your audience
+              </p>
+              <p className='text-xs text-gray-500 mt-1'>
+                💡 Tip: Use Ctrl+Enter to submit quickly, Escape to cancel
               </p>
             </div>
 
@@ -234,12 +339,13 @@ export default function CreateStreamPage() {
                     disabled={loading}
                     className='flex-1'
                   >
-                    Create Stream
+                    {loading ? 'Creating Stream...' : 'Create Stream'}
                   </Button>
                   <Button
                     type='button'
                     variant='secondary'
                     onClick={() => router.back()}
+                    disabled={loading}
                     className='flex-1'
                   >
                     Cancel
@@ -277,7 +383,8 @@ export default function CreateStreamPage() {
                   </h4>
                   <p className='text-sm'>
                     Click &quot;Create Stream&quot; to go to the streaming page
-                    and start broadcasting directly from your browser.
+                    where you can choose Camera or Screen Share and start
+                    broadcasting directly from your browser.
                   </p>
                 </div>
                 <div>

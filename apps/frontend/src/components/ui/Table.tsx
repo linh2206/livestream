@@ -1,24 +1,24 @@
-import React, { useState, useMemo } from 'react';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
+import React, { useMemo, useState } from 'react';
 
-interface TableColumn<T = any> {
+interface TableColumn<T = Record<string, unknown>> {
   key: string;
   title: string;
   dataIndex?: keyof T;
-  render?: (value: any, record: T) => React.ReactNode;
+  render?: (value: unknown, record: T) => React.ReactNode;
   sortable?: boolean;
 }
 
-interface TableProps<T = any> {
+interface TableProps<T = Record<string, unknown>> {
   columns: TableColumn<T>[];
   data: T[];
   loading?: boolean;
@@ -26,7 +26,7 @@ interface TableProps<T = any> {
   onRowClick?: (record: T) => void;
 }
 
-export const Table = <T extends Record<string, any>>({
+export const Table = <T extends Record<string, unknown>>({
   columns,
   data,
   loading = false,
@@ -40,6 +40,7 @@ export const Table = <T extends Record<string, any>>({
     const columnHelper = createColumnHelper<T>();
 
     return columns.map(col =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       columnHelper.accessor(col.dataIndex as any, {
         id: col.key,
         header: col.title,

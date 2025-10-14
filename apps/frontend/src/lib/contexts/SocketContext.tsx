@@ -2,24 +2,34 @@
 
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { useSocket } from '../hooks/useSocket';
+import { SocketConfig } from '../socket/client';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 
 interface SocketContextType {
-  socket: any | null;
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
-  joinStreamChat: (streamId: string) => void;
-  leaveStreamChat: (streamId: string) => void;
-  sendMessage: (streamId: string, content: string) => void;
-  likeStream: (streamId: string) => void;
-  unlikeStream: (streamId: string) => void;
+  emit: <K extends keyof import('../socket/client').SocketEmitEvents>(
+    event: K,
+    data: Parameters<import('../socket/client').SocketEmitEvents[K]>[0]
+  ) => void;
+  on: <K extends keyof import('../socket/client').SocketEvents>(
+    event: K,
+    listener: import('../socket/client').SocketEvents[K]
+  ) => void;
+  off: <K extends keyof import('../socket/client').SocketEvents>(
+    event: K,
+    listener?: import('../socket/client').SocketEvents[K]
+  ) => void;
+  joinRoom: (room: string) => void;
+  leaveRoom: (room: string) => void;
   joinStream: (streamId: string) => void;
   leaveStream: (streamId: string) => void;
 }
@@ -28,225 +38,119 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { showInfo, showError, showWarning } = useToast();
+  const { showError } = useToast();
+  const socket = useSocket();
+  const [lastAuthState, setLastAuthState] = useState<{
+    isAuthenticated: boolean;
+    userId: string | null;
+  }>({ isAuthenticated: false, userId: null });
 
-  // Get token from localStorage for socket auth (consistent with AuthContext)
+  // Get token from localStorage
   const getTokenFromStorage = () => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('auth_token');
   };
 
-  // Only connect socket when user is loaded and authenticated
-  const {
-    socket,
-    isConnected,
-    isConnecting,
-    error,
-    emit,
-    on: _on,
-    off: _off,
-  } = useSocket({
-    auth:
-      !isLoading && user && isAuthenticated && user._id && getTokenFromStorage()
-        ? {
+  // Create socket config
+  const socketConfig = useMemo((): SocketConfig | null => {
+    if (!isLoading) {
+      // Always connect WebSocket, even for anonymous users
+      if (user && isAuthenticated && user._id && getTokenFromStorage()) {
+        // Authenticated user
+        return {
+          url: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:9000',
+          auth: {
             user: {
               id: user._id,
               username: user.username,
               role: user.role,
             },
-            token: getTokenFromStorage() || undefined,
-          }
-        : undefined,
-  });
+            token: getTokenFromStorage() || '',
+          },
+        };
+      } else {
+        // Anonymous user - connect without auth
+        return {
+          url: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:9000',
+        };
+      }
+    }
+    return null;
+  }, [isLoading, user, isAuthenticated]);
 
-  // Debug socket connection status
+  // Handle authentication state changes
   useEffect(() => {
-    const _debugInfo = {
-      isLoading,
-      hasUser: !!user,
+    const currentAuthState = {
       isAuthenticated,
-      hasToken: !!getTokenFromStorage(),
-      isConnected,
-      isConnecting,
-      hasSocket: !!socket,
-      userId: user?._id,
+      userId: user?._id || null,
     };
-    // Debug info available but not logged
-  }, [isLoading, user, isAuthenticated, isConnected, isConnecting, socket]);
 
-  // Force disconnect if no valid user
-  useEffect(() => {
-    if (!isLoading && (!user || !user._id || !isAuthenticated)) {
-      // Force disconnect logic can be added here
+    // Only reconnect if auth state actually changed
+    if (
+      currentAuthState.isAuthenticated !== lastAuthState.isAuthenticated ||
+      currentAuthState.userId !== lastAuthState.userId
+    ) {
+      setLastAuthState(currentAuthState);
+
+      if (socketConfig) {
+        // Always connect (even for anonymous users)
+        socket.connect(socketConfig).catch(error => {
+          // eslint-disable-next-line no-console
+          console.error('Socket connection failed:', error);
+          showError('Connection Error', 'Failed to connect to server');
+        });
+      } else {
+        // Disconnect if no config
+        socket.disconnect();
+      }
     }
-  }, [isLoading, user, user?._id, isAuthenticated]);
+  }, [isAuthenticated, user?._id, socket, showError, lastAuthState]);
 
-  // Handle socket connection events silently (no notifications)
-  // Socket runs in background without user notifications
-
-  // Handle alert notifications
+  // Handle socket errors
   useEffect(() => {
-    if (socket && isConnected) {
-      const handleAlert = (alertData: any) => {
-        const { name, severity, status, summary, description } = alertData;
-
-        // Map severity to toast type
-        let toastType: 'success' | 'error' | 'warning' | 'info' = 'info';
-        switch (severity) {
-          case 'critical':
-            toastType = 'error';
-            break;
-          case 'warning':
-            toastType = 'warning';
-            break;
-          case 'info':
-            toastType = 'info';
-            break;
-          default:
-            toastType = 'info';
-        }
-
-        // Only show alerts for firing status (not resolved)
-        if (status === 'firing') {
-          const title = `${severity.toUpperCase()}: ${name}`;
-          const message = summary || description || 'System alert triggered';
-
-          switch (toastType) {
-            case 'error':
-              showError(title, message, { duration: 8000 });
-              break;
-            case 'warning':
-              showWarning(title, message, { duration: 6000 });
-              break;
-            case 'info':
-              showInfo(title, message, { duration: 5000 });
-              break;
-            default:
-              showInfo(title, message, { duration: 5000 });
-          }
-        }
-      };
-
-      socket.on('alert', handleAlert);
-
-      return () => {
-        socket.off('alert', handleAlert);
-      };
+    if (socket.error) {
+      showError('Socket Error', socket.error);
     }
-  }, [socket, isConnected, showError, showWarning, showInfo]);
+  }, [socket.error, showError]);
 
-  // Chat methods - use useCallback to prevent re-creation
-  const joinStreamChat = useCallback(
-    (streamId: string) => {
-      if (user && isConnected && socket) {
-        emit('join_stream_chat', {
-          streamId,
-          userId: user._id,
-          username: user.username,
-        });
-      } else {
-      }
-    },
-    [user, isConnected, emit, socket]
-  );
+  // Socket event handlers
+  const joinRoom = (room: string) => {
+    socket.emit('join_room', { room });
+  };
 
-  const leaveStreamChat = useCallback(
-    (streamId: string) => {
-      if (user && isConnected) {
-        emit('leave_stream_chat', {
-          streamId,
-          userId: user._id,
-        });
-      }
-    },
-    [user, isConnected, emit]
-  );
+  const leaveRoom = (room: string) => {
+    socket.emit('leave_room', { room });
+  };
 
-  const sendMessage = useCallback(
-    (streamId: string, content: string) => {
-      if (user && isConnected && socket) {
-        emit('send_message', {
-          streamId,
-          content,
-          userId: user._id,
-          username: user.username,
-        });
-      }
-    },
-    [user, isConnected, emit, socket]
-  );
+  const joinStream = (streamId: string) => {
+    socket.emit('join_stream', { streamId });
+  };
 
-  // Stream methods - use useCallback to prevent re-creation
-  const likeStream = useCallback(
-    (streamId: string) => {
-      if (user && isConnected) {
-        emit('stream_like', {
-          streamId,
-          userId: user._id,
-        });
-      }
-    },
-    [user, isConnected, emit]
-  );
+  const leaveStream = (streamId: string) => {
+    socket.emit('leave_stream', { streamId });
+  };
 
-  const unlikeStream = useCallback(
-    (streamId: string) => {
-      if (user && isConnected) {
-        emit('stream_unlike', {
-          streamId,
-          userId: user._id,
-        });
-      }
-    },
-    [user, isConnected, emit]
-  );
-
-  const joinStream = useCallback(
-    (streamId: string) => {
-      if (user && isConnected && user._id) {
-        emit('join_stream', {
-          streamId,
-          userId: user._id,
-        });
-      } else {
-      }
-    },
-    [user, isConnected, emit]
-  );
-
-  const leaveStream = useCallback(
-    (streamId: string) => {
-      if (user && isConnected && user._id) {
-        emit('leave_stream', {
-          streamId,
-          userId: user._id,
-        });
-      } else {
-      }
-    },
-    [user, isConnected, emit]
-  );
-
-  const value = {
-    socket,
-    isConnected,
-    isConnecting,
-    error,
-    joinStreamChat,
-    leaveStreamChat,
-    sendMessage,
-    likeStream,
-    unlikeStream,
+  const contextValue: SocketContextType = {
+    isConnected: socket.isConnected,
+    isConnecting: socket.isConnecting,
+    error: socket.error,
+    emit: socket.emit,
+    on: socket.on,
+    off: socket.off,
+    joinRoom,
+    leaveRoom,
     joinStream,
     leaveStream,
   };
 
   return (
-    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={contextValue}>
+      {children}
+    </SocketContext.Provider>
   );
 }
 
-export function useSocketContext() {
+export function useSocketContext(): SocketContextType {
   const context = useContext(SocketContext);
   if (context === undefined) {
     throw new Error('useSocketContext must be used within a SocketProvider');

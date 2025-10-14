@@ -1,122 +1,140 @@
-import { useToast } from '@/lib/contexts/ToastContext';
-import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
+import { useToast } from '../contexts/ToastContext';
 
-interface ApiError {
-  message?: string;
-  response?: {
-    data?: {
-      message?: string;
-      error?: string;
-      details?: unknown;
-    };
-    status?: number;
-  };
-  code?: string;
+export interface SocketError {
+  message: string;
+  code: string;
+  event?: string;
 }
 
-interface ErrorConfig {
-  title?: string;
-  message?: string;
-  redirectTo?: string;
-  showToast?: boolean;
-}
+export function useErrorHandler() {
+  const { showError, showWarning } = useToast();
 
-export const useErrorHandler = () => {
-  const router = useRouter();
-  const { showError } = useToast();
+  const handleSocketError = useCallback(
+    (error: SocketError) => {
+      const { message, code } = error;
 
-  const handleError = (error: unknown, customConfig?: ErrorConfig) => {
-    // eslint-disable-next-line no-console
-    console.error('API Error:', error);
+      switch (code) {
+        case 'CONNECTION_ERROR':
+          showError(
+            'Connection Error',
+            'Failed to connect to server. Please check your internet connection.',
+            {
+              replaceType: 'loading',
+            }
+          );
+          break;
+        case 'CONNECTION_LIMIT_EXCEEDED':
+          showError(
+            'Connection Limit',
+            'Too many connections. Please try again later.',
+            {
+              replaceType: 'loading',
+            }
+          );
+          break;
+        case 'INVALID_AUTH':
+          showError('Authentication Error', 'Please log in again.', {
+            replaceType: 'loading',
+          });
+          break;
+        case 'RATE_LIMITED':
+          showWarning('Rate Limited', 'Too many requests. Please slow down.', {
+            replaceType: 'loading',
+          });
+          break;
+        default:
+          showError('Socket Error', message || 'An unexpected error occurred', {
+            replaceType: 'loading',
+          });
+      }
+    },
+    [showError, showWarning]
+  );
 
-    const apiError = error as ApiError;
-    const config = customConfig || {};
+  const handleApiError = useCallback(
+    (error: unknown) => {
+      const errorObj = error as Record<string, unknown>;
+      if (errorObj?.response && typeof errorObj.response === 'object') {
+        const response = errorObj.response as Record<string, unknown>;
+        if (response?.data && typeof response.data === 'object') {
+          const data = response.data as Record<string, unknown>;
+          if (data?.message) {
+            showError('API Error', data.message as string, {
+              replaceType: 'loading',
+            });
+          }
+        }
+      } else if (errorObj?.message) {
+        showError('API Error', errorObj.message as string, {
+          replaceType: 'loading',
+        });
+      } else {
+        showError('API Error', 'An unexpected error occurred', {
+          replaceType: 'loading',
+        });
+      }
+    },
+    [showError]
+  );
 
-    let errorTitle = config.title || 'Error';
-    let errorMessage = config.message || 'An unexpected error occurred';
-    let shouldRedirect = false;
-    let redirectPath = config.redirectTo;
+  const handleNetworkError = useCallback(
+    (error: unknown) => {
+      const errorObj = error as Record<string, unknown>;
+      if (errorObj?.code === 'NETWORK_ERROR') {
+        showError('Network Error', 'Please check your internet connection', {
+          replaceType: 'loading',
+        });
+      } else if (
+        errorObj?.message &&
+        typeof errorObj.message === 'string' &&
+        errorObj.message.includes('timeout')
+      ) {
+        showError('Timeout Error', 'Request timed out. Please try again.', {
+          replaceType: 'loading',
+        });
+      } else {
+        showError('Network Error', 'Network connection failed', {
+          replaceType: 'loading',
+        });
+      }
+    },
+    [showError]
+  );
 
-    if (apiError.response?.status === 400) {
-      errorTitle = 'Validation Error';
-      errorMessage =
-        apiError.response.data?.message ||
-        'Please check your input and try again';
-    } else if (apiError.response?.status === 401) {
-      errorTitle = 'Authentication Required';
-      errorMessage = 'Please log in again to continue';
-      shouldRedirect = true;
-      redirectPath = '/login';
-    } else if (apiError.response?.status === 403) {
-      errorTitle = 'Access Denied';
-      errorMessage = 'You do not have permission to perform this action';
-    } else if (apiError.response?.status === 404) {
-      errorTitle = 'Not Found';
-      errorMessage =
-        apiError.response.data?.message ||
-        'The requested resource was not found';
-    } else if (apiError.response?.status === 409) {
-      errorTitle = 'Conflict Error';
-      errorMessage =
-        apiError.response.data?.message || 'This resource already exists';
-    } else if (apiError.response?.status && apiError.response.status >= 500) {
-      errorTitle = 'Server Error';
-      errorMessage =
-        'Server is temporarily unavailable. Please try again later';
-    } else if (apiError.code === 'NETWORK_ERROR' || !apiError.response) {
-      errorTitle = 'Connection Error';
-      errorMessage =
-        'Cannot connect to server. Please check your internet connection';
-    } else {
-      errorMessage =
-        apiError.response?.data?.message || apiError.message || errorMessage;
-    }
-
-    // Show error toast if enabled (default: true)
-    if (config.showToast !== false) {
-      showError(errorTitle, errorMessage);
-    }
-
-    // Redirect if needed
-    if (shouldRedirect && redirectPath) {
-      router.push(redirectPath);
-    }
-
-    return {
-      title: errorTitle,
-      message: errorMessage,
-      status: apiError.response?.status,
-      shouldRedirect,
-      redirectPath,
-    };
-  };
-
-  const handleStreamError = (error: unknown) => {
-    return handleError(error, {
-      title: 'Stream Error',
-      message: 'Failed to process stream request',
-    });
-  };
-
-  const handleAuthError = (error: unknown) => {
-    return handleError(error, {
-      title: 'Authentication Error',
-      message: 'Please log in again',
-      redirectTo: '/login',
-    });
-  };
-
-  const handleValidationError = (error: unknown) => {
-    return handleError(error, {
-      title: 'Validation Error',
-      message: 'Please check your input and try again',
-    });
-  };
+  const handleError = useCallback(
+    (error: unknown) => {
+      const errorObj = error as Record<string, unknown>;
+      if (errorObj?.code && typeof errorObj.code === 'string') {
+        // Socket error
+        handleSocketError(error as SocketError);
+      } else if (errorObj?.response) {
+        // API error
+        handleApiError(error);
+      } else if (
+        errorObj?.code === 'NETWORK_ERROR' ||
+        (errorObj?.message &&
+          typeof errorObj.message === 'string' &&
+          errorObj.message.includes('timeout'))
+      ) {
+        // Network error
+        handleNetworkError(error);
+      } else {
+        // Generic error
+        const message =
+          (errorObj?.message as string) || 'An unexpected error occurred';
+        showError('Error', message, {
+          replaceType: 'loading',
+        });
+      }
+    },
+    [handleSocketError, handleApiError, handleNetworkError, showError]
+  );
 
   return {
+    handleSocketError,
+    handleApiError,
+    handleNetworkError,
     handleError,
-    handleStreamError,
-    handleAuthError,
-    handleValidationError,
   };
-};
+}

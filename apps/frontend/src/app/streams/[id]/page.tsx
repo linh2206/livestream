@@ -1,5 +1,6 @@
 'use client';
 
+// import { RequireAuth } from '@/components/auth/AuthGuard';
 import { Chat } from '@/components/features/Chat';
 import { VideoPlayer } from '@/components/features/VideoPlayer';
 import { Header } from '@/components/layout/Header';
@@ -11,8 +12,6 @@ import { streamService } from '@/lib/api/services/stream.service';
 import { Stream } from '@/lib/api/types';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
-import { useAuthGuard } from '@/lib/hooks/useAuthGuard';
-import { useErrorHandler } from '@/lib/hooks/useErrorHandler';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -20,19 +19,14 @@ export default function StreamDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { handleStreamError } = useErrorHandler();
-  const { socket, joinStreamChat, leaveStreamChat, joinStream, leaveStream } =
-    useSocketContext();
-
-  // Auth guard
-  const authLoading = useAuthGuard({ requireAuth: true });
+  const { on, off, emit, isConnected } = useSocketContext();
   const [stream, setStream] = useState<Stream | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
-  const [totalViewerCount, setTotalViewerCount] = useState(0);
-  const [_vodProcessing, _setVodProcessing] = useState(false);
+  const [_totalViewerCount, setTotalViewerCount] = useState(0);
+  const [isStreamLive, setIsStreamLive] = useState(false);
 
   const streamId = params?.id as string;
 
@@ -41,174 +35,170 @@ export default function StreamDetailPage() {
 
     try {
       setLoading(true);
-      const data: Stream = await streamService.getStream(streamId);
+      const data = await streamService.getStream(streamId);
       setStream(data);
-      // Set isLiked from backend response (server-side truth)
-      setIsLiked(data.isLikedByUser || false);
-      // Set VOD processing status
-      _setVodProcessing(data.vodProcessing || false);
-      // Set viewer counts
+      
+      // Use API response for like status (real-time updates will come via WebSocket)
+      const isLikedByUser = (data as unknown as Record<string, unknown>).isLikedByUser as boolean;
+      // eslint-disable-next-line no-console
+      console.log('🔍 [Debug] Stream data:', { 
+        streamId, 
+        isLikedByUser, 
+        likeCount: data.likeCount,
+        data 
+      });
+      setIsLiked(isLikedByUser);
+      
       setViewerCount(data.viewerCount || 0);
       setTotalViewerCount(data.totalViewerCount || 0);
+      setIsStreamLive(data.status === 'active');
     } catch (err) {
-      handleStreamError(err);
       setError('Failed to load stream');
-      // Reset state when API fails
-      setStream(null);
-      setViewerCount(0);
-      setTotalViewerCount(0);
-      setIsLiked(false);
-      _setVodProcessing(false);
+      // eslint-disable-next-line no-console
+      console.error('Error fetching stream:', err);
     } finally {
       setLoading(false);
     }
-  }, [streamId, handleStreamError]);
+  }, [streamId]);
 
   useEffect(() => {
     fetchStream();
   }, [fetchStream]);
 
-  // Join chat room and stream room
   useEffect(() => {
-    if (stream && user && socket) {
-      // Join chat room
-      joinStreamChat(stream._id);
+    if (!streamId || !user) return;
 
-      // Join stream room for viewer count
-      joinStream(stream._id);
+    // Debug: Log WebSocket connection status
+    // eslint-disable-next-line no-console
+    console.log('🔌 [Debug] Attempting to join stream:', {
+      streamId,
+      userId: user._id,
+      isConnected,
+    });
 
-      // Listen for viewer count updates
-      const handleViewerCountUpdate = (data: {
-        streamId: string;
-        viewerCount: number;
-      }) => {
-        if (data.streamId === stream._id) {
-          setViewerCount(data.viewerCount);
-          // Update stream state
-          setStream(prev =>
-            prev ? { ...prev, viewerCount: data.viewerCount } : null
-          );
-        }
-      };
-
-      // Listen for like updates (REALTIME)
-      const handleLikeUpdate = (data: {
-        streamId: string;
-        isLiked: boolean;
-        likeCount: number;
-      }) => {
-        if (data.streamId === stream._id) {
-          setStream(prev =>
-            prev ? { ...prev, likeCount: data.likeCount } : null
-          );
-        }
-      };
-
-      // Listen for VOD processing updates
-      const handleVodProcessing = (data: { streamId: string }) => {
-        if (data.streamId === stream._id) {
-          _setVodProcessing(true);
-          setStream(prev => (prev ? { ...prev, vodProcessing: true } : null));
-        }
-      };
-
-      const handleVodCompleted = (data: { streamId: string }) => {
-        if (data.streamId === stream._id) {
-          _setVodProcessing(false);
-          // Refresh stream data to get VOD URL
-          fetchStream();
-        }
-      };
-
-      const handleVodFailed = (data: { streamId: string }) => {
-        if (data.streamId === stream._id) {
-          _setVodProcessing(false);
-          setStream(prev =>
-            prev
-              ? { ...prev, vodProcessing: false, vodProcessingStatus: 'failed' }
-              : null
-          );
-        }
-      };
-
-      socket.on('stream:viewer_count_update', handleViewerCountUpdate);
-      socket.on('stream:like', handleLikeUpdate);
-      socket.on('vod:processing', handleVodProcessing);
-      socket.on('vod:completed', handleVodCompleted);
-      socket.on('vod:failed', handleVodFailed);
-
-      return () => {
-        leaveStreamChat(stream._id);
-        leaveStream(stream._id);
-        socket.off('stream:viewer_count_update', handleViewerCountUpdate);
-        socket.off('stream:like', handleLikeUpdate);
-        socket.off('vod:processing', handleVodProcessing);
-        socket.off('vod:completed', handleVodCompleted);
-        socket.off('vod:failed', handleVodFailed);
-      };
+    // Only emit if connected
+    if (isConnected) {
+      // Join stream room for real-time updates
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      emit('join_stream', { streamId, userId: user._id } as any);
+      // eslint-disable-next-line no-console
+      console.log('🔌 [Debug] Emitted join_stream event');
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('🔌 [Debug] WebSocket not connected, skipping join_stream');
     }
-  }, [
-    fetchStream,
-    stream,
-    user,
-    stream?._id,
-    user?._id,
-    socket,
-    joinStreamChat,
-    leaveStreamChat,
-    joinStream,
-    leaveStream,
-  ]);
+
+    // Listen for real-time stream updates
+    const handleStreamStarted = (streamData: Record<string, unknown>) => {
+      if (streamData._id === streamId) {
+        setIsStreamLive(true);
+        setStream(streamData as unknown as Stream);
+      }
+    };
+
+    const handleStreamEnded = (data: Record<string, unknown>) => {
+      if (data.streamId === streamId) {
+        setIsStreamLive(false);
+      }
+    };
+
+    const handleViewerCountUpdate = (data: Record<string, unknown>) => {
+      if (data.streamId === streamId) {
+        setViewerCount(data.viewerCount as number);
+      }
+    };
+
+    const handleLikeUpdate = (data: Record<string, unknown>) => {
+      if (data.streamId === streamId) {
+        setStream(prev =>
+          prev ? { ...prev, likeCount: data.likeCount as number } : null
+        );
+      }
+    };
+
+    // Register event listeners
+    on('stream:started', handleStreamStarted);
+    on('stream:ended', handleStreamEnded);
+    on('stream:viewer_count_update', handleViewerCountUpdate);
+    on('stream:like_update', handleLikeUpdate);
+
+    return () => {
+      // Clean up event listeners
+      off('stream:started', handleStreamStarted);
+      off('stream:ended', handleStreamEnded);
+      off('stream:viewer_count_update', handleViewerCountUpdate);
+      off('stream:like_update', handleLikeUpdate);
+
+      // Leave stream room
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      emit('leave_stream', { streamId, userId: user._id } as any);
+    };
+  }, [streamId, user, on, off, emit]);
 
   const handleLike = async () => {
     if (!stream || !user) return;
 
-    // Optimistic update for better UX
-    const previousIsLiked = isLiked;
-    const previousLikeCount = stream.likeCount || 0;
-
-    setIsLiked(!isLiked);
-    setStream(prev =>
-      prev
-        ? {
-            ...prev,
-            likeCount: isLiked ? previousLikeCount - 1 : previousLikeCount + 1,
-          }
-        : null
-    );
-
     try {
-      const result = (await streamService.likeStream(stream._id)) as {
-        isLiked: boolean;
-        stream: { likeCount: number };
-      };
-      // Update with actual server response
-      setIsLiked(result.isLiked);
-      setStream(prev =>
-        prev ? { ...prev, likeCount: result.stream.likeCount } : null
-      );
-    } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Error liking stream:', error);
-      // Rollback on error
-      setIsLiked(previousIsLiked);
-      setStream(prev =>
-        prev ? { ...prev, likeCount: previousLikeCount } : null
-      );
+      console.log('❤️ [Debug] Attempting to like stream:', stream._id);
+      
+      // Call API to like/unlike (this will trigger WebSocket broadcast)
+      const result = await streamService.likeStream(stream._id);
+      const isLikedResult = (result as Record<string, unknown>).isLiked as boolean;
+      const updatedStream = (result as Record<string, unknown>).stream as Stream;
+      
+      // Update local state immediately
+      setIsLiked(isLikedResult);
+      setStream(updatedStream);
+      
+      // eslint-disable-next-line no-console
+      console.log('❤️ [Debug] Like result:', result);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Error liking stream:', err);
     }
   };
 
-  // Auth guard check
-  if (authLoading) {
-    return authLoading;
-  }
+  const handleShare = async () => {
+    if (!stream) return;
 
-  // TẤT CẢ đều cần auth - kể cả video player
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      // You could show a toast notification here
+    } catch (err) {
+      // TODO: Handle share error properly
+      // console.error('Error sharing stream:', err);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!stream) return;
+
+    try {
+      // Implement download logic
+      // TODO: Implement download logic
+      // console.log('Downloading stream:', stream._id);
+    } catch (err) {
+      // TODO: Handle download error properly
+      // console.error('Error downloading stream:', err);
+    }
+  };
+
   if (loading) {
-    return <Loading fullScreen text='Loading stream...' />;
+    return (
+      <div className='min-h-screen bg-gray-900'>
+        <Header />
+        <div className='flex'>
+          <Sidebar />
+          <main className='flex-1 p-6'>
+            <div className='max-w-7xl mx-auto'>
+              <Loading />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
-
-  // Check authentication first - TẤT CẢ cần auth
 
   if (error || !stream) {
     return (
@@ -216,19 +206,23 @@ export default function StreamDetailPage() {
         <Header />
         <div className='flex'>
           <Sidebar />
-          <div className='flex-1 flex items-center justify-center p-6'>
-            <Card className='max-w-md mx-auto'>
-              <div className='text-center text-red-400'>
-                <p>{error || 'Stream not found'}</p>
-                <Button
-                  onClick={() => router.push('/streams')}
-                  className='mt-4'
-                >
-                  Back to Streams
-                </Button>
-              </div>
-            </Card>
-          </div>
+          <main className='flex-1 p-6'>
+            <div className='max-w-7xl mx-auto'>
+              <Card>
+                <div className='p-6 text-center'>
+                  <h2 className='text-xl font-semibold text-white mb-4'>
+                    Stream Not Found
+                  </h2>
+                  <p className='text-gray-400 mb-6'>
+                    {error || 'The stream you are looking for does not exist.'}
+                  </p>
+                  <Button onClick={() => router.push('/streams')}>
+                    Back to Streams
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </main>
         </div>
       </div>
     );
@@ -241,104 +235,70 @@ export default function StreamDetailPage() {
         <Sidebar />
         <main className='flex-1 p-6'>
           <div className='max-w-7xl mx-auto'>
-            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 h-full'>
               {/* Video Player */}
-              <div className='lg:col-span-2'>
-                <Card>
-                  <VideoPlayer
-                    streamKey={stream.streamKey}
-                    hlsUrl={stream.hlsUrl}
-                    className='aspect-video'
-                    autoPlay
-                    muted={false}
-                    controls
-                    vodUrl={stream.vodUrl}
-                    isVod={stream.isVod}
-                    isLive={stream.isLive}
-                    vodProcessing={stream.vodProcessing}
-                    vodProcessingStatus={stream.vodProcessingStatus}
-                  />
+              <div className='lg:col-span-2 flex flex-col'>
+                <Card className='flex-1'>
+                  <div className='p-6 h-full'>
+                    <VideoPlayer
+                      streamKey={stream.streamKey}
+                      hlsUrl={stream.hlsUrl}
+                      isVod={false}
+                      isLive={isStreamLive}
+                      viewerCount={viewerCount}
+                      className='h-full'
+                    />
+                  </div>
+                </Card>
 
-                  <div className='mt-4'>
-                    <h1 className='text-2xl font-bold text-white mb-2'>
-                      {stream.title}
-                    </h1>
-                    <p className='text-gray-300 mb-4'>{stream.description}</p>
-
+                {/* Actions */}
+                <Card className='mt-6'>
+                  <div className='p-6'>
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center space-x-4'>
-                        <div className='flex items-center space-x-2'>
-                          <div className='w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg'>
-                            <span className='text-white font-bold text-sm'>
-                              {stream.user?.username?.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className='text-white font-medium'>
-                            {stream.user?.username}
-                          </span>
-                        </div>
-
-                        <div className='flex items-center space-x-2 text-gray-400'>
-                          <svg
-                            className='w-4 h-4'
-                            fill='currentColor'
-                            viewBox='0 0 20 20'
-                          >
-                            <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
-                            <path
-                              fillRule='evenodd'
-                              d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
-                              clipRule='evenodd'
-                            />
-                          </svg>
+                        <Button
+                          variant={isLiked ? 'primary' : 'secondary'}
+                          onClick={handleLike}
+                          className='flex items-center space-x-2'
+                        >
+                          <span>{isLiked ? '❤️' : '🤍'}</span>
                           <span>
-                            {stream?.isLive ? (
-                              <>
-                                {viewerCount} watching now
-                                {totalViewerCount > viewerCount && (
-                                  <span className='text-gray-500 ml-1'>
-                                    ({totalViewerCount} total)
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                {totalViewerCount} total views
-                                {viewerCount > 0 && (
-                                  <span className='text-gray-500 ml-1'>
-                                    ({viewerCount} watching VOD)
-                                  </span>
-                                )}
-                              </>
-                            )}
+                            {((stream as unknown as Record<string, unknown>)
+                              .likeCount as number) || 0}
                           </span>
-                        </div>
+                        </Button>
+                        <Button
+                          variant='secondary'
+                          onClick={handleShare}
+                          className='flex items-center space-x-2'
+                        >
+                          <span>📤</span>
+                          <span>Share</span>
+                        </Button>
+                        <Button
+                          variant='secondary'
+                          onClick={handleDownload}
+                          className='flex items-center space-x-2'
+                        >
+                          <span>⬇️</span>
+                          <span>Download</span>
+                        </Button>
                       </div>
 
-                      <div className='flex items-center space-x-2'>
-                        <button
-                          onClick={handleLike}
-                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                            isLiked
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white border border-gray-600'
-                          }`}
-                        >
-                          <svg
-                            className='w-4 h-4'
-                            fill={isLiked ? 'currentColor' : 'none'}
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                          >
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
-                            />
-                          </svg>
-                          <span>{stream.likeCount || 0}</span>
-                        </button>
+                      {/* Stream metadata */}
+                      <div className='flex items-center space-x-4 text-sm text-gray-400'>
+                        <span>
+                          by{' '}
+                          {((
+                            stream.userId as unknown as Record<string, unknown>
+                          )?.username as string) || 'Unknown'}
+                        </span>
+                        <span>•</span>
+                        <span>{stream.category}</span>
+                        <span>•</span>
+                        <span>
+                          {new Date(stream.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -346,8 +306,8 @@ export default function StreamDetailPage() {
               </div>
 
               {/* Chat */}
-              <div className='lg:col-span-1'>
-                <Chat streamId={stream._id} />
+              <div className='lg:col-span-1 h-full'>
+                <Chat streamId={stream._id} className='h-full' />
               </div>
             </div>
           </div>

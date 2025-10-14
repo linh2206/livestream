@@ -16,7 +16,7 @@ export interface RealTimeMetrics {
   recentActivity: Array<{
     type: 'stream_started' | 'stream_ended' | 'user_registered' | 'vod_created';
     timestamp: string;
-    data: any;
+    data: Record<string, unknown>;
   }>;
 }
 

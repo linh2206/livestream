@@ -323,7 +323,7 @@ export class AnalyticsService {
    */
   async broadcastMetrics(): Promise<void> {
     const metrics = await this.getRealTimeMetrics();
-    this.webSocketService.broadcastToAll('analytics:metrics', metrics);
+    this.webSocketService.broadcastToAll('analytics:metrics', metrics as unknown as Record<string, unknown>);
   }
 
   /**
