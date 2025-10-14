@@ -37,18 +37,19 @@ export default function StreamDetailPage() {
       setLoading(true);
       const data = await streamService.getStream(streamId);
       setStream(data);
-      
+
       // Use API response for like status (real-time updates will come via WebSocket)
-      const isLikedByUser = (data as unknown as Record<string, unknown>).isLikedByUser as boolean;
+      const isLikedByUser = (data as unknown as Record<string, unknown>)
+        .isLikedByUser as boolean;
       // eslint-disable-next-line no-console
-      console.log('🔍 [Debug] Stream data:', { 
-        streamId, 
-        isLikedByUser, 
+      console.log('🔍 [Debug] Stream data:', {
+        streamId,
+        isLikedByUser,
         likeCount: data.likeCount,
-        data 
+        data,
       });
       setIsLiked(isLikedByUser);
-      
+
       setViewerCount(data.viewerCount || 0);
       setTotalViewerCount(data.totalViewerCount || 0);
       setIsStreamLive(data.status === 'active');
@@ -141,16 +142,18 @@ export default function StreamDetailPage() {
     try {
       // eslint-disable-next-line no-console
       console.log('❤️ [Debug] Attempting to like stream:', stream._id);
-      
+
       // Call API to like/unlike (this will trigger WebSocket broadcast)
       const result = await streamService.likeStream(stream._id);
-      const isLikedResult = (result as Record<string, unknown>).isLiked as boolean;
-      const updatedStream = (result as Record<string, unknown>).stream as Stream;
-      
+      const isLikedResult = (result as Record<string, unknown>)
+        .isLiked as boolean;
+      const updatedStream = (result as Record<string, unknown>)
+        .stream as Stream;
+
       // Update local state immediately
       setIsLiked(isLikedResult);
       setStream(updatedStream);
-      
+
       // eslint-disable-next-line no-console
       console.log('❤️ [Debug] Like result:', result);
     } catch (err) {

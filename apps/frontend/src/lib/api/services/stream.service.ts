@@ -1,11 +1,11 @@
 import { apiClient } from '../client';
 import {
-  Stream,
+  ApiResponse,
   CreateStreamRequest,
-  UpdateStreamRequest,
   PaginatedResponse,
   PaginationParams,
-  ApiResponse,
+  Stream,
+  UpdateStreamRequest,
 } from '../types';
 
 class StreamService {
@@ -72,12 +72,19 @@ class StreamService {
     return apiClient.post<ApiResponse>(`/rtmp/check-offline/${streamKey}`);
   }
 
-  async updateViewerCount(streamKey: string, count: number): Promise<ApiResponse> {
-    return apiClient.put<ApiResponse>(`/streams/viewer-count/${streamKey}`, { count });
+  async updateViewerCount(
+    streamKey: string,
+    count: number
+  ): Promise<ApiResponse> {
+    return apiClient.put<ApiResponse>(`/streams/viewer-count/${streamKey}`, {
+      count,
+    });
   }
 
   async updateViewerCountById(id: string, count: number): Promise<ApiResponse> {
-    return apiClient.put<ApiResponse>(`/streams/viewer-count-by-id/${id}`, { count });
+    return apiClient.put<ApiResponse>(`/streams/viewer-count-by-id/${id}`, {
+      count,
+    });
   }
 }
 
