@@ -104,7 +104,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket.disconnect();
       }
     }
-  }, [isAuthenticated, user?._id, socket, showError, lastAuthState]);
+  }, [
+    isAuthenticated,
+    user?._id,
+    socket,
+    showError,
+    lastAuthState,
+    socketConfig,
+  ]);
 
   // Handle socket errors
   useEffect(() => {

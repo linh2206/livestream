@@ -134,7 +134,7 @@ export default function StreamDetailPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       emit('leave_stream', { streamId, userId: user._id } as any);
     };
-  }, [streamId, user, on, off, emit]);
+  }, [streamId, user, on, off, emit, isConnected]);
 
   const handleLike = async () => {
     if (!stream || !user) return;
@@ -162,7 +162,7 @@ export default function StreamDetailPage() {
     }
   };
 
-  const handleShare = async () => {
+  const _handleShare = async () => {
     if (!stream) return;
 
     try {
@@ -174,7 +174,7 @@ export default function StreamDetailPage() {
     }
   };
 
-  const handleDownload = async () => {
+  const _handleDownload = async () => {
     if (!stream) return;
 
     try {
@@ -241,7 +241,7 @@ export default function StreamDetailPage() {
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 h-full'>
               {/* Video Player */}
               <div className='lg:col-span-2 flex flex-col'>
-                <Card className='flex-1'>
+                <Card className='flex-1 relative'>
                   <div className='p-6 h-full'>
                     <VideoPlayer
                       streamKey={stream.streamKey}
@@ -251,57 +251,24 @@ export default function StreamDetailPage() {
                       viewerCount={viewerCount}
                       className='h-full'
                     />
-                  </div>
-                </Card>
 
-                {/* Actions */}
-                <Card className='mt-6'>
-                  <div className='p-6'>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center space-x-4'>
-                        <Button
-                          variant={isLiked ? 'primary' : 'secondary'}
-                          onClick={handleLike}
-                          className='flex items-center space-x-2'
-                        >
-                          <span>{isLiked ? '❤️' : '🤍'}</span>
-                          <span>
-                            {((stream as unknown as Record<string, unknown>)
-                              .likeCount as number) || 0}
-                          </span>
-                        </Button>
-                        <Button
-                          variant='secondary'
-                          onClick={handleShare}
-                          className='flex items-center space-x-2'
-                        >
-                          <span>📤</span>
-                          <span>Share</span>
-                        </Button>
-                        <Button
-                          variant='secondary'
-                          onClick={handleDownload}
-                          className='flex items-center space-x-2'
-                        >
-                          <span>⬇️</span>
-                          <span>Download</span>
-                        </Button>
-                      </div>
+                    {/* Like button and viewer count at bottom of player */}
+                    <div className='absolute bottom-4 right-4 flex items-center space-x-3'>
+                      <Button
+                        variant={isLiked ? 'primary' : 'secondary'}
+                        onClick={handleLike}
+                        className='flex items-center space-x-2 bg-black/50 backdrop-blur-sm'
+                      >
+                        <span>{isLiked ? '❤️' : '🤍'}</span>
+                        <span>
+                          {((stream as unknown as Record<string, unknown>)
+                            .likeCount as number) || 0}
+                        </span>
+                      </Button>
 
-                      {/* Stream metadata */}
-                      <div className='flex items-center space-x-4 text-sm text-gray-400'>
-                        <span>
-                          by{' '}
-                          {((
-                            stream.userId as unknown as Record<string, unknown>
-                          )?.username as string) || 'Unknown'}
-                        </span>
-                        <span>•</span>
-                        <span>{stream.category}</span>
-                        <span>•</span>
-                        <span>
-                          {new Date(stream.createdAt).toLocaleDateString()}
-                        </span>
+                      <div className='flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm'>
+                        <span>👁️</span>
+                        <span>{viewerCount}</span>
                       </div>
                     </div>
                   </div>

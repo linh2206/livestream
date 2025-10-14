@@ -177,7 +177,7 @@ class SocketClient {
           clearTimeout(timeout);
           this.isConnecting = false;
           this.connectionState = 'connected';
-          console.log('WebSocket connected successfully');
+          // WebSocket connected successfully
           resolve();
         });
 
@@ -230,8 +230,7 @@ class SocketClient {
     );
 
     this.socket.on('pong', () => {
-      // eslint-disable-next-line no-console
-      console.log('WebSocket heartbeat received');
+      // WebSocket heartbeat received
     });
 
     // Forward all other events

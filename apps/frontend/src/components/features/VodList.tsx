@@ -66,8 +66,8 @@ export const VodList: React.FC<VodListProps> = ({
         if (response && response.vods && Array.isArray(response.vods)) {
           // Filter out VODs with null user or invalid data
           const validVods = response.vods.filter(
-            (vod: any) => vod && vod._id && vod.title && vod.user
-          ) as VodItem[];
+            (vod: VodItem) => vod && vod._id && vod.title && vod.user
+          );
 
           if (append) {
             setVods(prev => [...prev, ...validVods]);
