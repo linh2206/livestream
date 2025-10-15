@@ -35,6 +35,16 @@ class ChatService {
       `/chat/streams/${streamId}/history?limit=${limit}`
     );
   }
+
+  async getMessagesBefore(
+    streamId: string,
+    beforeId: string,
+    limit: number = 20
+  ): Promise<ChatMessage[]> {
+    return apiClient.get<ChatMessage[]>(
+      `/chat/messages/stream/${streamId}?limit=${limit}&before=${beforeId}`
+    );
+  }
 }
 
 export const chatService = new ChatService();

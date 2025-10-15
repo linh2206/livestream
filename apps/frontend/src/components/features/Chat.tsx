@@ -1,5 +1,6 @@
 'use client';
 
+import { chatService } from '@/lib/api/services/chat.service';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useSocketContext } from '@/lib/contexts/SocketContext';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,61 +47,54 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
       const oldestMessage = messages[0];
       const beforeId = oldestMessage?.id || '';
 
-      const response = await fetch(
-        `http://localhost:9000/api/v1/chat/messages/stream/${streamId}?limit=20&before=${beforeId}`
-      );
+      const data = await chatService.getMessagesBefore(streamId, beforeId, 20);
+      if (data.length === 0) {
+        setHasMoreMessages(false);
+      } else {
+        const newMessages: ChatMessage[] = data.map(msg => ({
+          id: msg._id,
+          userId:
+            (typeof msg.userId === 'object' && msg.userId?._id) ||
+            (typeof msg.userId === 'string' ? msg.userId : ''),
+          username:
+            (typeof msg.userId === 'object' && msg.userId?.username) ||
+            msg.username ||
+            'Unknown User',
+          message: msg.content,
+          timestamp: msg.createdAt,
+          type: 'user' as const,
+        }));
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.length === 0) {
-          setHasMoreMessages(false);
-        } else {
-          const newMessages: ChatMessage[] = data.map(
-            (msg: Record<string, unknown>) => ({
-              id: msg._id as string,
-              userId:
-                ((msg.userId as Record<string, unknown>)?._id as string) ||
-                (msg.userId as string),
-              username:
-                ((msg.userId as Record<string, unknown>)?.username as string) ||
-                (msg.username as string),
-              message: msg.content as string,
-              timestamp: msg.createdAt as string,
-              type: 'user',
-            })
+        // Filter out duplicates and add to beginning
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(msg => msg.id));
+          const uniqueNewMessages = newMessages.filter(
+            msg => !existingIds.has(msg.id)
           );
 
-          // Filter out duplicates and add to beginning
-          setMessages(prev => {
-            const existingIds = new Set(prev.map(msg => msg.id));
-            const uniqueNewMessages = newMessages.filter(
-              msg => !existingIds.has(msg.id)
-            );
+          if (uniqueNewMessages.length > 0) {
+            // Store current scroll position
+            const container = messagesContainerRef.current;
+            const scrollHeight = container?.scrollHeight || 0;
+            const scrollTop = container?.scrollTop || 0;
 
-            if (uniqueNewMessages.length > 0) {
-              // Store current scroll position
-              const container = messagesContainerRef.current;
-              const scrollHeight = container?.scrollHeight || 0;
-              const scrollTop = container?.scrollTop || 0;
+            // Add new messages
+            const newMessagesList = [...uniqueNewMessages.reverse(), ...prev];
 
-              // Add new messages
-              const newMessagesList = [...uniqueNewMessages.reverse(), ...prev];
+            // Restore scroll position after state update
+            setTimeout(() => {
+              if (container) {
+                const newScrollHeight = container.scrollHeight;
+                const heightDiff = newScrollHeight - scrollHeight;
+                container.scrollTop = scrollTop + heightDiff;
+              }
+            }, 0);
 
-              // Restore scroll position after state update
-              setTimeout(() => {
-                if (container) {
-                  const newScrollHeight = container.scrollHeight;
-                  const heightDiff = newScrollHeight - scrollHeight;
-                  container.scrollTop = scrollTop + heightDiff;
-                }
-              }, 0);
+            return newMessagesList;
+          }
 
-              return newMessagesList;
-            }
-
-            return prev;
-          });
-        }
+          return prev;
+        });
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -159,33 +153,27 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
       if (!streamId) return;
 
       try {
-        const response = await fetch(
-          `http://localhost:9000/api/v1/chat/messages/stream/${streamId}?limit=50`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const chatMessages: ChatMessage[] = data.map(
-            (msg: Record<string, unknown>) => ({
-              id: msg._id as string,
-              userId:
-                ((msg.userId as Record<string, unknown>)?._id as string) ||
-                (msg.userId as string),
-              username:
-                ((msg.userId as Record<string, unknown>)?.username as string) ||
-                (msg.username as string),
-              message: msg.content as string,
-              timestamp: msg.createdAt as string,
-              type: 'user',
-            })
-          );
-          setMessages(chatMessages.reverse()); // Reverse to show oldest first
+        const data = await chatService.getMessageHistory(streamId, 50);
+        const chatMessages: ChatMessage[] = data.map(msg => ({
+          id: msg._id,
+          userId:
+            (typeof msg.userId === 'object' && msg.userId?._id) ||
+            (typeof msg.userId === 'string' ? msg.userId : ''),
+          username:
+            (typeof msg.userId === 'object' && msg.userId?.username) ||
+            msg.username ||
+            'Unknown User',
+          message: msg.content,
+          timestamp: msg.createdAt,
+          type: 'user' as const,
+        }));
+        setMessages(chatMessages.reverse()); // Reverse to show oldest first
 
-          // After loading messages, scroll to bottom and allow auto-scroll for new messages
-          setTimeout(() => {
-            scrollToBottom();
-            setUserHasScrolled(false);
-          }, 50);
-        }
+        // After loading messages, scroll to bottom and allow auto-scroll for new messages
+        setTimeout(() => {
+          scrollToBottom();
+          setUserHasScrolled(false);
+        }, 50);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Failed to load chat messages:', error);
@@ -211,7 +199,7 @@ export const Chat: React.FC<ChatProps> = ({ streamId, className = '' }) => {
         });
       }
     };
-  }, [isConnected, streamId, user, emit]);
+  }, [isConnected, streamId, user, emit, scrollToBottom]);
 
   // WebSocket event listeners
   useEffect(() => {

@@ -44,8 +44,12 @@ export default function StreamDetailPage() {
       // eslint-disable-next-line no-console
       console.log('🔍 [Debug] Stream data:', {
         streamId,
+        streamKey: data.streamKey,
+        hlsUrl: data.hlsUrl,
         isLikedByUser,
         likeCount: data.likeCount,
+        status: data.status,
+        isLive: data.isLive,
         data,
       });
       setIsLiked(isLikedByUser);
@@ -251,6 +255,14 @@ export default function StreamDetailPage() {
                       viewerCount={viewerCount}
                       className='h-full'
                     />
+                    {/* Debug info */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className='absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded'>
+                        <div>StreamKey: {stream.streamKey}</div>
+                        <div>HLS URL: {stream.hlsUrl}</div>
+                        <div>Is Live: {isStreamLive ? 'Yes' : 'No'}</div>
+                      </div>
+                    )}
 
                     {/* Like button and viewer count at bottom of player */}
                     <div className='absolute bottom-4 right-4 flex items-center space-x-3'>

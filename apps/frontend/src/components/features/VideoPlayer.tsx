@@ -77,7 +77,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         const hlsBaseUrl =
           process.env.NEXT_PUBLIC_HLS_BASE_URL ||
           'http://localhost:9000/api/v1';
-        return `${hlsBaseUrl}/hls/${streamKey}`;
+        const finalUrl = `${hlsBaseUrl}/hls/${streamKey}`;
+        console.log('🎥 [VideoPlayer] Creating HLS URL:', {
+          streamKey,
+          hlsBaseUrl,
+          finalUrl,
+          shouldShowLive,
+        });
+        return finalUrl;
       }
       return null;
     }, [shouldShowVod, shouldShowLive, streamKey, vodUrl]);
