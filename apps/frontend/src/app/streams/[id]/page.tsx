@@ -266,20 +266,22 @@ export default function StreamDetailPage() {
                   </div>
                 </Card>
 
-                {/* Like button below player */}
-                <div className='mt-4 flex justify-center'>
-                  <Button
-                    variant={isLiked ? 'primary' : 'secondary'}
+                {/* Like button - positioned properly */}
+                <div className='mt-4 flex justify-end'>
+                  <button
                     onClick={handleLike}
-                    className='flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded-full shadow-lg transition-all duration-200'
+                    className={`group flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 ${
+                      isLiked
+                        ? 'bg-red-500 text-white shadow-lg'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    }`}
                   >
                     <span className='text-lg'>{isLiked ? '❤️' : '🤍'}</span>
-                    <span className='font-medium'>
+                    <span className='text-sm font-medium'>
                       {((stream as unknown as Record<string, unknown>)
-                        .likeCount as number) || 0}{' '}
-                      likes
+                        .likeCount as number) || 0}
                     </span>
-                  </Button>
+                  </button>
                 </div>
               </div>
 
