@@ -264,19 +264,45 @@ export default function StreamDetailPage() {
                       </div>
                     )}
 
-                    {/* Like button at bottom of player */}
-                    <div className='absolute bottom-4 right-4'>
-                      <Button
-                        variant={isLiked ? 'primary' : 'secondary'}
-                        onClick={handleLike}
-                        className='flex items-center space-x-2 bg-black/60 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 px-4 py-2 rounded-full shadow-lg'
-                      >
-                        <span className='text-lg'>{isLiked ? '❤️' : '🤍'}</span>
-                        <span className='font-medium'>
+                    {/* TikTok-style action buttons at bottom right */}
+                    <div className='absolute bottom-4 right-4 flex flex-col items-center space-y-3'>
+                      {/* Like button - TikTok style */}
+                      <div className='flex flex-col items-center'>
+                        <Button
+                          variant={isLiked ? 'primary' : 'secondary'}
+                          onClick={handleLike}
+                          className='flex flex-col items-center justify-center w-12 h-12 bg-black/60 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 rounded-full shadow-lg p-0'
+                        >
+                          <span className='text-xl'>
+                            {isLiked ? '❤️' : '🤍'}
+                          </span>
+                        </Button>
+                        <span className='text-xs text-white mt-1 font-medium'>
                           {((stream as unknown as Record<string, unknown>)
                             .likeCount as number) || 0}
                         </span>
-                      </Button>
+                      </div>
+
+                      {/* Viewer count - TikTok style */}
+                      <div className='flex flex-col items-center'>
+                        <div className='flex items-center justify-center w-12 h-12 bg-black/60 backdrop-blur-sm rounded-full shadow-lg'>
+                          <svg
+                            className='w-5 h-5 text-white'
+                            fill='currentColor'
+                            viewBox='0 0 20 20'
+                          >
+                            <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
+                            <path
+                              fillRule='evenodd'
+                              d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
+                              clipRule='evenodd'
+                            />
+                          </svg>
+                        </div>
+                        <span className='text-xs text-white mt-1 font-medium'>
+                          {viewerCount.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Card>
