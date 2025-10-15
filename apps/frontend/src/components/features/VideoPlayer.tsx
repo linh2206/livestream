@@ -37,7 +37,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
     isLive = false,
     vodProcessing = false,
     vodProcessingStatus,
-    viewerCount = 0,
+    viewerCount: _viewerCount = 0,
   }: VideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -78,12 +78,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
           process.env.NEXT_PUBLIC_HLS_BASE_URL ||
           'http://localhost:9000/api/v1';
         const finalUrl = `${hlsBaseUrl}/hls/${streamKey}`;
-        console.log('🎥 [VideoPlayer] Creating HLS URL:', {
-          streamKey,
-          hlsBaseUrl,
-          finalUrl,
-          shouldShowLive,
-        });
         return finalUrl;
       }
       return null;
@@ -507,24 +501,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
 
         {/* TikTok-style Live indicator and viewer count */}
         {shouldShowLive && (
-          <div className='absolute top-4 left-4 flex items-center space-x-2'>
+          <div className='absolute top-4 left-4'>
             {/* Live Badge - TikTok style */}
-            <div className='flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg'>
-              <div className='w-1.5 h-1.5 bg-white rounded-full animate-pulse'></div>
+            <div className='flex items-center space-x-1 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg'>
+              <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
               <span>LIVE</span>
-            </div>
-
-            {/* Viewer Count - TikTok style */}
-            <div className='flex items-center space-x-1 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium'>
-              <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
-                <path d='M10 12a2 2 0 100-4 2 2 0 000 4z' />
-                <path
-                  fillRule='evenodd'
-                  d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z'
-                  clipRule='evenodd'
-                />
-              </svg>
-              <span>{viewerCount.toLocaleString()}</span>
             </div>
           </div>
         )}

@@ -264,24 +264,19 @@ export default function StreamDetailPage() {
                       </div>
                     )}
 
-                    {/* Like button and viewer count at bottom of player */}
-                    <div className='absolute bottom-4 right-4 flex items-center space-x-3'>
+                    {/* Like button at bottom of player */}
+                    <div className='absolute bottom-4 right-4'>
                       <Button
                         variant={isLiked ? 'primary' : 'secondary'}
                         onClick={handleLike}
-                        className='flex items-center space-x-2 bg-black/50 backdrop-blur-sm'
+                        className='flex items-center space-x-2 bg-black/60 backdrop-blur-sm hover:bg-black/70 transition-all duration-200 px-4 py-2 rounded-full shadow-lg'
                       >
-                        <span>{isLiked ? '❤️' : '🤍'}</span>
-                        <span>
+                        <span className='text-lg'>{isLiked ? '❤️' : '🤍'}</span>
+                        <span className='font-medium'>
                           {((stream as unknown as Record<string, unknown>)
                             .likeCount as number) || 0}
                         </span>
                       </Button>
-
-                      <div className='flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm'>
-                        <span>👁️</span>
-                        <span>{viewerCount}</span>
-                      </div>
                     </div>
                   </div>
                 </Card>
