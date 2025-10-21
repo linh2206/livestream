@@ -28,12 +28,12 @@ services:
     container_name: livestream-redis
     restart: unless-stopped
     ports:
-      - "6380:6380"
+      - "6380:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --port 6380 --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    command: redis-server --port 6379 --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
     healthcheck:
-      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,7 +59,7 @@ services:
       - NODE_ENV=production
       - PORT=${PORT:-9000}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/livestream}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6380}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7days}
       - API_BASE_URL=${API_BASE_URL}
@@ -265,7 +265,7 @@ services:
     ports:
       - "9121:9121"
     environment:
-      - REDIS_ADDR=redis://redis:6380
+      - REDIS_ADDR=redis://redis:6379
     depends_on:
       - redis
     networks:
