@@ -41,7 +41,7 @@ cd livestream
    - Backend API: http://localhost:9000/api/v1
    - HLS Streaming: http://localhost:9000/api/v1/hls
    - RTMP Server: rtmp://localhost:1935/live
-   - Grafana: http://localhost:8000 (admin/admin123)
+   - Grafana: http://localhost:8001 (admin/admin123)
    - Prometheus: http://localhost:9090
 
 ## 🏗️ Architecture
@@ -175,9 +175,9 @@ make build
 - Frontend: 3000
 - Backend API: 9000
 - MongoDB: 27017
-- Redis: 6379
+- Redis: 6380
 - RTMP: 1935
-- Grafana: 8000
+- Grafana: 8001
 - Prometheus: 9090
 
 ### Environment Variables
@@ -193,7 +193,7 @@ All services run in Docker containers with:
 ## 📊 Monitoring
 
 ### Grafana Dashboards
-Access Grafana at ${GRAFANA_URL:-http://localhost:8000} (admin/admin123)
+Access Grafana at ${GRAFANA_URL:-http://localhost:8001} (admin/admin123)
 
 Available dashboards:
 - **System Health**: Overall system status

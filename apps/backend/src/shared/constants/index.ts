@@ -10,7 +10,7 @@ export const APP_CONSTANTS = {
   DATABASE: {
     MONGODB_URI:
       process.env.MONGODB_URI || 'mongodb://localhost:27017/livestream',
-    REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
+    REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6380',
   },
 
   // Streaming Configuration

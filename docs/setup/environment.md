@@ -90,7 +90,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   backend:
     build: ./apps/backend
@@ -404,6 +404,8 @@ tar -czf config-backup-$(date +%Y%m%d).tar.gz \
 ---
 
 **Configuration hoàn tất! 🎯**
+
+
 
 
 

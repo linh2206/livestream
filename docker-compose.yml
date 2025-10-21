@@ -28,7 +28,7 @@ services:
     container_name: livestream-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
@@ -208,7 +208,7 @@ services:
     container_name: livestream-grafana
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -216,7 +216,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_SERVER_HTTP_PORT=8000
+      - GF_SERVER_HTTP_PORT=8001
       - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
