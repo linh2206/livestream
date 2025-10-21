@@ -394,8 +394,7 @@ export default function CreateStreamPage() {
                   <p className='text-sm'>
                     <strong>Server:</strong>{' '}
                     {process.env.NEXT_PUBLIC_RTMP_URL ||
-                      'rtmp://localhost:1935'}
-                    /live
+                      'rtmp://localhost:1935/live'}
                     <br />
                     <strong>Stream Key:</strong> [Your unique stream key]
                   </p>

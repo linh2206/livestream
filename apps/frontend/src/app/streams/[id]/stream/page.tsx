@@ -89,6 +89,11 @@ export default function StreamPage() {
     try {
       showLoading('Starting Stream', 'Setting up your camera...');
 
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported in this browser');
+      }
+
       let mediaStream: MediaStream;
 
       if (streamType === 'camera') {
@@ -102,6 +107,11 @@ export default function StreamPage() {
           audio: true,
         });
       } else {
+        // Check if getDisplayMedia is available
+        if (!navigator.mediaDevices.getDisplayMedia) {
+          throw new Error('Screen sharing not supported in this browser');
+        }
+
         // Get screen share stream
         mediaStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
