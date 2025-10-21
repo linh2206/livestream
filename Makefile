@@ -18,6 +18,8 @@ help:
 	@echo "  make install-ffmpeg - Quick install FFmpeg (prebuilt)"
 	@echo "  make compile-ffmpeg - Compile FFmpeg from source (long)"
 	@echo "  make check-ffmpeg   - Show FFmpeg version and codecs"
+	@echo "  make stream-ffmpeg  - Start FFmpeg streaming"
+	@echo "  make clean-ffmpeg   - Clean FFmpeg build artifacts"
 	@echo ""
 	@echo ""
 	@echo "Access URLs:"
