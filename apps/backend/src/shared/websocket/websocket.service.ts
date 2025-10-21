@@ -255,7 +255,7 @@ export class WebSocketService {
   broadcastToRoom(
     room: string,
     event: string,
-    data: any,
+    data: unknown,
     userId?: string
   ): void {
     if (userId && !this.checkRateLimit(userId)) {
@@ -269,7 +269,7 @@ export class WebSocketService {
     }
   }
 
-  broadcastToAll(event: string, data: any, userId?: string): void {
+  broadcastToAll(event: string, data: unknown, userId?: string): void {
     if (userId && !this.checkRateLimit(userId)) {
       return;
     }
@@ -281,7 +281,7 @@ export class WebSocketService {
     }
   }
 
-  sendToUser(userId: string, event: string, data: any): void {
+  sendToUser(userId: string, event: string, data: unknown): void {
     if (!this.checkRateLimit(userId)) {
       return;
     }
@@ -296,7 +296,7 @@ export class WebSocketService {
   // Stream events with throttling
   private streamUpdateThrottle = new Map<string, NodeJS.Timeout>();
 
-  broadcastStreamStart(streamId: string, streamData: any): void {
+  broadcastStreamStart(streamId: string, streamData: unknown): void {
     this.broadcastToAll('stream:start', {
       streamId,
       data: streamData,
@@ -311,7 +311,7 @@ export class WebSocketService {
     });
   }
 
-  broadcastStreamUpdate(streamId: string, updates: any): void {
+  broadcastStreamUpdate(streamId: string, updates: unknown): void {
     // Throttle stream updates to prevent spam
     if (this.streamUpdateThrottle.has(streamId)) {
       clearTimeout(this.streamUpdateThrottle.get(streamId));
@@ -360,9 +360,9 @@ export class WebSocketService {
   }
 
   // Chat events
-  broadcastChatMessage(room: string, message: any): void {
+  broadcastChatMessage(room: string, message: unknown): void {
     this.broadcastToRoom(room, 'chat:message', {
-      ...message,
+      ...(message as Record<string, unknown>),
       timestamp: new Date(),
     });
   }
@@ -383,14 +383,14 @@ export class WebSocketService {
   }
 
   // System events
-  broadcastBandwidthUpdate(stats: any): void {
+  broadcastBandwidthUpdate(stats: unknown): void {
     this.broadcastToAll('system:bandwidth', {
       stats,
       timestamp: new Date(),
     });
   }
 
-  broadcastSystemStats(stats: any): void {
+  broadcastSystemStats(stats: unknown): void {
     this.broadcastToAll('system:stats', {
       stats,
       timestamp: new Date(),
@@ -416,7 +416,7 @@ export class WebSocketService {
   }
 
   // Get connection stats
-  getConnectionStats(): any {
+  getConnectionStats(): Record<string, unknown> {
     return {
       totalConnections: this.connectedUsers.size,
       totalRooms: this.roomUsers.size,

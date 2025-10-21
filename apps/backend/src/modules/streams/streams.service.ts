@@ -171,7 +171,7 @@ export class StreamsService implements OnModuleInit {
       isPublic: stream.isPublic !== undefined ? stream.isPublic : true,
       allowedViewers: stream.allowedViewers || [],
       requiresAuth: stream.requiresAuth || false,
-      likedBy: stream.likedBy || [],
+      likedBy: (stream as { likedBy?: unknown[] }).likedBy || [],
       isVod: stream.isVod || false,
       vodProcessing: stream.vodProcessing || false,
       user: stream.userId

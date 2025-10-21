@@ -5,7 +5,7 @@ import { Socket } from 'socket.io';
 export class WebSocketErrorFilter {
   private readonly logger = new Logger(WebSocketErrorFilter.name);
 
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: Error, host: ArgumentsHost) {
     const client = host.switchToWs().getClient<Socket>();
     const data = host.switchToWs().getData();
 
