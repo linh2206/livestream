@@ -27,7 +27,7 @@ export class StreamStatusService {
       const liveStreams = await this.streamModel.find({ isLive: true }).lean();
 
       for (const stream of liveStreams) {
-        await this.checkAndUpdateStreamStatus(stream);
+        await this.checkAndUpdateStreamStatus(stream as StreamDocument);
       }
 
       this.logger.debug(
@@ -99,7 +99,7 @@ export class StreamStatusService {
         throw new Error(`Stream not found for key: ${streamKey}`);
       }
 
-      await this.checkAndUpdateStreamStatus(stream);
+      await this.checkAndUpdateStreamStatus(stream as StreamDocument);
     } catch (error) {
       this.logger.error(
         `Error force syncing stream status for ${streamKey}:`,
