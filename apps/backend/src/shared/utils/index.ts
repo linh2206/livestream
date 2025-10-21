@@ -84,7 +84,7 @@ export function extractTokenFromRequest(
  * Format pagination response
  */
 export function formatPaginationResponse(
-  data: any[],
+  data: unknown[],
   page: number,
   limit: number,
   total: number
@@ -168,7 +168,7 @@ export function safeJsonParse<T>(json: string, defaultValue: T): T {
  * Safe JSON stringify
  */
 export function safeJsonStringify(
-  obj: any,
+  obj: unknown,
   defaultValue: string = '{}'
 ): string {
   try {

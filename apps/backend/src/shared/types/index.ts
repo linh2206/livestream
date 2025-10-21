@@ -73,7 +73,7 @@ export interface IPagination {
 /**
  * API Response interface
  */
-export interface IApiResponse<T = any> {
+export interface IApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -164,7 +164,7 @@ export interface IRtmpCallbackData {
  */
 export interface IWebSocketEvent {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 

@@ -21,10 +21,10 @@ export class ValidationUtil {
    */
   static async checkStreamKeyExists(
     streamKey: string,
-    streamModel: Model<any>,
+    streamModel: Model<unknown>,
     excludeId?: string
   ): Promise<void> {
-    const query: any = { streamKey };
+    const query: Record<string, unknown> = { streamKey };
     if (excludeId) {
       query._id = { $ne: excludeId };
     }
@@ -40,8 +40,8 @@ export class ValidationUtil {
    */
   static async validateUserExists(
     userId: string,
-    userModel: Model<any>
-  ): Promise<any> {
+    userModel: Model<unknown>
+  ): Promise<unknown> {
     const user = await userModel.findById(userId);
     if (!user) {
       throw new ValidationException('User not found');
@@ -54,8 +54,8 @@ export class ValidationUtil {
    */
   static async validateStreamExists(
     streamId: string,
-    streamModel: Model<any>
-  ): Promise<any> {
+    streamModel: Model<unknown>
+  ): Promise<unknown> {
     const stream = await streamModel.findById(streamId);
     if (!stream) {
       throw new ValidationException('Stream not found');
@@ -67,13 +67,13 @@ export class ValidationUtil {
    * Check user permissions for stream
    */
   static async checkStreamPermissions(
-    stream: any,
+    stream: { userId: { toString(): string } },
     userId: string,
-    userModel: Model<any>
+    userModel: Model<unknown>
   ): Promise<void> {
     if (stream.userId.toString() !== userId) {
       const user = await userModel.findById(userId);
-      if (!user || user.role !== 'admin') {
+      if (!user || (user as { role?: string }).role !== 'admin') {
         throw new ValidationException(
           'You do not have permission to access this stream'
         );
@@ -85,7 +85,7 @@ export class ValidationUtil {
    * Generate unique stream key
    */
   static async generateUniqueStreamKey(
-    streamModel: Model<any>,
+    streamModel: Model<unknown>,
     prefix: string = 'stream'
   ): Promise<string> {
     let streamKey: string;

@@ -72,7 +72,10 @@ export class VodController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  async deleteVod(@Param('id') id: string, @Request() req: any) {
+  async deleteVod(
+    @Param('id') id: string,
+    @Request() req: { user: { _id: string } }
+  ) {
     return this.vodService.deleteVod(id, req.user._id);
   }
 
