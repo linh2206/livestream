@@ -1,21 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  register,
   collectDefaultMetrics,
   Counter,
   Gauge,
   Histogram,
+  register,
 } from 'prom-client';
-import { User } from '../../shared/database/schemas/user.schema';
-import { Stream } from '../../shared/database/schemas/stream.schema';
 import { ChatMessage } from '../../shared/database/schemas/chat-message.schema';
+import { Stream } from '../../shared/database/schemas/stream.schema';
+import { User } from '../../shared/database/schemas/user.schema';
 import { RedisService } from '../../shared/redis/redis.service';
 import { WebSocketService } from '../../shared/websocket/websocket.service';
 
 @Injectable()
 export class MetricsService {
+  private readonly logger = new Logger(MetricsService.name);
   // Custom metrics
   private readonly activeStreamsGauge: Gauge<string>;
   private readonly totalUsersGauge: Gauge<string>;
@@ -125,8 +126,7 @@ export class MetricsService {
       try {
         await this.updateMetrics();
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error updating metrics:', error);
+        this.logger.error('Error updating metrics:', error);
       }
     }, 30000);
   }
@@ -182,7 +182,7 @@ export class MetricsService {
         );
       });
     } catch (error) {
-      console.error('Error updating metrics:', error);
+      this.logger.error('Error updating metrics:', error);
     }
   }
 

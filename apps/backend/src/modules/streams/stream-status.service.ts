@@ -38,7 +38,9 @@ export class StreamStatusService {
     }
   }
 
-  private async checkAndUpdateStreamStatus(stream: any): Promise<void> {
+  private async checkAndUpdateStreamStatus(
+    stream: StreamDocument
+  ): Promise<void> {
     try {
       // Check if HLS stream is actually available
       const hlsPath = path.join('/app', 'hls', stream.streamKey, 'index.m3u8');

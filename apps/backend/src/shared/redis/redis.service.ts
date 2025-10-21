@@ -1,9 +1,15 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
   private client: Redis;
   private subscriber: Redis;
   private publisher: Redis;
@@ -19,15 +25,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.publisher = new Redis(redisUrl);
 
     this.client.on('error', err => {
-      console.error('Redis Client Error:', err);
+      this.logger.error('Redis Client Error:', err);
     });
 
     this.subscriber.on('error', err => {
-      console.error('Redis Subscriber Error:', err);
+      this.logger.error('Redis Subscriber Error:', err);
     });
 
     this.publisher.on('error', err => {
-      console.error('Redis Publisher Error:', err);
+      this.logger.error('Redis Publisher Error:', err);
     });
   }
 

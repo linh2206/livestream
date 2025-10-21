@@ -1,33 +1,38 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { RtmpService } from './rtmp.service';
+
+interface RtmpRequestBody {
+  name?: string;
+  streamKey?: string;
+}
 
 @Controller('rtmp')
 export class RtmpController {
   constructor(private rtmpService: RtmpService) {}
 
   @Post('publish')
-  async onPublish(@Body() body: any) {
+  async onPublish(@Body() body: RtmpRequestBody) {
     const streamKey = body.name || body.streamKey;
     await this.rtmpService.onPublish(streamKey);
     return { message: 'Stream started successfully' };
   }
 
   @Post('publish-done')
-  async onPublishDone(@Body() body: any) {
+  async onPublishDone(@Body() body: RtmpRequestBody) {
     const streamKey = body.name || body.streamKey;
     await this.rtmpService.onPublishDone(streamKey);
     return { message: 'Stream stopped successfully' };
   }
 
   @Post('play')
-  async onPlay(@Body() body: any) {
+  async onPlay(@Body() body: RtmpRequestBody) {
     const streamKey = body.name || body.streamKey;
     await this.rtmpService.onPlay(streamKey);
     return { message: 'Viewer joined stream' };
   }
 
   @Post('play-done')
-  async onPlayDone(@Body() body: any) {
+  async onPlayDone(@Body() body: RtmpRequestBody) {
     const streamKey = body.name || body.streamKey;
     await this.rtmpService.onPlayDone(streamKey);
     return { message: 'Viewer left stream' };
