@@ -49,7 +49,7 @@ export function buildHlsUrl(streamKey: string): string {
  * Build RTMP URL
  */
 export function buildRtmpUrl(streamKey: string): string {
-  return `${APP_CONSTANTS.STREAMING.RTMP_BASE_URL}/live/${streamKey}`;
+  return `${APP_CONSTANTS.STREAMING.RTMP_BASE_URL}/${streamKey}`;
 }
 
 /**

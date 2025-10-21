@@ -89,7 +89,7 @@ export class StreamsService implements OnModuleInit {
       streamKey,
       streamType: createStreamDto.streamType || 'camera',
       hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${streamKey}`,
-      rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${streamKey}`,
+      rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${streamKey}`,
     });
 
     await stream.save();
@@ -245,7 +245,7 @@ export class StreamsService implements OnModuleInit {
         `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
       rtmpUrl:
         stream.rtmpUrl ||
-        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
+        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${stream.streamKey}`,
       isLikedByUser,
     } as Stream & { isLikedByUser?: boolean };
   }
@@ -284,7 +284,7 @@ export class StreamsService implements OnModuleInit {
         `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/hls'}/${stream.streamKey}`,
       rtmpUrl:
         stream.rtmpUrl ||
-        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${stream.streamKey}`,
+        `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${stream.streamKey}`,
     } as Stream;
   }
 

@@ -34,7 +34,7 @@ export class RtmpService {
           userId: null,
           streamKey,
           hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${streamKey}`,
-          rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/live/${streamKey}`,
+          rtmpUrl: `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${streamKey}`,
           status: 'inactive',
           isLive: false,
           viewerCount: 0,
