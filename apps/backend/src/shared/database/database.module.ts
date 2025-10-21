@@ -5,7 +5,11 @@ import { Model } from 'mongoose';
 // Import all schemas
 import { DatabaseIndexes } from './indexes';
 import { DatabaseOptimization } from './optimization';
-import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
+import {
+  ChatMessage,
+  ChatMessageDocument,
+  ChatMessageSchema,
+} from './schemas/chat-message.schema';
 import { Stream, StreamDocument, StreamSchema } from './schemas/stream.schema';
 import { User, UserDocument, UserSchema } from './schemas/user.schema';
 import { Vod, VodDocument, VodSchema } from './schemas/vod.schema';
