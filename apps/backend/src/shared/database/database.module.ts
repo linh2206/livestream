@@ -26,7 +26,7 @@ export class DatabaseModule implements OnModuleInit {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Stream.name) private streamModel: Model<StreamDocument>,
     @InjectModel(Vod.name) private vodModel: Model<VodDocument>,
-    @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessage>
+    @InjectModel(ChatMessage.name) private chatModel: Model<ChatMessageDocument>
   ) {}
 
   async onModuleInit() {

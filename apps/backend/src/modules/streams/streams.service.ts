@@ -171,7 +171,7 @@ export class StreamsService implements OnModuleInit {
       isPublic: stream.isPublic !== undefined ? stream.isPublic : true,
       allowedViewers: stream.allowedViewers || [],
       requiresAuth: stream.requiresAuth || false,
-      likedBy: (stream as { likedBy?: unknown[] }).likedBy || [],
+      likedBy: (stream as { likedBy?: Types.ObjectId[] }).likedBy || [],
       isVod: stream.isVod || false,
       vodProcessing: stream.vodProcessing || false,
       user: stream.userId
@@ -228,14 +228,14 @@ export class StreamsService implements OnModuleInit {
 
     // Check if current user has liked this stream
     const isLikedByUser = userId
-      ? stream.likedBy?.some(
+      ? (stream as { likedBy?: Types.ObjectId[] }).likedBy?.some(
           likedUserId => likedUserId.toString() === userId
         ) || false
       : false;
 
     // Ensure stream has proper default values
     return {
-      ...stream.toObject(),
+      ...(stream.toObject() as unknown as Record<string, unknown>),
       isLive: stream.isLive || false,
       status: stream.status || 'inactive',
       viewerCount: stream.viewerCount || 0,
@@ -271,7 +271,7 @@ export class StreamsService implements OnModuleInit {
 
     // Ensure stream has proper default values
     return {
-      ...stream.toObject(),
+      ...(stream.toObject() as unknown as Record<string, unknown>),
       isLive: stream.isLive || false,
       status: stream.status || 'inactive',
       viewerCount: stream.viewerCount || 0,
@@ -530,7 +530,10 @@ export class StreamsService implements OnModuleInit {
     );
 
     const userObjectId = new Types.ObjectId(userId);
-    const isCurrentlyLiked = stream.likedBy?.includes(userObjectId) || false;
+    const isCurrentlyLiked =
+      (stream as { likedBy?: Types.ObjectId[] }).likedBy?.includes(
+        userObjectId
+      ) || false;
 
     let updatedStream: Stream;
     let isLiked: boolean;
