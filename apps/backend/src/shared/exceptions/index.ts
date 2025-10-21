@@ -68,7 +68,7 @@ export class AuthenticationRequiredException extends HttpException {
  * Custom exception for validation errors
  */
 export class ValidationException extends HttpException {
-  constructor(message: string, errors?: any[]) {
+  constructor(message: string, errors?: unknown[]) {
     super(
       {
         message,

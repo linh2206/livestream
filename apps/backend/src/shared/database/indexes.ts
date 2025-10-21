@@ -3,10 +3,10 @@ import { Model } from 'mongoose';
 // Database indexes for performance optimization
 export class DatabaseIndexes {
   static async createIndexes(
-    userModel: Model<any>,
-    streamModel: Model<any>,
-    vodModel: Model<any>,
-    chatModel: Model<any>
+    userModel: Model<unknown>,
+    streamModel: Model<unknown>,
+    vodModel: Model<unknown>,
+    chatModel: Model<unknown>
   ) {
     try {
       // User indexes

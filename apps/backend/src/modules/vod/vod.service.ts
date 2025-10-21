@@ -46,7 +46,7 @@ export class VodService {
         vodFileSize: 0, // Will be set after processing
         vodThumbnail: null, // Will be set after processing
         tags: stream.tags || [],
-        category: (stream as any).category || null,
+        category: (stream as { category?: string }).category || null,
         viewerCount: stream.viewerCount || 0,
         totalViewerCount: stream.totalViewerCount || 0,
         likeCount: stream.likeCount || 0,
@@ -242,7 +242,7 @@ export class VodService {
       totalViewerCount: vod.totalViewerCount || 0,
       likeCount: vod.likeCount || 0,
       user: vod.userId,
-      createdAt: (vod as any).createdAt || new Date(),
+      createdAt: (vod as { createdAt?: Date }).createdAt || new Date(),
       // Calculate duration in human readable format
       durationFormatted: this.formatDuration(vod.vodDuration),
       // Calculate file size in human readable format

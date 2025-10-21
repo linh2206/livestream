@@ -36,7 +36,7 @@ export class VodController {
   @Get('my')
   @UseGuards(JwtAuthGuard)
   async getMyVods(
-    @Request() req: any,
+    @Request() req: { user: { _id: string } },
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10'
   ) {
