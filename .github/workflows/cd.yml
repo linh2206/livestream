@@ -16,16 +16,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ github.sha }}
+          fetch-depth: 1
 
       - name: Verify latest code
         run: |
           echo "Current branch: $(git branch --show-current)"
           echo "Latest commit: $(git log -1 --oneline)"
+          echo "Commit SHA: ${{ github.sha }}"
           echo "Remote status:"
           git remote -v
           git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
+          echo "After reset - Latest commit: $(git log -1 --oneline)"
           git status
 
       - name: Prepare environment files
@@ -68,15 +72,20 @@ jobs:
           echo "Stopping existing containers..."
           docker compose down --remove-orphans || true
 
-          echo "Cleaning Docker cache..."
-          docker builder prune -f || true
-          docker system prune -f || true
+          echo "Cleaning Docker cache and images..."
+          docker builder prune -af || true
+          docker system prune -af || true
+          docker image prune -af || true
 
-          echo "Building services..."
-          docker compose build --no-cache || {
+          # Remove old images to force rebuild
+          echo "Removing old application images..."
+          docker images | grep -E "(livestream|backend|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
+
+          echo "Building services with fresh code..."
+          docker compose build --no-cache --pull || {
               echo "First build failed, retrying..."
               sleep 10
-              docker compose build --no-cache
+              docker compose build --no-cache --pull
           }
 
           echo "Starting services..."
