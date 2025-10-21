@@ -8,7 +8,7 @@ Hướng dẫn cấu hình environment variables và settings cho LiveStream Pla
 ```bash
 # Database
 MONGODB_URI=mongodb://mongodb:27017/livestream
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://redis:6380
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key
@@ -90,14 +90,14 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6380:6379"
+      - "6380:6380"
 
   backend:
     build: ./apps/backend
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/livestream
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis:6380
     depends_on:
       - mongodb
       - redis
