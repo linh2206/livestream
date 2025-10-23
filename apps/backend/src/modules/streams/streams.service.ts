@@ -192,7 +192,7 @@ export class StreamsService implements OnModuleInit {
       endTime: stream.endTime,
       // Only include URLs if stream is live
       ...(stream.isLive && {
-        hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+        hlsUrl: `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`,
       }),
     }));
 
@@ -242,7 +242,7 @@ export class StreamsService implements OnModuleInit {
       likeCount: stream.likeCount || 0,
       hlsUrl:
         stream.hlsUrl ||
-        `${process.env.HLS_BASE_URL || 'http://localhost:8080/hls'}/${stream.streamKey}`,
+        `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`,
       rtmpUrl:
         stream.rtmpUrl ||
         `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${stream.streamKey}`,
@@ -281,7 +281,7 @@ export class StreamsService implements OnModuleInit {
         stream.requiresAuth !== undefined ? stream.requiresAuth : false,
       hlsUrl:
         stream.hlsUrl ||
-        `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/hls'}/${stream.streamKey}`,
+        `${process.env.HLS_BASE_URL || 'http://localhost:9000/api/v1'}/hls/${stream.streamKey}`,
       rtmpUrl:
         stream.rtmpUrl ||
         `${process.env.RTMP_BASE_URL || 'rtmp://localhost:1935'}/${stream.streamKey}`,
