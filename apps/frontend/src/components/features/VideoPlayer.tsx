@@ -73,25 +73,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         }
         return vodUrl;
       }
-      if (shouldShowLive && streamKey) {
-        // Validate streamKey before constructing URL
-        if (
-          !streamKey ||
-          streamKey.trim() === '' ||
-          streamKey === 'undefined' ||
-          streamKey === 'null'
-        ) {
-          console.error('[VideoPlayer] Invalid streamKey:', streamKey);
-          return null;
+      if (shouldShowLive) {
+        // Priority 1: Use hlsUrl from backend if provided
+        if (hlsUrl && hlsUrl.trim() !== '') {
+          console.log('[VideoPlayer] Using hlsUrl from backend:', hlsUrl);
+          return hlsUrl;
         }
-        const hlsBaseUrl =
-          process.env.NEXT_PUBLIC_HLS_BASE_URL ||
-          'http://localhost:9000/api/v1';
-        const finalUrl = `${hlsBaseUrl}/hls/${streamKey}`;
-        return finalUrl;
+
+        // Priority 2: Construct from streamKey
+        if (streamKey) {
+          // Validate streamKey before constructing URL
+          if (
+            !streamKey ||
+            streamKey.trim() === '' ||
+            streamKey === 'undefined' ||
+            streamKey === 'null'
+          ) {
+            console.error('[VideoPlayer] Invalid streamKey:', streamKey);
+            return null;
+          }
+          const hlsBaseUrl =
+            process.env.NEXT_PUBLIC_HLS_BASE_URL ||
+            'http://localhost:9000/api/v1';
+          const finalUrl = `${hlsBaseUrl}/hls/${streamKey}`;
+          console.log(
+            '[VideoPlayer] Constructed URL from streamKey:',
+            finalUrl
+          );
+          return finalUrl;
+        }
       }
       return null;
-    }, [shouldShowVod, shouldShowLive, streamKey, vodUrl]);
+    }, [shouldShowVod, shouldShowLive, streamKey, vodUrl, hlsUrl]);
 
     // Cleanup function
     const cleanup = useCallback(() => {

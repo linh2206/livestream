@@ -247,20 +247,30 @@ export default function StreamDetailPage() {
               <div className='lg:col-span-2 flex flex-col'>
                 <Card className='flex-1 relative'>
                   <div className='p-6 h-full'>
-                    <VideoPlayer
-                      streamKey={stream.streamKey}
-                      hlsUrl={stream.hlsUrl}
-                      isVod={false}
-                      isLive={isStreamLive}
-                      viewerCount={viewerCount}
-                      className='h-full'
-                    />
-                    {/* Debug info */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className='absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded'>
-                        <div>StreamKey: {stream.streamKey}</div>
-                        <div>HLS URL: {stream.hlsUrl}</div>
-                        <div>Is Live: {isStreamLive ? 'Yes' : 'No'}</div>
+                    {stream && (
+                      <>
+                        <VideoPlayer
+                          streamKey={stream.streamKey}
+                          hlsUrl={stream.hlsUrl}
+                          isVod={stream.isVod || false}
+                          isLive={isStreamLive}
+                          viewerCount={viewerCount}
+                          className='h-full'
+                        />
+                        {/* Debug info */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <div className='absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded z-50'>
+                            <div>StreamKey: {stream.streamKey}</div>
+                            <div>HLS URL: {stream.hlsUrl}</div>
+                            <div>Is Live: {isStreamLive ? 'Yes' : 'No'}</div>
+                            <div>Status: {stream.status}</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {!stream && !loading && (
+                      <div className='flex items-center justify-center h-full text-white'>
+                        Stream not found
                       </div>
                     )}
                   </div>
