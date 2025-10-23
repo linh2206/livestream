@@ -28,12 +28,12 @@ services:
     container_name: livestream-redis
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "6380:6380"
     volumes:
       - redis_data:/data
-    command: redis-server --port 6379 --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    command: redis-server --port 6380 --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
     healthcheck:
-      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
