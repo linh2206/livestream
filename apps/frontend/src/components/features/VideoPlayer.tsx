@@ -74,6 +74,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         return vodUrl;
       }
       if (shouldShowLive && streamKey) {
+        // Validate streamKey before constructing URL
+        if (
+          !streamKey ||
+          streamKey.trim() === '' ||
+          streamKey === 'undefined' ||
+          streamKey === 'null'
+        ) {
+          console.error('[VideoPlayer] Invalid streamKey:', streamKey);
+          return null;
+        }
         const hlsBaseUrl =
           process.env.NEXT_PUBLIC_HLS_BASE_URL ||
           'http://localhost:9000/api/v1';
@@ -164,9 +174,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(
         if (finalHlsUrl) {
           // Add cache busting to avoid cache issues
           const cacheBustedUrl = `${finalHlsUrl}?t=${Date.now()}`;
+          console.log('[VideoPlayer] Loading HLS source:', {
+            streamKey,
+            finalHlsUrl,
+            cacheBustedUrl,
+            isVod,
+            isLive,
+          });
           hls.loadSource(cacheBustedUrl);
           hls.attachMedia(video);
         } else {
+          console.warn('[VideoPlayer] No valid HLS URL available', {
+            streamKey,
+            hlsUrl,
+            isVod,
+            isLive,
+            shouldShowVod,
+            shouldShowLive,
+          });
           setError(
             'Stream not ready - waiting for broadcaster to start streaming'
           );

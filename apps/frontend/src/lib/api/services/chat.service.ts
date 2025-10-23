@@ -32,7 +32,7 @@ class ChatService {
     limit: number = 50
   ): Promise<ChatMessage[]> {
     return apiClient.get<ChatMessage[]>(
-      `/chat/streams/${streamId}/history?limit=${limit}`
+      `/chat/messages/stream/${streamId}?limit=${limit}`
     );
   }
 
